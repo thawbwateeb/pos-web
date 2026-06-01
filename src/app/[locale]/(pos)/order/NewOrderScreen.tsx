@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Icon } from '@/components/Icons';
+import GarmentIcon from '@/components/GarmentIcon';
 import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
@@ -188,7 +189,7 @@ export default function NewOrderScreen({
             const qtyInCart = cart.filter((l) => l.itemId === item.id && (tier ? l.tierId === tier.id : true)).reduce((s, l) => s + l.qty, 0);
             return (
               <button key={item.id} className={`item-card${unavail ? ' unavail' : ''}`} disabled={unavail} onClick={() => addToCart(item)}>
-                <Icon.hanger size={28} className="ic-ico" />
+                <GarmentIcon name={item.name} size={28} className="ic-ico" />
                 <div className="ic-name">{item.name}</div>
                 <div className="ic-price">
                   {unavail ? <b style={{ fontSize: 11, color: 'var(--faint)' }}>—</b> : (

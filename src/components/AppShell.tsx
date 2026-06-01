@@ -11,15 +11,18 @@ import { initials } from '@/lib/format';
 import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost } from './Toast';
 
+// Each rail entry carries the i18n key for its short label, the icon, AND
+// the topbar crumb namespace + page-title key for that route. This way the
+// topbar text always matches what the user clicked.
 const NAV = [
-  { id: 'order',    tKey: 'newOrder',  Icon: Icon.receipt, crumb: 'pos' },
-  { id: 'orders',   tKey: 'orders',    Icon: Icon.board,   crumb: 'operations' },
-  { id: 'payments', tKey: 'payments',  Icon: Icon.card,    crumb: 'operations' },
-  { id: 'customers',tKey: 'customers', Icon: Icon.users,   crumb: 'crm' },
-  { id: 'whatsapp', tKey: 'whatsapp',  Icon: Icon.whatsapp,crumb: 'crm' },
-  { id: 'reports',  tKey: 'report',    Icon: Icon.chart,   crumb: 'analytics' },
-  { id: 'finance',  tKey: 'finance',   Icon: Icon.trend,   crumb: 'analytics' },
-  { id: 'settings', tKey: 'settings',  Icon: Icon.gear,    crumb: 'config' },
+  { id: 'order',    tKey: 'newOrder',   Icon: Icon.receipt, crumb: 'pointOfSale',   titleKey: 'newOrder' },
+  { id: 'orders',   tKey: 'orders',     Icon: Icon.board,   crumb: 'operations',    titleKey: 'ordersBoard' },
+  { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'operations',    titleKey: 'payments' },
+  { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',           titleKey: 'customers' },
+  { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',     titleKey: 'whatsappBusiness' },
+  { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',       titleKey: 'dailySummary' },
+  { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'finance',       titleKey: 'financialVision' },
+  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration', titleKey: 'settings' },
 ] as const;
 
 interface AppShellProps {
@@ -38,6 +41,7 @@ export default function AppShell({ bootstrap: initial, children }: AppShellProps
   const [bootstrap, setBootstrap] = useState(initial);
   const [now, setNow] = useState(() => new Date());
   const [storePickerOpen, setStorePickerOpen] = useState(false);
+  const [shifted, setShifted] = useState(false); // local "checked in" hint
   const [badges, setBadges] = useState<{ orders?: number; payments?: number; whatsapp?: number }>({});
 
   useEffect(() => {
@@ -45,16 +49,37 @@ export default function AppShell({ bootstrap: initial, children }: AppShellProps
     return () => clearInterval(id);
   }, []);
 
+  // Fetch live badge counts so the rail reflects what's actually pending —
+  // active orders, unpaid orders (≈ Payments queue), and unread WhatsApp
+  // conversations. Re-fetches on SSE order/payment/wa events.
   useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [orders, payments, convos] = await Promise.all([
+          api<any[]>('/orders?take=200').catch(() => []),
+          api<any[]>('/payments?take=200').catch(() => []),
+          api<any[]>('/whatsapp/conversations').catch(() => []),
+        ]);
+        if (cancelled) return;
+        setBadges({
+          orders: orders.filter((o: any) => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length,
+          payments: orders.filter((o: any) => !o.paid && o.status !== 'CANCELLED').length,
+          whatsapp: convos.reduce((s: number, c: any) => s + (c.unread ?? 0), 0),
+        });
+      } catch {/* badges are decorative */}
+    }
+    load();
     let es: EventSource | null = null;
     try {
       es = eventStream();
-      es.addEventListener('order.created', () => setBadges((b) => ({ ...b, orders: (b.orders ?? 0) + 1 })));
-    } catch {/* SSE optional */}
-    return () => es?.close();
+      ['order.created', 'order.status', 'payment.recorded', 'wa.received'].forEach((ev) =>
+        es!.addEventListener(ev, load),
+      );
+    } catch {}
+    return () => { cancelled = true; es?.close(); };
   }, []);
 
-  // pathname: /en/order, /ar/settings/branding → segment[1] = "order" / "settings"
   const segments = pathname.split('/').filter(Boolean);
   const active = segments[1] || 'order';
   const navMeta = NAV.find((n) => n.id === active);
@@ -83,10 +108,8 @@ export default function AppShell({ bootstrap: initial, children }: AppShellProps
             <nav className="nav">
               {NAV.map(({ id, tKey, Icon: NavIcon }) => {
                 const isOn = active === id;
-                const badge = id === 'orders' ? badges.orders : undefined;
+                const badge = (badges as any)[id];
                 return (
-                  // Next prefetches the RSC payload on hover/focus — tab
-                  // switches feel instant even though the page is SSR'd.
                   <Link
                     key={id}
                     href={`/${locale}/${id}`}
@@ -110,14 +133,21 @@ export default function AppShell({ bootstrap: initial, children }: AppShellProps
           <div className="main">
             <header className="topbar">
               <div className="crumb">
-                <span className="k">{tc(navMeta?.crumb ?? 'pos')}</span>
-                <span className="t">{tc(navMeta?.id ?? 'order')}</span>
+                <span className="k">{tc(navMeta?.crumb ?? 'pointOfSale')}</span>
+                <span className="t">{tc(navMeta?.titleKey ?? 'newOrder')}</span>
               </div>
               <div className="search">
                 <Icon.search size={16} />
                 <input placeholder={t('globalSearch')} />
               </div>
               <div className="spacer" />
+              <button
+                className={`checkbtn${shifted ? ' on' : ''}`}
+                onClick={() => setShifted((v) => !v)}
+                title={shifted ? t('checkedIn') : t('checkIn')}
+              >
+                {shifted ? t('checkedIn') : t('checkIn')}
+              </button>
               <button className="storechip" onClick={() => setStorePickerOpen((v) => !v)}>
                 <Icon.shop size={15} />
                 <span className="snm">{activeStore?.name ?? t('pickStore')}</span>
