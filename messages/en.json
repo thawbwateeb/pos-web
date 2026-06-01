@@ -436,13 +436,42 @@
       "Today": "Today",
       "Yesterday": "Yesterday",
       "Week": "Last 7 days",
-      "Month": "This month"
+      "Month": "This month",
+      "Custom": "Custom range"
+    },
+    "customRange": {
+      "apply": "Apply"
     },
     "sections": {
       "overview": "Overview",
       "sales": "Sales",
       "products": "Products & Channels",
-      "financials": "Financials"
+      "financials": "Financials",
+      "cashDrawer": "Cash drawer"
+    },
+    "hourly": {
+      "title": "Sales by hour",
+      "sub": "AED collected per hour for the selected range"
+    },
+    "cashUp": {
+      "button": "Cash up",
+      "title": "Close shift · cash up",
+      "expected": "Expected drawer",
+      "counted": "Counted",
+      "variance": "Variance",
+      "confirm": "Close shift",
+      "closedToast": "Shift closed · variance {amount}",
+      "noShift": "No open shift to close",
+      "failed": "Could not close shift"
+    },
+    "cashDrawer": {
+      "title": "Cash drawer reconciliation",
+      "sub": "What the drawer should contain right now",
+      "cashSales": "Cash sales",
+      "cardDigital": "Card / digital",
+      "account": "On account",
+      "expected": "Expected drawer",
+      "hint": "Cash up at end of shift to log the variance."
     },
     "kpis": {
       "gross": "Gross Sales",
@@ -460,7 +489,9 @@
       "cashShare": "Cash",
       "cashShareSub": "of paid volume",
       "refundRate": "Refunds",
-      "refundRateSub": "of paid volume"
+      "refundRateSub": "of paid volume",
+      "refunds": "Refunds",
+      "refundsSub": "issued in range"
     },
     "paymentMix": {
       "title": "Payment Mix",
@@ -484,7 +515,8 @@
       "gross": "Gross sales",
       "collected": "Collected",
       "outstanding": "Outstanding",
-      "net": "Net revenue"
+      "net": "Net revenue",
+      "refunds": "Refunds"
     },
     "profitMargin": {
       "title": "Profit & Margin",

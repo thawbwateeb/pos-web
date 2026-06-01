@@ -6,6 +6,12 @@ import { Icon } from '@/components/Icons';
 
 const GROUPS = [
   {
+    label: 'General',
+    items: [
+      { href: '/settings/general', label: 'General', Ico: Icon.shop },
+    ],
+  },
+  {
     label: 'Catalogue',
     items: [
       { href: '/settings/branding', label: 'Branding', Ico: Icon.palette },
@@ -19,9 +25,11 @@ const GROUPS = [
   {
     label: 'Operations',
     items: [
+      { href: '/settings/racks', label: 'Racks', Ico: Icon.box },
       { href: '/settings/stores', label: 'Stores', Ico: Icon.shop },
       { href: '/settings/pickup', label: 'Pickup & Delivery', Ico: Icon.truck },
       { href: '/settings/areas', label: 'Areas', Ico: Icon.zone },
+      { href: '/settings/zones', label: 'Delivery zones', Ico: Icon.zone },
       { href: '/settings/drivers', label: 'Drivers', Ico: Icon.truck },
       { href: '/settings/inventory', label: 'Inventory', Ico: Icon.box },
       { href: '/settings/shifts', label: 'Cash & Shift', Ico: Icon.cash },

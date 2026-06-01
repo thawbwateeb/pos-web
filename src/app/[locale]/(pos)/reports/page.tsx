@@ -4,11 +4,73 @@ import ReportsScreen from './ReportsScreen';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
-  const { range = 'Today' } = await searchParams;
-  const [overview, meta] = await Promise.all([
-    apiServer<any>(`/reports/overview?range=${range}`),
+type ReportRange = 'Today' | 'Yesterday' | 'Week' | 'Month' | 'Custom';
+
+interface SearchParams {
+  range?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface ReportsOverview {
+  range: { from: string; to: string };
+  orders: number;
+  revenue: number;
+  collected: number;
+  refunds: number;
+  refundCount: number;
+  byStatus: { status: string; _count: number }[];
+  byMethod: { method: string; _count: number; _sum: { amount: number | string | null } }[];
+  topItems: { name: string; qty: number | null; revenue: number }[];
+}
+
+export interface ReportsHourly {
+  range: { from: string; to: string };
+  hours: { hour: number; total: number }[];
+}
+
+function normalizeRange(r: string | undefined): ReportRange {
+  switch (r) {
+    case 'Yesterday':
+    case 'Week':
+    case 'Month':
+    case 'Custom':
+      return r;
+    default:
+      return 'Today';
+  }
+}
+
+function qs(params: Record<string, string | undefined>): string {
+  const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== '');
+  if (entries.length === 0) return '';
+  return '?' + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v as string)}`).join('&');
+}
+
+export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await searchParams;
+  const range = normalizeRange(sp.range);
+  const params: Record<string, string | undefined> =
+    range === 'Custom'
+      ? { range, from: sp.from, to: sp.to }
+      : { range };
+  const query = qs(params);
+  const [overview, hourly, meta] = await Promise.all([
+    apiServer<ReportsOverview>(`/reports/overview${query}`),
+    apiServer<ReportsHourly>(`/reports/hourly${query}`).catch(() => ({
+      range: { from: '', to: '' },
+      hours: Array.from({ length: 24 }, (_, h) => ({ hour: h, total: 0 })),
+    })),
     apiServer<MetaResponse>('/meta'),
   ]);
-  return <ReportsScreen overview={overview} range={range} meta={meta} />;
+  return (
+    <ReportsScreen
+      overview={overview}
+      hourly={hourly}
+      range={range}
+      from={sp.from ?? ''}
+      to={sp.to ?? ''}
+      meta={meta}
+    />
+  );
 }

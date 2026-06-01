@@ -1,0 +1,407 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api-client';
+import { AED } from '@/lib/format';
+import { useToast } from '@/components/Toast';
+
+/**
+ * Polygon vertices are stored as `[[x, y], ...]` in the design's normalized
+ * coordinate space (x: 0..100, y: 0..71 — matches the SVG viewBox the legacy
+ * app uses). Storing percentages keeps the shape resolution-independent.
+ */
+export type ZonePoint = [number, number];
+
+export interface Zone {
+  id: string;
+  name: string;
+  color: string | null;
+  polygon: ZonePoint[] | unknown;
+  baseFee: number | string;
+  capacity: number;
+  active: boolean;
+}
+
+const VB_W = 100;
+const VB_H = 71;
+const ZONE_PALETTE = ['#5b8def', '#ef5b8d', '#5bef8d', '#efbd5b', '#a05bef', '#5befef', '#ef5b5b'];
+
+function asPoints(p: unknown): ZonePoint[] {
+  if (!Array.isArray(p)) return [];
+  return p
+    .filter((v): v is ZonePoint => Array.isArray(v) && v.length === 2 && typeof v[0] === 'number' && typeof v[1] === 'number')
+    .map(([x, y]) => [x, y] as ZonePoint);
+}
+
+function toFee(v: number | string): number {
+  return typeof v === 'string' ? parseFloat(v) || 0 : v;
+}
+
+export default function ZonesScreen({ initial }: { initial: Zone[] }) {
+  const [rows, setRows] = useState<Zone[]>(initial);
+  const [editing, setEditing] = useState<Zone | null>(null);
+  const [adding, setAdding] = useState(false);
+  const toast = useToast();
+
+  async function reload() {
+    setRows(await api<Zone[]>('/delivery-zones'));
+  }
+
+  async function toggleActive(z: Zone) {
+    await api(`/delivery-zones/${z.id}`, { method: 'PATCH', body: { active: !z.active } });
+    reload();
+  }
+
+  async function remove(z: Zone) {
+    if (!confirm(`Delete zone ${z.name}?`)) return;
+    await api(`/delivery-zones/${z.id}`, { method: 'DELETE' });
+    toast.show('Zone deleted');
+    reload();
+  }
+
+  return (
+    <div className="set-sec" style={{ maxWidth: 1100 }}>
+      <h2>Delivery zones</h2>
+      <p className="ssub">Polygon-defined service areas with pricing</p>
+      <div className="set-card">
+        <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>{rows.length} zone{rows.length === 1 ? '' : 's'}</h3>
+          <button className="btn btn-pri btn-sm" onClick={() => setAdding(true)}>+ Add zone</button>
+        </div>
+        {rows.length === 0 ? (
+          <div style={{ padding: 24, color: 'var(--muted)', fontSize: 13 }}>No delivery zones defined yet</div>
+        ) : (
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Zone name</th>
+                <th>Points</th>
+                <th>Base fee</th>
+                <th>Daily capacity</th>
+                <th>Preview</th>
+                <th>Active</th>
+                <th className="num"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((z) => {
+                const pts = asPoints(z.polygon);
+                const color = z.color || ZONE_PALETTE[0];
+                return (
+                  <tr key={z.id}>
+                    <td>
+                      <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 4, background: color, verticalAlign: 'middle' }} />
+                    </td>
+                    <td className="t-name">{z.name}</td>
+                    <td>{pts.length} points</td>
+                    <td>{AED(toFee(z.baseFee))}</td>
+                    <td>{z.capacity || '—'}</td>
+                    <td>
+                      <ZoneThumbnail points={pts} color={color} />
+                    </td>
+                    <td>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className={`switch${z.active ? ' on' : ''}`}
+                        onClick={() => toggleActive(z)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleActive(z); }}
+                      />
+                    </td>
+                    <td className="num">
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditing(z)}>Edit</button>
+                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => remove(z)}>Delete</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {(adding || editing) && (
+        <ZoneForm
+          initial={editing}
+          existingCount={rows.length}
+          onClose={() => { setAdding(false); setEditing(null); }}
+          onSaved={() => {
+            setAdding(false);
+            setEditing(null);
+            toast.show('Zone saved');
+            reload();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ZoneThumbnail({ points, color }: { points: ZonePoint[]; color: string }) {
+  return (
+    <svg
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      preserveAspectRatio="none"
+      style={{ width: 84, height: 42, border: '1px solid var(--border)', borderRadius: 6, background: '#eef1f4' }}
+    >
+      {points.length >= 3 && (
+        <polygon
+          points={points.map((p) => p.join(',')).join(' ')}
+          fill={color}
+          fillOpacity={0.2}
+          stroke={color}
+          strokeWidth={1}
+        />
+      )}
+    </svg>
+  );
+}
+
+interface ZoneFormProps {
+  initial: Zone | null;
+  existingCount: number;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
+  const isEdit = !!initial;
+  const defaultColor = initial?.color || ZONE_PALETTE[existingCount % ZONE_PALETTE.length];
+  const [name, setName] = useState<string>(initial?.name ?? '');
+  const [color, setColor] = useState<string>(defaultColor);
+  const [baseFee, setBaseFee] = useState<number>(initial ? toFee(initial.baseFee) : 0);
+  const [capacity, setCapacity] = useState<number>(initial?.capacity ?? 0);
+  const [active, setActive] = useState<boolean>(initial?.active ?? true);
+  const [points, setPoints] = useState<ZonePoint[]>(initial ? asPoints(initial.polygon) : []);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  async function save() {
+    if (!name.trim()) return toast.show('Zone name is required');
+    if (points.length < 3) return toast.show('Add at least 3 boundary points');
+    setBusy(true);
+    try {
+      const body = { name: name.trim(), color, polygon: points, baseFee, capacity, active };
+      if (isEdit && initial) {
+        await api(`/delivery-zones/${initial.id}`, { method: 'PATCH', body });
+      } else {
+        await api('/delivery-zones', { method: 'POST', body });
+      }
+      onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="modal-scrim show" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+        <div className="modal-head">
+          <h3>{isEdit ? 'Edit zone' : 'New zone'}</h3>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="field">
+            <label>Zone name</label>
+            <input
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Dubai Marina"
+              autoFocus
+            />
+          </div>
+          <div className="field-2">
+            <div className="field">
+              <label>Base fee (AED)</label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                step={0.5}
+                value={baseFee}
+                onChange={(e) => setBaseFee(+e.target.value || 0)}
+              />
+            </div>
+            <div className="field">
+              <label>Daily capacity</label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                step={1}
+                value={capacity}
+                onChange={(e) => setCapacity(+e.target.value || 0)}
+              />
+            </div>
+          </div>
+          <div className="field-2">
+            <div className="field">
+              <label>Colour</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {ZONE_PALETTE.map((c) => (
+                  <button
+                    type="button"
+                    key={c}
+                    aria-label={`Use colour ${c}`}
+                    onClick={() => setColor(c)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      background: c,
+                      border: c === color ? '2px solid var(--text)' : '1px solid var(--border)',
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="field">
+              <label>Active</label>
+              <span
+                role="button"
+                tabIndex={0}
+                className={`switch${active ? ' on' : ''}`}
+                onClick={() => setActive((a) => !a)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActive((a) => !a); }}
+              />
+            </div>
+          </div>
+          <div className="field" style={{ marginTop: 8 }}>
+            <label>Draw the polygon below</label>
+            <PolygonEditor points={points} setPoints={setPoints} color={color} />
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Click to add vertices · drag vertices to adjust</span>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPoints([])}>Clear polygon</button>
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>
+            {isEdit ? 'Save zone' : 'Create zone'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PolygonEditorProps {
+  points: ZonePoint[];
+  setPoints: (next: ZonePoint[] | ((prev: ZonePoint[]) => ZonePoint[])) => void;
+  color: string;
+}
+
+function PolygonEditor({ points, setPoints, color }: PolygonEditorProps) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  function clientToViewBox(clientX: number, clientY: number): ZonePoint {
+    const svg = svgRef.current;
+    if (!svg) return [0, 0];
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * VB_W;
+    const y = ((clientY - rect.top) / rect.height) * VB_H;
+    const clampedX = Math.max(0, Math.min(VB_W, x));
+    const clampedY = Math.max(0, Math.min(VB_H, y));
+    return [+clampedX.toFixed(1), +clampedY.toFixed(1)];
+  }
+
+  function onCanvasClick(e: React.MouseEvent<SVGSVGElement>) {
+    // Ignore the click that ends a drag — onMouseUp clears dragIdx, but the
+    // click event still fires on the SVG. We avoid adding a stray vertex by
+    // checking the target: clicks on a circle bubble up but originate from
+    // the vertex, not the empty canvas.
+    if ((e.target as Element).tagName === 'circle') return;
+    const pt = clientToViewBox(e.clientX, e.clientY);
+    setPoints((prev) => [...prev, pt]);
+  }
+
+  function onVertexMouseDown(idx: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    setDragIdx(idx);
+  }
+
+  useEffect(() => {
+    if (dragIdx == null) return;
+    function onMove(ev: MouseEvent) {
+      const pt = clientToViewBox(ev.clientX, ev.clientY);
+      setPoints((prev) => prev.map((p, i) => (i === dragIdx ? pt : p)));
+    }
+    function onUp() {
+      setDragIdx(null);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragIdx]);
+
+  const gridBg = 'linear-gradient(var(--border-2) 1px, transparent 1px), linear-gradient(90deg, var(--border-2) 1px, transparent 1px)';
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: `${VB_W} / ${VB_H}`,
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        overflow: 'hidden',
+        background: '#eef1f4',
+        backgroundImage: gridBg,
+        backgroundSize: '26px 26px',
+        cursor: dragIdx == null ? 'crosshair' : 'grabbing',
+        userSelect: 'none',
+        touchAction: 'none',
+      }}
+    >
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        onClick={onCanvasClick}
+      >
+        {points.length >= 3 && (
+          <polygon
+            points={points.map((p) => p.join(',')).join(' ')}
+            fill={color}
+            fillOpacity={0.18}
+            stroke={color}
+            strokeWidth={0.6}
+            pointerEvents="none"
+          />
+        )}
+        {points.length === 2 && (
+          <line
+            x1={points[0][0]}
+            y1={points[0][1]}
+            x2={points[1][0]}
+            y2={points[1][1]}
+            stroke={color}
+            strokeWidth={0.6}
+            pointerEvents="none"
+          />
+        )}
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={p[0]}
+            cy={p[1]}
+            r={1.4}
+            fill={color}
+            stroke="#fff"
+            strokeWidth={0.4}
+            style={{ cursor: 'grab' }}
+            onMouseDown={(e) => onVertexMouseDown(i, e)}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+}

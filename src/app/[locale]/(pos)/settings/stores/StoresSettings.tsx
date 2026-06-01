@@ -4,14 +4,23 @@ import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
-export default function StoresSettings({ initial }: { initial: any[] }) {
+export default function StoresSettings({ initial, activeStoreId }: { initial: any[]; activeStoreId: string }) {
   const [stores, setStores] = useState(initial);
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [adding, setAdding] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
   const toast = useToast();
 
   async function reload() {
     setStores(await api<any[]>('/stores'));
+  }
+
+  async function doDelete(store: any) {
+    await api(`/stores/${store.id}`, { method: 'DELETE' });
+    setConfirmDelete(null);
+    reload();
+    toast.show('Store removed');
   }
 
   return (
@@ -28,18 +37,99 @@ export default function StoresSettings({ initial }: { initial: any[] }) {
           <tbody>
             {stores.map((s) => (
               <tr key={s.id}>
-                <td>{s.name}</td><td>{s.area ?? '—'}</td><td>{s.phone ?? '—'}</td><td>{s.trn ?? '—'}</td>
-                <td><span className={`switch${s.active ? ' on' : ''}`} onClick={async () => { await api(`/stores/${s.id}`, { method: 'PATCH', body: { active: !s.active } }); reload(); }} /></td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{s.name}</span>
+                    {s.id === activeStoreId && (
+                      <span className="pill paid" style={{ fontSize: 10 }}>Active</span>
+                    )}
+                  </div>
+                </td>
+                <td>{s.area ?? '—'}</td>
+                <td>{s.phone ?? '—'}</td>
+                <td>{s.trn ?? '—'}</td>
+                <td>
+                  <span
+                    className={`switch${s.active ? ' on' : ''}`}
+                    onClick={async () => { await api(`/stores/${s.id}`, { method: 'PATCH', body: { active: !s.active } }); reload(); }}
+                  />
+                </td>
                 <td className="num">
+                  <button className="btn btn-ghost btn-sm" onClick={() => setViewing(s)}>View</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditing(s)}>Edit</button>
-                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={async () => { if (confirm(`Delete ${s.name}?`)) { await api(`/stores/${s.id}`, { method: 'DELETE' }); reload(); toast.show('Store removed'); } }}>Delete</button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'var(--danger)' }}
+                    onClick={() => setConfirmDelete(s)}
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {(adding || editing) && <StoreForm initial={editing} onClose={() => { setAdding(false); setEditing(null); }} onSaved={() => { reload(); setAdding(false); setEditing(null); }} />}
+      {(adding || editing) && (
+        <StoreForm
+          initial={editing}
+          onClose={() => { setAdding(false); setEditing(null); }}
+          onSaved={() => { reload(); setAdding(false); setEditing(null); }}
+        />
+      )}
+      {viewing && <StoreViewModal store={viewing} isActive={viewing.id === activeStoreId} onClose={() => setViewing(null)} />}
+      {confirmDelete && (
+        <div className="modal-scrim show" onClick={() => setConfirmDelete(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>Remove store?</h3>
+              <button className="x" onClick={() => setConfirmDelete(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ padding: '8px 12px', color: 'var(--muted)' }}>
+                Delete <b>{confirmDelete.name}</b>? Orders attached to this store will remain but won't have a current location.
+              </p>
+            </div>
+            <div className="modal-foot">
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn btn-pri" style={{ flex: 1 }} onClick={() => doDelete(confirmDelete)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StoreViewModal({ store, isActive, onClose }: { store: any; isActive: boolean; onClose: () => void }) {
+  return (
+    <div className="modal-scrim show" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>
+            {store.name}
+            {isActive && <span className="pill paid" style={{ marginLeft: 8, fontSize: 10 }}>Active</span>}
+          </h3>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="odl-meta" style={{ flexWrap: 'wrap' }}>
+            <span><b>Area:</b> {store.area ?? '—'}</span>
+            <span>·</span>
+            <span><b>Phone:</b> {store.phone ?? '—'}</span>
+            <span>·</span>
+            <span><b>TRN:</b> {store.trn ?? '—'}</span>
+          </div>
+          <div style={{ padding: '12px 16px', display: 'grid', gap: 6, fontSize: 13 }}>
+            <div><span style={{ color: 'var(--muted)' }}>Address: </span>{store.address ?? '—'}</div>
+            <div><span style={{ color: 'var(--muted)' }}>Hours: </span>{store.hours ?? '—'}</div>
+            <div><span style={{ color: 'var(--muted)' }}>Status: </span>{store.active ? 'Active (accepting orders)' : 'Inactive (not accepting orders)'}</div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Close</button>
+        </div>
+      </div>
     </div>
   );
 }

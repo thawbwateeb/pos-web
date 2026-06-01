@@ -4,13 +4,22 @@ import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
-export default function LoyaltyForm({ initial }: { initial: any }) {
+interface LoyaltySettings {
+  enabled?: boolean;
+  perAed?: number;
+  redeemThreshold?: number;
+  welcomeBonus?: number;
+  expiryMonths?: number;
+}
+
+export default function LoyaltyForm({ initial }: { initial: Record<string, unknown> }) {
+  const src = initial as LoyaltySettings;
   const [f, setF] = useState({
-    enabled: initial.enabled ?? true,
-    perAed: initial.perAed ?? 1,
-    redeemThreshold: initial.redeemThreshold ?? 100,
-    welcomeBonus: initial.welcomeBonus ?? 50,
-    expiryMonths: initial.expiryMonths ?? 12,
+    enabled: src.enabled ?? true,
+    perAed: src.perAed ?? 1,
+    redeemThreshold: src.redeemThreshold ?? 100,
+    welcomeBonus: src.welcomeBonus ?? 50,
+    expiryMonths: src.expiryMonths ?? 12,
   });
   const [busy, setBusy] = useState(false);
   const toast = useToast();
