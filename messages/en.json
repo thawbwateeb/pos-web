@@ -148,9 +148,21 @@
     "printReceipt": "Print receipt",
     "receiptPrinted": "Receipt sent to printer",
     "cancelConfirm": "Clear this order? Items added so far will be removed.",
+    "cancelTitle": "Cancel order?",
+    "cancelBody": "Items added so far will be removed. This cannot be undone.",
+    "keepEditing": "Keep editing",
+    "discardOrder": "Discard",
     "cancelled": "Order cancelled",
     "cashGiven": "Cash given",
-    "change": "Change due"
+    "change": "Change due",
+    "editOrder": "Edit order",
+    "editingOrder": "Editing #{number}",
+    "saveOrder": "Save changes",
+    "orderUpdated": "Order #{number} updated",
+    "couldNotUpdate": "Could not update order",
+    "sendWaLink": "Send payment link via WhatsApp",
+    "waNoCustomer": "Attach a customer first to send a WhatsApp link.",
+    "waLinkSent": "Payment link sent to {name}"
   },
   "OrderStatus": {
     "boardTitle": "Orders Board",

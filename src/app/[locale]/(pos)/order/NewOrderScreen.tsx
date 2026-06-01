@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Icon } from '@/components/Icons';
@@ -9,7 +9,7 @@ import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
-import type { Bootstrap, CatalogueResponse, Customer, OrderType, PaymentMethod, Promo } from '@/lib/types';
+import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
 
 interface CartLine {
   key: string;
@@ -31,11 +31,13 @@ export default function NewOrderScreen({
   meta,
   bootstrap,
   promos,
+  editing,
 }: {
   catalogue: CatalogueResponse;
   meta: MetaResponse;
   bootstrap: Bootstrap;
   promos: Promo[];
+  editing?: Order | null;
 }) {
   const router = useRouter();
   const params = useParams<{ locale: string }>();
@@ -48,18 +50,7 @@ export default function NewOrderScreen({
   const tMethodSub = useTranslations('PaymentMethodSub');
 
   const tiers = catalogue.tiers;
-  const [tierKey, setTierKey] = useState<string>(tiers[0]?.externalKey ?? '');
-  const [cat, setCat] = useState<string>('all');
-  const [search, setSearch] = useState('');
-  const [orderType, setOrderType] = useState<OrderType>('WALK_IN');
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [custPicker, setCustPicker] = useState(false);
-  const [cart, setCart] = useState<CartLine[]>([]);
-  const [expressOn, setExpressOn] = useState(false);
-  const [appliedPromo, setAppliedPromo] = useState<Promo | null>(null);
-  const [promoPicker, setPromoPicker] = useState(false);
-  const [pay, setPay] = useState<{ method: PaymentMethod | null; cashGiven?: number } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const isEditing = !!editing;
 
   const allItems = useMemo(
     () =>
@@ -68,6 +59,56 @@ export default function NewOrderScreen({
       ),
     [catalogue],
   );
+
+  // Seed initial state from `editing` order so the user lands directly in
+  // the populated cart. Tier defaults to the first tier present on the
+  // first line; if mixed tiers, the lines retain their own.
+  const initialCart: CartLine[] = useMemo(() => {
+    if (!editing?.items) return [];
+    return editing.items.map((it) => {
+      const item = allItems.find((a) => a.sku === it.skuSnapshot);
+      const tier = tiers.find((tt) => tt.name === it.tierSnapshot);
+      const tierId = tier?.id ?? (item ? Object.keys(item.prices)[0] : '');
+      const itemId = item?.id ?? '';
+      return {
+        key: `${itemId || it.skuSnapshot}__${tierId}`,
+        itemId,
+        tierId,
+        sku: it.skuSnapshot,
+        name: it.nameSnapshot,
+        tierName: it.tierSnapshot,
+        qty: it.qty,
+        unitPrice: Number(it.unitPrice),
+      };
+    });
+  }, [editing, allItems, tiers]);
+
+  const [tierKey, setTierKey] = useState<string>(tiers[0]?.externalKey ?? '');
+  const [cat, setCat] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [orderType, setOrderType] = useState<OrderType>(editing?.type ?? 'WALK_IN');
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [custPicker, setCustPicker] = useState(false);
+  const [cart, setCart] = useState<CartLine[]>(initialCart);
+  const [expressOn, setExpressOn] = useState<boolean>(editing?.expressOn ?? false);
+  const [appliedPromo, setAppliedPromo] = useState<Promo | null>(null);
+  const [promoPicker, setPromoPicker] = useState(false);
+  const [pay, setPay] = useState<{ method: PaymentMethod | null; cashGiven?: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [waBusy, setWaBusy] = useState(false);
+
+  // When editing, hydrate the existing customer + applied promo by fetching.
+  useEffect(() => {
+    if (!editing) return;
+    if (editing.customerId) {
+      api<Customer>(`/customers/${editing.customerId}`).then(setCustomer).catch(() => {});
+    }
+    if (editing.discountCode) {
+      const p = promos.find((pp) => pp.code === editing.discountCode);
+      if (p) setAppliedPromo(p);
+    }
+  }, [editing, promos]);
 
   const tier = tiers.find((tt) => tt.externalKey === tierKey);
   const visibleItems = allItems.filter((it) => {
@@ -78,7 +119,7 @@ export default function NewOrderScreen({
 
   // ─── Totals: subtotal → +express → −discount → +tax = grand ──────────
   const subtotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
-  const expressPct = bootstrap.business.branding?.posPrimary ? 30 : 30; // express surcharge % — from settings later
+  const expressPct = 30; // express surcharge % — move to business settings later
   const expressAmount = expressOn ? +(subtotal * (expressPct / 100)).toFixed(2) : 0;
   const discountAmount = appliedPromo
     ? appliedPromo.kind === 'PERCENT'
@@ -115,16 +156,48 @@ export default function NewOrderScreen({
     setOrderType('WALK_IN');
   }
 
-  function cancelOrder() {
+  function requestCancel() {
     if (!cart.length) return;
-    if (!confirm(t('cancelConfirm'))) return;
+    setCancelConfirmOpen(true);
+  }
+
+  function confirmCancel() {
+    setCancelConfirmOpen(false);
     resetCart();
+    if (isEditing) {
+      router.push(`/${locale}/order`);
+    }
     toast.show(t('cancelled'));
   }
 
   function printReceipt() {
     if (!cart.length) return;
     toast.show(t('receiptPrinted'));
+  }
+
+  async function save() {
+    if (!editing) return;
+    setBusy(true);
+    try {
+      const r = await api<any>(`/orders/${editing.id}`, {
+        method: 'PATCH',
+        storeId,
+        body: {
+          type: orderType,
+          customerId: customer?.id ?? null,
+          expressOn,
+          expressPct,
+          promoCode: appliedPromo?.code ?? null,
+          items: cart.map((l) => ({ itemId: l.itemId, tierId: l.tierId, qty: l.qty })),
+        },
+      });
+      toast.show(t('orderUpdated', { number: r.number }));
+      router.push(`/${locale}/orders`);
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('couldNotUpdate'));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function charge() {
@@ -154,6 +227,46 @@ export default function NewOrderScreen({
     } finally { setBusy(false); }
   }
 
+  // Send the customer a WhatsApp payment link. We don't have a payment-link
+  // service yet; for parity with the design's behavior (which just toasts),
+  // we create the order in PENDING state, build a wa.me deeplink, open it,
+  // and toast. The shop staff finishes the conversation in WhatsApp.
+  async function sendWhatsappLink() {
+    if (!customer || !customer.phone) {
+      toast.show(t('waNoCustomer'));
+      return;
+    }
+    setWaBusy(true);
+    try {
+      const order = await api<any>('/orders', {
+        method: 'POST',
+        storeId,
+        body: {
+          storeId,
+          type: orderType,
+          customerId: customer.id,
+          expressOn,
+          expressPct,
+          promoCode: appliedPromo?.code,
+          items: cart.map((l) => ({ itemId: l.itemId, tierId: l.tierId, qty: l.qty })),
+        },
+      });
+      const text = encodeURIComponent(
+        `Hi ${customer.fullName.split(' ')[0]}, your order #${order.number} from ${bootstrap.business.name} is ready for payment: ${currency} ${Number(order.total).toFixed(2)}.`,
+      );
+      const phone = customer.phone.replace(/[^0-9]/g, '');
+      window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener');
+      toast.show(t('waLinkSent', { name: customer.fullName }));
+      resetCart();
+      setPay(null);
+      router.push(`/${locale}/orders`);
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('couldNotCreate'));
+    } finally {
+      setWaBusy(false);
+    }
+  }
+
   return (
     <div className="order-grid">
       {/* PICKER */}
@@ -177,7 +290,7 @@ export default function NewOrderScreen({
             </button>
           ))}
           <div className="pk-search">
-            <Icon.search size={14} />
+            <Icon.search size={15} />
             <input placeholder={t('findItem')} value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
@@ -211,7 +324,9 @@ export default function NewOrderScreen({
         <div className="cart-head">
           <div className="row1">
             <div>
-              <div className="onum">{t('newOrder')}</div>
+              <div className="onum">
+                {isEditing ? t('editingOrder', { number: editing!.number }) : t('newOrder')}
+              </div>
               <div className="otype">
                 {cart.length === 1
                   ? `1 ${tCommon('item').toLowerCase()}`
@@ -303,10 +418,16 @@ export default function NewOrderScreen({
             <button className="btn btn-hold" title={t('printReceipt')} onClick={printReceipt}>
               <Icon.print size={16} />
             </button>
-            <button className="btn btn-hold" onClick={cancelOrder}>{tCommon('cancel')}</button>
-            <button className="btn btn-charge" disabled={cart.length === 0} onClick={() => setPay({ method: null })}>
-              {t('charge')} {AED(total)}
-            </button>
+            <button className="btn btn-hold" onClick={requestCancel}>{tCommon('cancel')}</button>
+            {isEditing ? (
+              <button className={`btn btn-charge${busy ? ' btn-loading' : ''}`} disabled={cart.length === 0 || busy} onClick={save}>
+                {t('saveOrder')}
+              </button>
+            ) : (
+              <button className="btn btn-charge" disabled={cart.length === 0} onClick={() => setPay({ method: null })}>
+                {t('charge')} {AED(total)}
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -319,6 +440,8 @@ export default function NewOrderScreen({
           method={pay.method}
           cashGiven={pay.cashGiven}
           busy={busy}
+          waBusy={waBusy}
+          hasCustomer={!!customer}
           onSetMethod={(method) => setPay({ method, cashGiven: pay.cashGiven })}
           onSetCash={(cashGiven) => setPay({ method: pay.method, cashGiven })}
           tCharge={t('chargeLabel')}
@@ -327,10 +450,12 @@ export default function NewOrderScreen({
           tConfirm={t('chargeReceipt')}
           tCashGiven={t('cashGiven')}
           tChange={t('change')}
+          tSendWa={t('sendWaLink')}
           methodLabel={(k) => tMethod(k as any)}
           methodSub={(k) => tMethodSub(k as any)}
           onClose={() => setPay(null)}
           onCharge={charge}
+          onSendWa={sendWhatsappLink}
         />
       )}
 
@@ -348,6 +473,24 @@ export default function NewOrderScreen({
           onApply={(p) => { setAppliedPromo(p); setPromoPicker(false); toast.show(t('promoApplied', { code: p.code })); }}
         />
       )}
+
+      {cancelConfirmOpen && (
+        <div className="modal-scrim show" onClick={() => setCancelConfirmOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{t('cancelTitle')}</h3>
+              <button className="x" onClick={() => setCancelConfirmOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>{t('cancelBody')}</p>
+            </div>
+            <div className="modal-foot">
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setCancelConfirmOpen(false)}>{t('keepEditing')}</button>
+              <button className="btn btn-pri" style={{ flex: 1 }} onClick={confirmCancel}>{t('discardOrder')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -355,20 +498,21 @@ export default function NewOrderScreen({
 // ─── Sub-components ────────────────────────────────────────────────────
 
 function PayModal({
-  total, currency, methods, method, cashGiven, busy,
-  tCharge, tTitle, tCancel, tConfirm, tCashGiven, tChange,
+  total, currency, methods, method, cashGiven, busy, waBusy, hasCustomer,
+  tCharge, tTitle, tCancel, tConfirm, tCashGiven, tChange, tSendWa,
   methodLabel, methodSub,
-  onSetMethod, onSetCash, onClose, onCharge,
+  onSetMethod, onSetCash, onClose, onCharge, onSendWa,
 }: {
   total: number; currency: string;
   methods: { key: string; icon: string }[];
-  method: PaymentMethod | null; cashGiven?: number; busy: boolean;
+  method: PaymentMethod | null; cashGiven?: number; busy: boolean; waBusy: boolean;
+  hasCustomer: boolean;
   tCharge: string; tTitle: string; tCancel: string; tConfirm: string;
-  tCashGiven: string; tChange: string;
+  tCashGiven: string; tChange: string; tSendWa: string;
   methodLabel: (k: string) => string; methodSub: (k: string) => string;
   onSetMethod: (m: PaymentMethod) => void;
   onSetCash: (n: number | undefined) => void;
-  onClose: () => void; onCharge: () => void;
+  onClose: () => void; onCharge: () => void; onSendWa: () => void;
 }) {
   const change = method === 'CASH' && cashGiven != null ? Math.max(0, cashGiven - total) : 0;
 
@@ -416,6 +560,20 @@ function PayModal({
               )}
             </div>
           )}
+
+          {/* WhatsApp payment link — matches design app.js:931. Disabled
+              without a customer attached. */}
+          <button
+            type="button"
+            className={`btn btn-ghost${waBusy ? ' btn-loading' : ''}`}
+            disabled={!hasCustomer || waBusy}
+            onClick={onSendWa}
+            style={{ marginTop: 14, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            title={!hasCustomer ? 'Attach a customer first' : tSendWa}
+          >
+            <Icon.whatsapp size={16} />
+            {tSendWa}
+          </button>
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCancel}</button>
