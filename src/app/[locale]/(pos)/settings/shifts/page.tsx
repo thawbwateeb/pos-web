@@ -1,11 +1,11 @@
 import { apiServer } from '@/lib/api-server';
-import ShiftsScreen from './ShiftsScreen';
+import ShiftsScreen, { ShiftHistoryRow, ShiftSummary } from './ShiftsScreen';
 
 export const dynamic = 'force-dynamic';
 export default async function Page() {
-  const [current, shifts] = await Promise.all([
-    apiServer<any>('/shifts/current').catch(() => null),
-    apiServer<any[]>('/shifts'),
+  const [summary, history] = await Promise.all([
+    apiServer<ShiftSummary | null>('/shifts/current/summary').catch(() => null),
+    apiServer<ShiftHistoryRow[]>('/shifts').catch(() => [] as ShiftHistoryRow[]),
   ]);
-  return <ShiftsScreen current={current} history={shifts} />;
+  return <ShiftsScreen initialSummary={summary} initialHistory={history} />;
 }

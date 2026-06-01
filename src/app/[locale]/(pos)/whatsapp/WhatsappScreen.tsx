@@ -1,64 +1,149 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
+import { apiBase } from '@/lib/api-base';
 import { Icon } from '@/components/Icons';
 import { initials, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import WhatsappSettingsPanel, { type WhatsappSettings } from './WhatsappSettingsPanel';
 
 const EMOJI = ['😊', '👍', '🙏', '❤️', '👕', '🧺', '✨', '🚒', '📦', '👌', '🙌', '🔥'];
+
+type WaDirection = 'IN' | 'OUT' | 'BOT';
+type WaKind = 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | 'TEMPLATE' | 'STICKER' | 'LOCATION' | 'CONTACT';
+
+interface WaConversationListItem {
+  id: string;
+  customerId?: string | null;
+  name: string;
+  phone: string;
+  area?: string | null;
+  unread: number;
+  pinned?: boolean;
+  botPaused: boolean;
+  pausedUntil: string | null;
+  lastMsgAt: string | null;
+  lastMsgPreview?: string | null;
+  lastMsgFrom?: WaDirection | null;
+}
+
+interface WaMessage {
+  id: string;
+  direction: WaDirection;
+  kind: WaKind;
+  body?: string | null;
+  mediaUrl?: string | null;
+  ts: string;
+  by?: { fullName?: string | null } | null;
+}
+
+interface WaThread extends WaConversationListItem {
+  messages?: WaMessage[];
+}
 
 function dayLabel(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso;
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
-  const y = new Date(now); y.setDate(now.getDate() - 1);
+  const y = new Date(now);
+  y.setDate(now.getDate() - 1);
   if (sameDay) return 'Today';
   if (d.toDateString() === y.toDateString()) return 'Yesterday';
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
-export default function WhatsappScreen({ conversations, settings }: { conversations: any[]; settings: any }) {
-  const [convos, setConvos] = useState(conversations);
+function trimPreview(s: string, max = 60): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + '…';
+}
+
+function previewPrefix(from: WaDirection | null | undefined): string {
+  if (from === 'OUT') return '✓ ';
+  if (from === 'BOT') return '🤖 ';
+  return '';
+}
+
+function minutesUntil(iso: string | null): number {
+  if (!iso) return 0;
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / 60_000);
+}
+
+export default function WhatsappScreen({
+  conversations,
+  settings,
+}: {
+  conversations: WaConversationListItem[];
+  settings: WhatsappSettings | null;
+}) {
+  const [convos, setConvos] = useState<WaConversationListItem[]>(conversations);
   const [activeId, setActiveId] = useState<string | null>(conversations[0]?.id ?? null);
-  const [thread, setThread] = useState<any | null>(null);
+  const [thread, setThread] = useState<WaThread | null>(null);
   const [draft, setDraft] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [newChatPhone, setNewChatPhone] = useState('');
+  const [newChatName, setNewChatName] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [currentSettings, setCurrentSettings] = useState<WhatsappSettings | null>(settings);
+  const [, forceTick] = useState(0);
   const threadRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('WhatsApp');
   const toast = useToast();
+  const router = useRouter();
+  const params = useParams<{ locale: string }>();
 
   useEffect(() => {
-    if (!activeId) return;
-    api<any>(`/whatsapp/conversations/${activeId}`).then(setThread);
+    if (!activeId) {
+      setThread(null);
+      return;
+    }
+    api<WaThread>(`/whatsapp/conversations/${activeId}`).then(setThread).catch(() => {});
   }, [activeId]);
 
   useEffect(() => {
     threadRef.current?.scrollTo(0, threadRef.current.scrollHeight);
   }, [thread]);
 
+  // Re-render every 30s while any thread is paused so countdown ticks down.
+  useEffect(() => {
+    const anyPaused = thread?.botPaused || convos.some((c) => c.botPaused);
+    if (!anyPaused) return;
+    const h = setInterval(() => forceTick((n) => n + 1), 30_000);
+    return () => clearInterval(h);
+  }, [thread?.botPaused, convos]);
+
   async function refreshSidebar() {
-    const list = await api<any[]>('/whatsapp/conversations');
-    setConvos(list);
+    try {
+      const list = await api<WaConversationListItem[]>('/whatsapp/conversations');
+      setConvos(list);
+    } catch {}
   }
 
   async function send() {
     if (!draft.trim() || !activeId) return;
+    const pauseMin = currentSettings?.pauseMinutes ?? 15;
     try {
-      await api(`/whatsapp/conversations/${activeId}/messages`, { method: 'POST', body: { body: draft } });
+      await api(`/whatsapp/conversations/${activeId}/messages`, {
+        method: 'POST',
+        body: { body: draft },
+      });
       setDraft('');
-      // Local optimistic state: bot pauses when staff sends.
       await api(`/whatsapp/conversations/${activeId}`, {
         method: 'PATCH',
-        body: { botPaused: true, pausedUntil: new Date(Date.now() + (settings?.pauseMinutes ?? 15) * 60_000) },
+        body: { botPaused: true, pausedUntil: new Date(Date.now() + pauseMin * 60_000) },
       }).catch(() => {});
-      const r = await api<any>(`/whatsapp/conversations/${activeId}`);
+      const r = await api<WaThread>(`/whatsapp/conversations/${activeId}`);
       setThread(r);
       refreshSidebar();
-      toast.show(t('sentPaused', { mins: settings?.pauseMinutes ?? 15 }));
+      toast.show(t('sentPaused', { mins: pauseMin }));
     } catch (e: any) {
       toast.show(e?.detail?.message || t('failedToSend'));
     }
@@ -67,14 +152,15 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
   async function toggleBot() {
     if (!thread) return;
     const wasPaused = thread.botPaused;
+    const pauseMin = currentSettings?.pauseMinutes ?? 15;
     try {
       await api(`/whatsapp/conversations/${thread.id}`, {
         method: 'PATCH',
         body: wasPaused
           ? { botPaused: false, pausedUntil: null }
-          : { botPaused: true, pausedUntil: new Date(Date.now() + (settings?.pauseMinutes ?? 15) * 60_000) },
+          : { botPaused: true, pausedUntil: new Date(Date.now() + pauseMin * 60_000) },
       });
-      const r = await api<any>(`/whatsapp/conversations/${thread.id}`);
+      const r = await api<WaThread>(`/whatsapp/conversations/${thread.id}`);
       setThread(r);
       refreshSidebar();
       toast.show(wasPaused ? t('botResumed') : t('botPaused'));
@@ -87,7 +173,7 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
       method: 'PATCH',
       body: { botPaused: false, pausedUntil: null },
     });
-    const r = await api<any>(`/whatsapp/conversations/${thread.id}`);
+    const r = await api<WaThread>(`/whatsapp/conversations/${thread.id}`);
     setThread(r);
     refreshSidebar();
     toast.show(t('botResumed'));
@@ -95,16 +181,121 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
 
   async function markUnread() {
     if (!thread) return;
-    await api(`/whatsapp/conversations/${thread.id}`, { method: 'PATCH', body: { unread: (thread.unread ?? 0) + 1 } });
+    await api(`/whatsapp/conversations/${thread.id}`, {
+      method: 'PATCH',
+      body: { unread: (thread.unread ?? 0) + 1 },
+    });
     refreshSidebar();
     setMenuOpen(false);
     toast.show(t('markedUnread'));
   }
 
+  function clearChat() {
+    setMenuOpen(false);
+    // No DELETE endpoint exists yet; surface a coming-soon notice.
+    toast.show(t('clearComingSoon'));
+  }
+
+  function viewOrders() {
+    setMenuOpen(false);
+    if (!thread) return;
+    const locale = params?.locale ?? 'en';
+    const q = thread.customerId
+      ? `id=${encodeURIComponent(thread.customerId)}`
+      : `q=${encodeURIComponent(thread.phone)}`;
+    router.push(`/${locale}/customers?${q}`);
+  }
+
+  function openFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  async function onFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !activeId) return;
+    const pauseMin = currentSettings?.pauseMinutes ?? 15;
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const cookieStoreId =
+        typeof document !== 'undefined'
+          ? document.cookie.split('; ').find((c) => c.startsWith('active_store_id='))?.split('=')[1]
+          : undefined;
+      const upRes = await fetch(apiBase() + '/files/upload', {
+        method: 'POST',
+        credentials: 'include',
+        headers: cookieStoreId ? { 'x-store-id': cookieStoreId } : {},
+        body: fd,
+      });
+      if (!upRes.ok) throw new Error('upload failed');
+      const fileObj: { id: string; mime: string; originalName: string } = await upRes.json();
+      const mediaUrl = `${apiBase()}/files/${fileObj.id}`;
+      const isImage = (fileObj.mime || file.type).startsWith('image/');
+      await api(`/whatsapp/conversations/${activeId}/messages`, {
+        method: 'POST',
+        body: {
+          body: file.name,
+          kind: isImage ? 'IMAGE' : 'DOCUMENT',
+          mediaUrl,
+        },
+      });
+      await api(`/whatsapp/conversations/${activeId}`, {
+        method: 'PATCH',
+        body: { botPaused: true, pausedUntil: new Date(Date.now() + pauseMin * 60_000) },
+      }).catch(() => {});
+      const r = await api<WaThread>(`/whatsapp/conversations/${activeId}`);
+      setThread(r);
+      refreshSidebar();
+      toast.show(t('sentPaused', { mins: pauseMin }));
+    } catch {
+      toast.show(t('uploadComingSoon'));
+    }
+  }
+
+  async function startNewChat() {
+    const phone = newChatPhone.trim();
+    if (!phone) return;
+    try {
+      const c = await api<WaConversationListItem>('/whatsapp/conversations', {
+        method: 'POST',
+        body: { phone, name: newChatName.trim() || phone },
+      });
+      setNewChatOpen(false);
+      setNewChatPhone('');
+      setNewChatName('');
+      await refreshSidebar();
+      if (c?.id) setActiveId(c.id);
+    } catch {
+      toast.show(t('failedToSend'));
+    }
+  }
+
+  async function onSettingsSaved(next: WhatsappSettings) {
+    setCurrentSettings(next);
+    setSettingsOpen(false);
+    toast.show(t('saved'));
+  }
+
   // ─── Render ─────────────────────────────────────────────────────────
-  const filtered = convos.filter((c) =>
-    !search ? true : c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search),
-  );
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    const matched = q
+      ? convos.filter(
+          (c) =>
+            c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(search),
+        )
+      : convos;
+    // Pinned first, then most recent message.
+    return [...matched].sort((a, b) => {
+      const pa = a.pinned ? 1 : 0;
+      const pb = b.pinned ? 1 : 0;
+      if (pb !== pa) return pb - pa;
+      const ta = a.lastMsgAt ? new Date(a.lastMsgAt).getTime() : 0;
+      const tb = b.lastMsgAt ? new Date(b.lastMsgAt).getTime() : 0;
+      return tb - ta;
+    });
+  }, [convos, search]);
 
   return (
     <div className="wa-host">
@@ -114,36 +305,80 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
           <div className="wa-side-top">
             <div className="wa-me">
               <div className="wa-av">TT</div>
-              <div className="wa-me-nm">{t('businessLabel')}<span>{t('businessSub')}</span></div>
+              <div className="wa-me-nm">
+                {t('businessLabel')}
+                <span>{t('businessSub')}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                className="wa-side-ico"
+                title={t('settings')}
+                onClick={() => setSettingsOpen(true)}
+                style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 6 }}
+              >
+                <Icon.gear size={18} />
+              </button>
+              <button
+                className="wa-side-ico"
+                title={t('newChat')}
+                onClick={() => setNewChatOpen(true)}
+                style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 6 }}
+              >
+                <Icon.plus size={18} />
+              </button>
             </div>
           </div>
           <div className="wa-search">
             <div className="wa-search-box">
               <Icon.search size={16} />
-              <input placeholder={t('searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input
+                placeholder={t('searchPlaceholder')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </div>
           <div className="wa-list">
             {filtered.map((c) => {
               const last = c.lastMsgAt ? new Date(c.lastMsgAt) : null;
+              const previewBody = c.lastMsgPreview ?? '';
+              const prev = previewBody
+                ? previewPrefix(c.lastMsgFrom) + trimPreview(previewBody)
+                : c.phone;
               return (
-                <button key={c.id} className={`wa-row${activeId === c.id ? ' on' : ''}`} onClick={() => setActiveId(c.id)}>
+                <button
+                  key={c.id}
+                  className={`wa-row${activeId === c.id ? ' on' : ''}`}
+                  onClick={() => setActiveId(c.id)}
+                >
                   <div className="wa-av lg">{initials(c.name)}</div>
                   <div className="wa-row-main">
                     <div className="wa-row-top">
-                      <span className="wa-row-nm">{c.name}</span>
+                      <span className="wa-row-nm">
+                        {c.pinned ? '📌 ' : ''}
+                        {c.name}
+                      </span>
                       <span className="wa-row-time">{last ? shortTime(last) : '—'}</span>
                     </div>
                     <div className="wa-row-bot">
-                      <span className="wa-row-prev">{c.phone}</span>
+                      <span className="wa-row-prev">{prev}</span>
                       {c.unread > 0 && <span className="wa-unread">{c.unread}</span>}
-                      {c.botPaused && <span className="wa-paused-dot">⏸</span>}
+                      {c.botPaused && c.unread === 0 && (
+                        <span className="wa-paused-dot" title={t('botPaused')}>
+                          <Icon.clock size={12} />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>
               );
             })}
-            {filtered.length === 0 && <div className="muted" style={{ padding: 24, fontSize: 13, textAlign: 'center' }}>{t('noConversations')}</div>}
+            {filtered.length === 0 && (
+              <div className="muted" style={{ padding: 24, fontSize: 13, textAlign: 'center' }}>
+                {t('noConversations')}
+              </div>
+            )}
           </div>
         </aside>
 
@@ -152,9 +387,16 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
           {!thread ? (
             <div className="wa-empty">
               <div className="wa-empty-in">
-                <div className="wa-empty-logo"><Icon.whatsapp size={56} /></div>
+                <div className="wa-empty-logo">
+                  <Icon.whatsapp size={56} />
+                </div>
                 <h2>{t('title')}</h2>
-                <p>{t('empty', { botName: settings?.botName ?? 'assistant', state: settings?.botEnabled ? t('stateOn') : t('stateOff') })}</p>
+                <p>
+                  {t('empty', {
+                    botName: currentSettings?.botName ?? 'assistant',
+                    state: currentSettings?.botEnabled ? t('stateOn') : t('stateOff'),
+                  })}
+                </p>
               </div>
             </div>
           ) : (
@@ -163,23 +405,44 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
                 <div className="wa-av">{initials(thread.name)}</div>
                 <div className="wa-head-info">
                   <div className="wa-head-nm">{thread.name}</div>
-                  <div className="wa-head-sub">{thread.phone}{thread.area ? ` · ${thread.area}` : ''}</div>
+                  <div className="wa-head-sub">
+                    {thread.phone}
+                    {thread.area ? ` · ${thread.area}` : ''}
+                  </div>
                 </div>
                 <button
                   className={`wa-bot-toggle ${thread.botPaused ? 'off' : 'on'}`}
                   onClick={toggleBot}
                   title={thread.botPaused ? t('botResume') : t('botPause')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  {thread.botPaused ? `⏸ ${t('botPaused')}` : `🤖 ${t('botActive')}`}
+                  {thread.botPaused ? <Icon.clock size={16} /> : <Icon.check size={16} />}
+                  <span>
+                    {thread.botPaused
+                      ? t('botPausedTimer', { mins: minutesUntil(thread.pausedUntil) })
+                      : t('botActive')}
+                  </span>
                 </button>
-                <button className="wa-head-ico" title={t('menu')} onClick={() => setMenuOpen((v) => !v)} style={{ position: 'relative' }}>
+                <button
+                  className="wa-head-ico"
+                  title={t('menu')}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  style={{ position: 'relative' }}
+                >
                   ⋯
                   {menuOpen && (
                     <div className="wa-menu" onClick={(e) => e.stopPropagation()}>
                       <button onClick={markUnread}>{t('menuOptions.unread')}</button>
-                      <button onClick={() => { setMenuOpen(false); toast.show(`${thread.name} · ${thread.phone}`); }}>
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          toast.show(`${thread.name} · ${thread.phone}`);
+                        }}
+                      >
                         {t('menuOptions.info')}
                       </button>
+                      <button onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
+                      <button onClick={clearChat}>{t('menuOptions.clear')}</button>
                     </div>
                   )}
                 </button>
@@ -189,25 +452,65 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
                 {(() => {
                   const items: React.ReactNode[] = [];
                   let lastDay = '';
-                  for (const m of (thread.messages ?? [])) {
+                  for (const m of thread.messages ?? []) {
                     const dl = dayLabel(m.ts);
                     if (dl !== lastDay) {
                       items.push(
-                        <div key={`day-${m.id}`} className="wa-day"><span>{dl}</span></div>,
+                        <div key={`day-${m.id}`} className="wa-day">
+                          <span>{dl}</span>
+                        </div>,
                       );
                       lastDay = dl;
                     }
                     const cls = m.direction === 'IN' ? 'in' : 'out';
+                    const isImage = m.kind === 'IMAGE';
+                    const isFile = m.kind === 'DOCUMENT' || m.kind === 'VIDEO' || m.kind === 'AUDIO';
                     items.push(
-                      <div key={m.id} className={`wa-msg ${cls} ${m.direction === 'BOT' ? 'bot' : ''}`}>
-                        {m.direction === 'BOT' && <span className="wa-bot-tag">🤖 {settings?.botName ?? 'Bot'}</span>}
-                        {m.direction === 'OUT' && m.by && <span className="wa-by">{m.by.fullName ?? 'You'}</span>}
-                        <div className={`wa-bubble${m.kind === 'IMAGE' ? ' img' : ''}`}>
-                          {m.kind === 'IMAGE' && m.mediaUrl ? (
-                            <div className="wa-att-img"><img src={m.mediaUrl} alt={m.body ?? ''} /></div>
+                      <div
+                        key={m.id}
+                        className={`wa-msg ${cls} ${m.direction === 'BOT' ? 'bot' : ''}`}
+                      >
+                        {m.direction === 'BOT' && (
+                          <span className="wa-bot-tag">
+                            🤖 {currentSettings?.botName ?? 'Bot'}
+                          </span>
+                        )}
+                        {m.direction === 'OUT' && m.by && (
+                          <span className="wa-by">{m.by.fullName ?? 'You'}</span>
+                        )}
+                        <div className={`wa-bubble${isImage ? ' img' : ''}`}>
+                          {isImage && m.mediaUrl ? (
+                            <div className="wa-att-img">
+                              <img src={m.mediaUrl} alt={m.body ?? ''} />
+                            </div>
                           ) : null}
-                          {m.body && <span>{m.body}</span>}
-                          <span className="wa-time">{shortTime(m.ts)}{m.direction !== 'IN' ? ' ✓✓' : ''}</span>
+                          {isFile && m.mediaUrl ? (
+                            <a
+                              className="wa-att-file"
+                              href={m.mediaUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                color: 'inherit',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              <span className="wa-att-ic">
+                                <Icon.receipt size={20} />
+                              </span>
+                              <span className="wa-att-meta">
+                                <b>{m.body || 'Document'}</b>
+                              </span>
+                            </a>
+                          ) : null}
+                          {m.body && !isFile && <span>{m.body}</span>}
+                          <span className="wa-time">
+                            {shortTime(m.ts)}
+                            {m.direction !== 'IN' ? ' ✓✓' : ''}
+                          </span>
                         </div>
                       </div>,
                     );
@@ -226,25 +529,104 @@ export default function WhatsappScreen({ conversations, settings }: { conversati
               {emojiOpen && (
                 <div className="wa-emoji-bar">
                   {EMOJI.map((e) => (
-                    <button key={e} onClick={() => setDraft((d) => d + e)}>{e}</button>
+                    <button key={e} onClick={() => setDraft((d) => d + e)}>
+                      {e}
+                    </button>
                   ))}
                 </div>
               )}
 
               <div className="wa-composer">
-                <button className="wa-comp-ico" onClick={() => setEmojiOpen((v) => !v)} title={t('emoji')}>😊</button>
+                <button
+                  className="wa-comp-ico"
+                  onClick={() => setEmojiOpen((v) => !v)}
+                  title={t('emoji')}
+                >
+                  😊
+                </button>
+                <button
+                  className="wa-comp-ico wa-attach"
+                  onClick={openFilePicker}
+                  title={t('attach')}
+                  aria-label={t('uploadImage')}
+                >
+                  📎
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  hidden
+                  onChange={onFileChosen}
+                />
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
                   placeholder={t('typeMessage')}
                 />
-                <button className="wa-send" onClick={send}>➤</button>
+                <button className="wa-send" onClick={send}>
+                  ➤
+                </button>
               </div>
             </>
           )}
         </section>
       </div>
+
+      {newChatOpen && (
+        <div
+          onClick={() => setNewChatOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,.4)',
+            zIndex: 1000,
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="card"
+            style={{ width: 360, padding: 20, background: 'var(--card, #fff)', borderRadius: 12 }}
+          >
+            <h3 style={{ marginTop: 0 }}>{t('newChat')}</h3>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>{t('newChatPhone')}</label>
+              <input
+                className="inp"
+                value={newChatPhone}
+                onChange={(e) => setNewChatPhone(e.target.value)}
+                placeholder="+971 50 123 4567"
+                autoFocus
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 16 }}>
+              <label>{t('businessLabel')}</label>
+              <input
+                className="inp"
+                value={newChatName}
+                onChange={(e) => setNewChatName(e.target.value)}
+                placeholder="Customer name (optional)"
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-pri" onClick={startNewChat} disabled={!newChatPhone.trim()}>
+                {t('newChatStart')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && (
+        <WhatsappSettingsPanel
+          initial={currentSettings}
+          onClose={() => setSettingsOpen(false)}
+          onSaved={onSettingsSaved}
+        />
+      )}
     </div>
   );
 }
