@@ -1,6 +1,10 @@
 # Approve native build scripts. `allowBuilds` is read by pnpm 11; older pnpm 10
 # reads `onlyBuiltDependencies`. Both are listed so CI works on either version.
 allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
   unrs-resolver: true
 onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@swc/core'
   - unrs-resolver

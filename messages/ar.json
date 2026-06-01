@@ -1,0 +1,637 @@
+{
+  "Common": {
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "remove": "Remove",
+    "search": "Search",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "view": "View",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "area": "Area",
+    "notes": "Notes",
+    "active": "Active",
+    "status": "Status",
+    "actions": "Actions",
+    "from": "From",
+    "to": "To",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next",
+    "all": "All",
+    "amount": "Amount",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "vat": "VAT",
+    "currency": "AED",
+    "noResults": "No results",
+    "noMatches": "No matches",
+    "comingSoon": "Coming soon",
+    "saved": "Saved",
+    "deleted": "Deleted",
+    "failed": "Failed",
+    "items": "Items",
+    "item": "Item",
+    "qty": "Qty",
+    "price": "Price",
+    "category": "Category",
+    "unit": "Unit",
+    "stock": "Stock",
+    "reorderAt": "Reorder at",
+    "ok": "OK",
+    "code": "Code",
+    "description": "Description",
+    "value": "Value",
+    "uses": "Uses"
+  },
+  "Login": {
+    "brand": "THAWB WA TEEB",
+    "tagline": "The Art of Clean · Point of Sale",
+    "welcome": "Welcome back",
+    "subtitle": "Sign in to your terminal",
+    "email": "Email",
+    "password": "Password",
+    "business": "Business",
+    "businessPlaceholder": "Choose…",
+    "remember": "Keep me signed in",
+    "forgot": "Forgot password?",
+    "showPassword": "Show password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "roleHint": "Your role is assigned automatically after sign-in.",
+    "missingEmail": "Please enter your email.",
+    "missingPassword": "Please enter your password.",
+    "invalidCredentials": "Invalid credentials",
+    "version": "v2.4"
+  },
+  "Nav": {
+    "newOrder": "New Order",
+    "orders": "Orders",
+    "payments": "Payments",
+    "customers": "Customers",
+    "whatsapp": "WhatsApp",
+    "report": "Report",
+    "finance": "Finance",
+    "settings": "Settings",
+    "switchStore": "Switch store",
+    "signOut": "Sign out",
+    "pickStore": "Pick a store",
+    "globalSearch": "Search orders, customers, items…"
+  },
+  "Crumbs": {
+    "pos": "POS",
+    "operations": "OPERATIONS",
+    "crm": "CRM",
+    "analytics": "ANALYTICS",
+    "config": "CONFIG",
+    "order": "New Order",
+    "orders": "Orders Board",
+    "payments": "Payments",
+    "customers": "Customers",
+    "whatsapp": "WhatsApp",
+    "reports": "Report",
+    "finance": "Finance",
+    "settings": "Settings"
+  },
+  "Order": {
+    "newOrder": "New order",
+    "walkIn": "Walk-in",
+    "pickupDelivery": "Pickup & Delivery",
+    "addCustomer": "Add customer",
+    "checkoutAsGuest": "Or check out as guest",
+    "emptyCart": "Cart is empty",
+    "emptyCartHint": "Pick items from the catalogue. Switch tier above to change pricing.",
+    "findItem": "Find item…",
+    "hold": "Hold",
+    "charge": "Charge",
+    "chargeReceipt": "Charge & receipt",
+    "takePayment": "Take payment",
+    "chargeLabel": "Charge",
+    "pickPaymentMethod": "Pick a payment method",
+    "findCustomer": "Find customer",
+    "searchByNameOrPhone": "Name or phone…",
+    "searching": "Searching…",
+    "orderCharged": "Order #{number} charged · {amount}",
+    "couldNotCreate": "Could not create order"
+  },
+  "OrderStatus": {
+    "RECEIVED": "Received",
+    "TAGGING": "Tagging",
+    "CLEANING": "Cleaning",
+    "READY": "Ready",
+    "DELIVERY": "Out for Delivery",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled"
+  },
+  "PaymentMethod": {
+    "CASH": "Cash",
+    "CARD": "Card",
+    "APPLE_PAY": "Apple Pay",
+    "ACCOUNT": "On Account",
+    "ON_DELIVERY": "On Delivery",
+    "GIFT_CARD": "Gift Card"
+  },
+  "PaymentMethodSub": {
+    "CASH": "Open drawer",
+    "CARD": "Stripe terminal",
+    "APPLE_PAY": "Contactless",
+    "ACCOUNT": "Bill later",
+    "ON_DELIVERY": "Pay on delivery",
+    "GIFT_CARD": "Redeem card"
+  },
+  "OrdersBoard": {
+    "title": "Orders",
+    "active": "{count, plural, =0 {no active orders} one {1 active order} other {# active orders}}",
+    "empty": "—",
+    "items": "{count, plural, =0 {no items} one {1 item} other {# items}}",
+    "paid": "paid",
+    "unpaid": "unpaid",
+    "movedTo": "#{number} → {status}",
+    "failedToUpdate": "Failed to update status"
+  },
+  "Payments": {
+    "title": "Payments",
+    "stats": {
+      "todaysTakings": "Today's takings",
+      "refunds": "Refunds",
+      "cards": "Cards",
+      "cash": "Cash"
+    },
+    "transactions": "{count, plural, =0 {no transactions} one {1 transaction} other {# transactions}}",
+    "collected": "{amount} collected",
+    "table": {
+      "order": "Order",
+      "customer": "Customer",
+      "method": "Method",
+      "status": "Status",
+      "when": "When"
+    },
+    "walkIn": "Walk-in",
+    "noPayments": "No payments yet"
+  },
+  "Customers": {
+    "title": "Customers",
+    "shown": "{count, plural, =0 {none shown} one {1 shown} other {# shown}}",
+    "search": "Search name, phone, email…",
+    "addCustomer": "+ Add customer",
+    "table": {
+      "customer": "Customer",
+      "phone": "Phone",
+      "area": "Area",
+      "orders": "Orders",
+      "spend": "Spend",
+      "tags": "Tags"
+    },
+    "noResults": "No customers match “{q}”.",
+    "subscriber": "Subscriber",
+    "nameRequired": "Name and phone required",
+    "customerAdded": "Customer added",
+    "addModal": {
+      "title": "Add customer",
+      "save": "Add customer"
+    },
+    "detail": {
+      "loyalty": "Loyalty",
+      "recentOrders": "Recent orders",
+      "date": "Date"
+    }
+  },
+  "WhatsApp": {
+    "businessLabel": "WhatsApp Business",
+    "searchPlaceholder": "Search conversations",
+    "noConversations": "No conversations yet",
+    "title": "WhatsApp Business",
+    "empty": "Pick a conversation to start replying. The bot ({botName}) is {state}.",
+    "botActive": "✓ Bot active",
+    "botPaused": "⏸ Bot paused",
+    "typeMessage": "Type a message",
+    "failedToSend": "Failed to send",
+    "stateOn": "on",
+    "stateOff": "off"
+  },
+  "Reports": {
+    "title": "Report",
+    "ranges": {
+      "Today": "Today",
+      "Yesterday": "Yesterday",
+      "Week": "Week",
+      "Month": "Month"
+    },
+    "kpis": {
+      "orders": "Orders",
+      "revenue": "Revenue",
+      "collected": "Collected",
+      "avgTicket": "Avg ticket"
+    },
+    "subtitles": {
+      "fromSources": "all sources",
+      "received": "received cash + card",
+      "perOrder": "per order"
+    },
+    "byStatus": {
+      "title": "By status",
+      "sub": "Workflow distribution"
+    },
+    "byMethod": {
+      "title": "By payment method",
+      "sub": "Where money lands"
+    },
+    "topItems": {
+      "title": "Top items",
+      "sub": "By volume, this range",
+      "empty": "No orders in this range yet",
+      "qty": "Qty",
+      "revenue": "Revenue"
+    }
+  },
+  "Finance": {
+    "title": "Financial Vision",
+    "subtitle": "Static planning data — {company}, {currency}",
+    "scenarios": {
+      "worst": "Worst",
+      "average": "Average",
+      "dream": "Dream"
+    },
+    "tabs": {
+      "dashboard": "Dashboard",
+      "actuals": "Monthly Actuals",
+      "unit": "Unit Economics",
+      "vision": "Vision / Plan",
+      "owners": "Owners & Capital"
+    },
+    "kpis": {
+      "annualPlanCost": "Annual plan cost",
+      "annualIncome": "Annual income · {scenario}",
+      "annualProfit": "Annual profit · {scenario}",
+      "stripeFees": "Stripe fees",
+      "incomeMinusCost": "income − cost",
+      "perTx": "per transaction",
+      "yearTotal": "12 months total",
+      "scenarioAssumption": "scenario assumption"
+    },
+    "monthlyPlan": "Monthly plan",
+    "line": "Line",
+    "planTotal": "Plan total",
+    "incomeRow": "Income · {scenario}",
+    "profit": "Profit",
+    "owners": "Capital contributions",
+    "date": "Date",
+    "owner": "Owner",
+    "note": "Note",
+    "totalRaised": "Total raised",
+    "unitEconomicsHint": "Unit economics view — coming soon. Use the plan + scenario tabs above to project profitability."
+  },
+  "Settings": {
+    "title": "Settings",
+    "groups": {
+      "Catalogue": "Catalogue",
+      "Operations": "Operations",
+      "TaxCompliance": "Tax & Compliance",
+      "Access": "Access"
+    },
+    "nav": {
+      "branding": "Branding",
+      "catalogue": "Products & Pricing",
+      "promos": "Promotions",
+      "loyalty": "Loyalty",
+      "giftCards": "Gift Cards",
+      "subscriptions": "Subscriptions",
+      "stores": "Stores",
+      "pickup": "Pickup & Delivery",
+      "areas": "Areas",
+      "drivers": "Drivers",
+      "inventory": "Inventory",
+      "shifts": "Cash & Shift",
+      "tax": "Tax / VAT",
+      "hours": "Hours",
+      "notifications": "Notifications",
+      "hardware": "Hardware",
+      "users": "Users & Roles"
+    },
+    "branding": {
+      "title": "Branding",
+      "sub": "How your business appears on the POS, customer app, and receipts.",
+      "brandName": "Brand name",
+      "tagline": "Tagline",
+      "currency": "Currency",
+      "receiptFooter": "Receipt footer",
+      "posColors": "POS colors",
+      "posColorsSub": "Used in the staff POS interface.",
+      "appColors": "Customer app colors",
+      "appColorsSub": "Used by the customer-facing app.",
+      "primary": "Primary",
+      "accent": "Accent",
+      "background": "Background",
+      "livePreview": "Live preview",
+      "saved": "Branding saved"
+    },
+    "tax": {
+      "title": "Tax / VAT",
+      "sub": "Configure how tax is calculated and shown on receipts.",
+      "enable": "Enable tax",
+      "enableSub": "Apply {label} to every order",
+      "label": "Label",
+      "rate": "Rate (%)",
+      "mode": "Mode",
+      "modeSub": "Exclusive adds tax on top, inclusive includes it in the price",
+      "trn": "TRN",
+      "onReceipt": "Show on receipt",
+      "saved": "Tax saved"
+    },
+    "hours": {
+      "title": "Business hours",
+      "sub": "When your stores accept new orders.",
+      "saved": "Hours saved"
+    },
+    "stores": {
+      "title": "Stores",
+      "sub": "Branches your business operates. Staff sign into one or more of these.",
+      "allStores": "All stores",
+      "addStore": "+ Add store",
+      "table": { "name": "Name", "area": "Area", "phone": "Phone", "trn": "TRN" },
+      "addModal": "Add store",
+      "editModal": "Edit store",
+      "deleteConfirm": "Delete {name}?",
+      "deleted": "Store removed",
+      "saved": "Saved",
+      "fields": {
+        "name": "Name",
+        "area": "Area",
+        "phone": "Phone",
+        "address": "Address",
+        "trn": "TRN",
+        "hours": "Hours"
+      }
+    },
+    "users": {
+      "title": "Users & Roles",
+      "sub": "Create staff accounts, assign a role, and choose which stores each can access.",
+      "users": "Users",
+      "roles": "Roles & permissions",
+      "rolesSub": "Create roles and choose what each can do. Manager always has full access.",
+      "addUser": "+ Add user",
+      "addRole": "+ Add role",
+      "namePrompt": "Role name (e.g. Supervisor)",
+      "deleteRoleConfirm": "{count, plural, one {1 user uses} other {# users use}} this role. Reassign and delete?",
+      "removeUserConfirm": "Remove {name}?",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "stores": "Stores"
+      },
+      "allStores": "All stores",
+      "noAccess": "No access",
+      "atLeastOneStore": "Select at least one store",
+      "nameAndEmailRequired": "Name and email required",
+      "passwordRequired": "Password required",
+      "modal": {
+        "addTitle": "Add user",
+        "editTitle": "Edit user",
+        "fullName": "Full name",
+        "email": "Email",
+        "password": "Password",
+        "passwordEditHint": "Password (leave blank to keep)",
+        "role": "Role",
+        "storeAccess": "Store access ({selected}/{total})",
+        "storeHint": "This user can only sign into the branches selected here.",
+        "createUser": "Create user"
+      },
+      "actions": {
+        "TAKE_ORDERS": "Take new orders",
+        "EDIT_ORDERS": "Edit orders & status",
+        "REFUND": "Issue refunds",
+        "PAYMENTS": "Take payments",
+        "CASH_DRAWER": "Open cash drawer & end-of-day",
+        "VIEW_REPORTS": "View reports",
+        "VIEW_FINANCE": "View finance",
+        "MANAGE_CATALOG": "Manage catalogue",
+        "MANAGE_PROMOS": "Manage promos",
+        "WHATSAPP": "Use WhatsApp inbox",
+        "MANAGE_STAFF": "Manage staff & permissions",
+        "SETTINGS": "Edit settings"
+      }
+    },
+    "pickup": {
+      "title": "Pickup & Delivery",
+      "sub": "Slots, cutoffs, and delivery fees.",
+      "settings": "Settings",
+      "slots": "Slots",
+      "addSlot": "+ Add slot",
+      "slotLabelPrompt": "Slot label (e.g. 16:00 – 18:00)",
+      "defaultCap": "Default slot capacity",
+      "leadHours": "Lead time (hours)",
+      "sameDayCutoff": "Same-day cutoff",
+      "deliveryFee": "Delivery fee (AED)",
+      "freeOver": "Free over (AED)",
+      "expressSurcharge": "Express surcharge (%)",
+      "autoAssign": "Auto-assign driver",
+      "days": "Days enabled",
+      "saveSettings": "Save settings",
+      "deleteSlotConfirm": "Delete slot?",
+      "slotKinds": {
+        "BOTH": "Pickup & Delivery",
+        "PICKUP": "Pickup only",
+        "DELIVERY": "Delivery only"
+      }
+    },
+    "areas": {
+      "title": "Areas",
+      "sub": "Service areas customers can pick when booking pickup & delivery.",
+      "tableTitle": "Areas",
+      "labelSingular": "area",
+      "fields": { "name": "Name", "sortOrder": "Sort order" }
+    },
+    "drivers": {
+      "title": "Drivers",
+      "sub": "People who pick up and deliver orders.",
+      "tableTitle": "Drivers",
+      "labelSingular": "driver",
+      "fields": { "name": "Name", "zone": "Zone" }
+    },
+    "promos": {
+      "title": "Promotions",
+      "sub": "Codes customers can apply to orders. Auto-apply or POS-only options below.",
+      "table": "All promotions",
+      "new": "+ New promo",
+      "table": { "code": "Code", "description": "Description", "value": "Value", "channel": "Channel", "uses": "Uses" },
+      "addTitle": "New promo",
+      "editTitle": "Edit promo",
+      "codeRequired": "Code required",
+      "kindLabels": {
+        "PERCENT": "% Percent",
+        "AMOUNT": "AED off"
+      },
+      "fields": {
+        "code": "Code",
+        "description": "Description",
+        "kind": "Kind",
+        "value": "Value",
+        "channel": "Channel",
+        "auto": "Auto-apply",
+        "maxUses": "Max uses (0 = unlimited)",
+        "maxPerCust": "Max per customer"
+      }
+    },
+    "loyalty": {
+      "title": "Loyalty",
+      "sub": "Reward customers with points they can redeem on future orders.",
+      "enable": "Enable loyalty programme",
+      "perAed": "Points per AED",
+      "redeemThreshold": "Redeem threshold",
+      "redeemThresholdSub": "Minimum points needed to redeem",
+      "welcomeBonus": "Welcome bonus",
+      "expiryMonths": "Expiry (months)"
+    },
+    "giftCards": {
+      "title": "Gift cards",
+      "sub": "Sell prepaid cards customers can redeem at checkout.",
+      "enable": "Enable gift cards",
+      "denoms": "Denominations",
+      "denomsSub": "Comma-separated AED amounts",
+      "customAllowed": "Allow custom amount",
+      "expiryMonths": "Expiry (months)",
+      "issued": "Issued cards",
+      "issue": "+ Issue card",
+      "amountPrompt": "Amount (AED)",
+      "recipientPrompt": "Recipient name (optional)",
+      "table": { "code": "Code", "recipient": "Recipient", "initial": "Initial", "balance": "Balance" },
+      "noCards": "No cards issued yet"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "sub": "Recurring plans customers can subscribe to.",
+      "tableTitle": "Plans",
+      "labelSingular": "plan",
+      "fields": {
+        "name": "Name",
+        "price": "Price (AED)",
+        "period": "Period",
+        "itemsDesc": "Items description"
+      }
+    },
+    "inventory": {
+      "title": "Inventory",
+      "sub": "Chemicals, packaging, and supplies your store consumes.",
+      "tableTitle": "Inventory items",
+      "labelSingular": "item",
+      "fields": {
+        "name": "Name",
+        "category": "Category",
+        "unit": "Unit (e.g. L, pcs)",
+        "stock": "Current stock",
+        "reorder": "Reorder threshold",
+        "cost": "Cost per unit (AED)"
+      }
+    },
+    "shifts": {
+      "title": "Cash & Shift",
+      "sub": "Open a shift to start tracking cash, then close it at end-of-day for a Z-report.",
+      "current": "Current shift",
+      "openingFloat": "Opening float",
+      "openedAt": "Opened at",
+      "movements": "Movements",
+      "openShift": "Open shift",
+      "noActive": "No active shift. Open a new one to start.",
+      "openPrompt": "Opening cash float (AED)",
+      "closePrompt": "Counted cash in drawer (AED)",
+      "endShift": "End shift · Z-report",
+      "shiftOpened": "Shift opened",
+      "shiftClosed": "Shift closed · Z-report generated",
+      "reasonPrompt": "Reason",
+      "amountPrompt": "Amount (AED)",
+      "paidIn": "+ Paid in",
+      "paidOut": "− Paid out",
+      "petty": "− Petty cash",
+      "history": "History",
+      "table": {
+        "opened": "Opened",
+        "closed": "Closed",
+        "float": "Float",
+        "counted": "Counted",
+        "variance": "Variance",
+        "by": "By"
+      },
+      "noShifts": "No shifts yet"
+    },
+    "hardware": {
+      "title": "Hardware",
+      "sub": "Receipt printer, payment terminal, cash drawer, and label printer for each store.",
+      "store": "Store",
+      "saved": "Hardware saved",
+      "sections": {
+        "printer": "Printer",
+        "terminal": "Terminal",
+        "drawer": "Cash drawer",
+        "labels": "Labels"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sub": "When and what messages get sent to customers automatically.",
+      "channels": "Channels",
+      "templates": "Templates",
+      "templatesSub": "Use placeholders like {leftBrace}name{rightBrace}, {leftBrace}order{rightBrace}, {leftBrace}total{rightBrace}, {leftBrace}driver{rightBrace}, {leftBrace}eta{rightBrace}.",
+      "saveTemplates": "Save templates",
+      "templatesSaved": "Templates saved",
+      "keys": {
+        "SMS_READY": "SMS · Order ready",
+        "SMS_OUT": "SMS · Out for delivery",
+        "EMAIL_INVOICE": "Email · Invoice",
+        "WA_CONFIRM": "WhatsApp · Pickup confirmation",
+        "MARKETING": "Marketing broadcasts",
+        "LOW_STOCK": "Low stock alerts"
+      }
+    },
+    "catalogue": {
+      "title": "Products & Pricing",
+      "sub": "Catalogue items with one price per service tier. Empty = tier not offered.",
+      "addCategory": "+ Add category",
+      "addItem": "+ Item",
+      "deleteItem": "Delete item?",
+      "categoryTitlePrompt": "Category title",
+      "itemNamePrompt": "Item name",
+      "skuPrompt": "SKU"
+    }
+  },
+  "PromoChannel": {
+    "POS": "POS",
+    "ONLINE": "Online",
+    "ALL": "All"
+  },
+  "SubscriptionPeriod": {
+    "WEEK": "Weekly",
+    "MONTH": "Monthly",
+    "QUARTER": "Quarterly",
+    "YEAR": "Yearly"
+  },
+  "DayOfWeek": {
+    "MON": "Monday",
+    "TUE": "Tuesday",
+    "WED": "Wednesday",
+    "THU": "Thursday",
+    "FRI": "Friday",
+    "SAT": "Saturday",
+    "SUN": "Sunday"
+  },
+  "DayOfWeekShort": {
+    "MON": "Mon",
+    "TUE": "Tue",
+    "WED": "Wed",
+    "THU": "Thu",
+    "FRI": "Fri",
+    "SAT": "Sat",
+    "SUN": "Sun"
+  }
+}
