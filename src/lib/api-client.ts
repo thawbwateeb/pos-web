@@ -48,3 +48,12 @@ export async function api<T>(path: string, opts: ClientApiOptions = {}): Promise
 export function eventStream(): EventSource {
   return new EventSource(apiBase() + '/events/stream', { withCredentials: true });
 }
+
+/**
+ * Build a fully-qualified URL for endpoints we hit outside the JSON
+ * `api()` helper — file uploads (multipart) and direct file fetches
+ * for <img src="…">.
+ */
+export function apiUploadUrl(path: string): string {
+  return apiBase() + path;
+}

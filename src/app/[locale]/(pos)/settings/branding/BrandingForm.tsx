@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { api } from '@/lib/api-client';
+import { useRef, useState } from 'react';
+import { api, apiUploadUrl } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import { Icon } from '@/components/Icons';
 
 export default function BrandingForm({ initial }: { initial: any }) {
   const [f, setF] = useState({
     brandName: initial?.brandName ?? '',
     tagline: initial?.tagline ?? '',
+    logoFileKey: initial?.logoFileKey ?? null as string | null,
     posPrimary: initial?.posPrimary ?? '#2A4858',
     posAccent: initial?.posAccent ?? '#C4A572',
     appPrimary: initial?.appPrimary ?? '#2A4858',
@@ -17,6 +19,8 @@ export default function BrandingForm({ initial }: { initial: any }) {
     receiptFooter: initial?.receiptFooter ?? '',
   });
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   async function save() {
@@ -27,10 +31,84 @@ export default function BrandingForm({ initial }: { initial: any }) {
     } finally { setBusy(false); }
   }
 
+  async function uploadLogo(file: File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.show('Pick an image file');
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(apiUploadUrl('/files/upload'), { method: 'POST', body: fd, credentials: 'include' });
+      if (!res.ok) throw new Error('upload failed');
+      const json = await res.json();
+      // Server returns FileObject with id; we store its id as the logoFileKey.
+      setF((prev) => ({ ...prev, logoFileKey: json.id }));
+      toast.show('Logo uploaded');
+    } catch {
+      toast.show('Could not upload logo');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const logoUrl = f.logoFileKey ? apiUploadUrl(`/files/${f.logoFileKey}`) : null;
+
   return (
     <div className="set-sec">
       <h2>Branding</h2>
       <p className="ssub">How your business appears on the POS, customer app, and receipts.</p>
+
+      <div className="set-card">
+        <div className="ch"><h3>Logo</h3><div className="csub">Shown on receipts, the customer app, and email templates.</div></div>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <div
+            style={{
+              width: 96, height: 96, borderRadius: 12, border: '1px dashed var(--border)',
+              background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', color: 'var(--muted)', fontSize: 12,
+            }}
+          >
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            ) : (
+              <Icon.plus size={28} />
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadLogo(file);
+              }}
+            />
+            <button
+              type="button"
+              className={`btn btn-ghost${uploading ? ' btn-loading' : ''}`}
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+            >
+              {logoUrl ? 'Replace logo' : 'Upload logo'}
+            </button>
+            {logoUrl && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setF((prev) => ({ ...prev, logoFileKey: null }))}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="set-card">
         <div className="field"><label>Brand name</label><input className="input" value={f.brandName} onChange={(e) => setF({ ...f, brandName: e.target.value })} /></div>
