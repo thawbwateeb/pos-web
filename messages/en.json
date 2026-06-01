@@ -214,7 +214,21 @@
     "expressFee": "Express surcharge",
     "deliveryFee": "Delivery fee",
     "cancelOrder": "Cancel order",
-    "cancelOrderConfirm": "Cancel order #{number}? This can't be undone."
+    "cancelOrderConfirm": "Cancel order #{number}? This can't be undone.",
+    "activeShortDrag": "{count, plural, =0 {no active orders} one {1 active · drag a card or tap to advance} other {# active · drag a card or tap to advance}}",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "reprint": "Reprint receipt",
+    "reprintToast": "Receipt sent to printer",
+    "editItems": "Edit items",
+    "payNow": "Take payment",
+    "refundAll": "Refund all",
+    "refundAllConfirm": "Refund the full amount of {amount} for #{number}?",
+    "refunded": "Refunded {amount}",
+    "voidLine": "Void line",
+    "voidLineConfirm": "Refund {amount} for {name}?",
+    "lineRefunded": "Line refunded"
   },
   "Payments": {
     "title": "Payments & Invoicing",

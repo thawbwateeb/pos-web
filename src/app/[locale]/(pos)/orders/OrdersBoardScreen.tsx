@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
-import { AED, shortTime } from '@/lib/format';
+import { AED, dueLabel } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import { Icon } from '@/components/Icons';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { OrdersBoard, OrderStatus, OrderType, Order } from '@/lib/types';
 
@@ -20,6 +23,7 @@ export default function OrdersBoardScreen({
   const [board, setBoard] = useState<OrdersBoard>(initial);
   const [filter, setFilter] = useState<Filter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<OrderStatus | null>(null);
   const t = useTranslations('OrdersBoard');
   const tStatus = useTranslations('OrderStatus');
   const tType = useTranslations('Order');
@@ -44,6 +48,7 @@ export default function OrdersBoardScreen({
       const onChange = () => { refresh().catch(() => {}); };
       es.addEventListener('order.created', onChange);
       es.addEventListener('order.status', onChange);
+      es.addEventListener('order.updated', onChange);
       es.addEventListener('payment.recorded', onChange);
     } catch {}
     return () => es?.close();
@@ -77,8 +82,8 @@ export default function OrdersBoardScreen({
     return i > 0 ? (COLUMNS[i - 1].key as OrderStatus) : undefined;
   }
 
-  async function advance(o: Order, to: OrderStatus | undefined) {
-    if (!to) return;
+  async function moveTo(o: Order, to: OrderStatus | undefined) {
+    if (!to || to === o.status) return;
     try {
       await api(`/orders/${o.id}/status`, { method: 'PATCH', body: { status: to } });
       toast.show(t('movedTo', { number: o.number, status: tStatus(to as any) }));
@@ -91,7 +96,6 @@ export default function OrdersBoardScreen({
   async function togglePaid(o: Order) {
     try {
       if (o.paid) {
-        // No "unmark paid" endpoint; record a zero-value adjustment if needed.
         toast.show(t('alreadyPaid'));
         return;
       }
@@ -106,13 +110,43 @@ export default function OrdersBoardScreen({
     }
   }
 
+  // ── Drag and drop ──────────────────────────────────────────────────
+  // The design's board allows drag-to-advance (app.js:543-563). We mark
+  // the card draggable, stash the order id + current status in
+  // dataTransfer, highlight the hovered column, and call moveTo on drop.
+  function onDragStart(e: React.DragEvent, o: Order) {
+    e.dataTransfer.setData('application/x-order-id', o.id);
+    e.dataTransfer.setData('application/x-order-status', o.status);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function onColDragOver(e: React.DragEvent, status: OrderStatus) {
+    if (Array.from(e.dataTransfer.types).includes('application/x-order-id')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dropTarget !== status) setDropTarget(status);
+    }
+  }
+  function onColDragLeave(status: OrderStatus) {
+    if (dropTarget === status) setDropTarget(null);
+  }
+  async function onColDrop(e: React.DragEvent, status: OrderStatus) {
+    e.preventDefault();
+    setDropTarget(null);
+    const id = e.dataTransfer.getData('application/x-order-id');
+    const from = e.dataTransfer.getData('application/x-order-status') as OrderStatus;
+    if (!id || from === status) return;
+    const o = Object.values(board).flat().find((x) => x.id === id);
+    if (!o) return;
+    await moveTo(o, status);
+  }
+
   return (
     <div className="page">
       <div className="page-head">
         <div className="ph-l">
           <h2>{tStatus('boardTitle')}</h2>
           <span className="sub">
-            {t('activeShort', { count: allActive })}
+            {t('activeShortDrag', { count: allActive })}
           </span>
         </div>
         <div className="seg">
@@ -130,11 +164,19 @@ export default function OrdersBoardScreen({
 
       <div className="board">
         {COLUMNS.map((col) => {
-          const orders = (board[col.key as OrderStatus] ?? [])
+          const statusKey = col.key as OrderStatus;
+          const orders = (board[statusKey] ?? [])
             .filter(matchesFilter)
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          const isDropTarget = dropTarget === statusKey;
           return (
-            <div className="col" key={col.key}>
+            <div
+              className={`col${isDropTarget ? ' drop-target' : ''}`}
+              key={col.key}
+              onDragOver={(e) => onColDragOver(e, statusKey)}
+              onDragLeave={() => onColDragLeave(statusKey)}
+              onDrop={(e) => onColDrop(e, statusKey)}
+            >
               <div className="col-head">
                 <span className="dot" style={{ background: col.color }} />
                 <span className="cl">{tStatus(col.key as any)}</span>
@@ -152,9 +194,10 @@ export default function OrdersBoardScreen({
                       order={o}
                       position={rankOf[o.id] ?? 0}
                       onOpen={() => setOpenId(o.id)}
-                      onAdvance={() => advance(o, next(o.status))}
-                      onRetreat={() => advance(o, prev(o.status))}
+                      onAdvance={() => moveTo(o, next(o.status))}
+                      onRetreat={() => moveTo(o, prev(o.status))}
                       onTogglePaid={() => togglePaid(o)}
+                      onDragStart={(e) => onDragStart(e, o)}
                       canAdvance={!!next(o.status)}
                       canRetreat={!!prev(o.status)}
                       nextLabel={next(o.status) ? tStatus(next(o.status) as any) : undefined}
@@ -185,6 +228,7 @@ function OrderCard({
   onAdvance,
   onRetreat,
   onTogglePaid,
+  onDragStart,
   canAdvance,
   canRetreat,
   nextLabel,
@@ -195,6 +239,7 @@ function OrderCard({
   onAdvance: () => void;
   onRetreat: () => void;
   onTogglePaid: () => void;
+  onDragStart: (e: React.DragEvent) => void;
   canAdvance: boolean;
   canRetreat: boolean;
   nextLabel?: string;
@@ -204,14 +249,13 @@ function OrderCard({
 
   const isExpress = o.expressOn;
   const itemCount = o._count?.items ?? 0;
-  const dueWhen = o.dueAt ? new Date(o.dueAt) : null;
-  const dueLabel = dueWhen
-    ? dueWhen.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
-    : t('noDue');
+  const due = dueLabel(o.dueAt, { today: t('today'), tomorrow: t('tomorrow'), yesterday: t('yesterday') });
 
   return (
     <div
       className="ocard"
+      draggable
+      onDragStart={onDragStart}
       onClick={(e) => {
         // Ignore clicks that originate from a button inside the card.
         if ((e.target as HTMLElement).closest('button')) return;
@@ -233,7 +277,7 @@ function OrderCard({
       <div className="oc-meta">
         <span>{itemCount > 0 ? t('items', { count: itemCount }) : t('awaiting')}</span>
         <span>·</span>
-        <span>{dueLabel}</span>
+        <span>{due}</span>
       </div>
 
       {(o.rackCode || o.status === 'TAGGING') && (
@@ -291,15 +335,103 @@ function OrderDetailModal({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const params = useParams<{ locale: string }>();
+  const locale = params.locale ?? 'en';
   const [order, setOrder] = useState<any | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmRefund, setConfirmRefund] = useState<null | { kind: 'all' } | { kind: 'line'; line: any }>(null);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const tStatus = useTranslations('OrderStatus');
   const tMethod = useTranslations('PaymentMethod');
+  const toast = useToast();
 
   useEffect(() => {
     api<any>(`/orders/${orderId}`).then(setOrder);
   }, [orderId]);
+
+  async function reload() {
+    const o = await api<any>(`/orders/${orderId}`);
+    setOrder(o);
+  }
+
+  async function markPaid() {
+    if (!order || order.paid) return;
+    setBusy(true);
+    try {
+      await api('/payments', {
+        method: 'POST',
+        body: { orderId: order.id, method: 'CASH', amount: Number(order.total) },
+      });
+      toast.show(t('markedPaid', { number: order.number }));
+      onChanged();
+      await reload();
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('failedToUpdate'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refundAll() {
+    if (!order) return;
+    setBusy(true);
+    try {
+      const pay = order.payments?.find((p: any) => p.status !== 'REFUNDED');
+      if (!pay) {
+        toast.show(t('failedToUpdate'));
+        return;
+      }
+      const remaining = Number(pay.amount) - Number(pay.refundedAmount);
+      await api(`/payments/${pay.id}/refund`, {
+        method: 'POST',
+        body: { amount: remaining, reason: 'refund all' },
+      });
+      toast.show(t('refunded', { amount: AED(remaining) }));
+      onChanged();
+      await reload();
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('failedToUpdate'));
+    } finally {
+      setBusy(false);
+      setConfirmRefund(null);
+    }
+  }
+
+  async function refundLine(line: any) {
+    if (!order) return;
+    setBusy(true);
+    try {
+      const pay = order.payments?.find((p: any) => p.status !== 'REFUNDED');
+      if (!pay) {
+        toast.show(t('failedToUpdate'));
+        return;
+      }
+      const amount = Number(line.lineTotal);
+      const remaining = Number(pay.amount) - Number(pay.refundedAmount);
+      const refundAmount = Math.min(amount, remaining);
+      if (refundAmount <= 0) {
+        toast.show(t('failedToUpdate'));
+        return;
+      }
+      await api(`/payments/${pay.id}/refund`, {
+        method: 'POST',
+        body: { amount: refundAmount, reason: `Void line ${line.nameSnapshot}` },
+      });
+      toast.show(t('lineRefunded'));
+      onChanged();
+      await reload();
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('failedToUpdate'));
+    } finally {
+      setBusy(false);
+      setConfirmRefund(null);
+    }
+  }
+
+  function reprint() {
+    toast.show(t('reprintToast'));
+  }
 
   if (!order) {
     return (
@@ -310,6 +442,10 @@ function OrderDetailModal({
       </div>
     );
   }
+
+  const canEdit = order.status === 'RECEIVED' && !order.paid;
+  const canPay = !order.paid && order.status !== 'CANCELLED';
+  const canRefund = order.paid && order.status !== 'CANCELLED';
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
@@ -351,6 +487,7 @@ function OrderDetailModal({
                 <th>{tCommon('qty')}</th>
                 <th className="num">{tCommon('price')}</th>
                 <th className="num">{tCommon('total')}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -365,10 +502,21 @@ function OrderDetailModal({
                   <td>{l.qty}</td>
                   <td className="num">{AED(l.unitPrice)}</td>
                   <td className="num">{AED(l.lineTotal)}</td>
+                  <td className="num">
+                    {canRefund && (
+                      <button
+                        className="odl-act"
+                        title={t('voidLine')}
+                        onClick={() => setConfirmRefund({ kind: 'line', line: l })}
+                      >
+                        {t('voidLine')}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {(order.items ?? []).length === 0 && (
-                <tr><td colSpan={4} className="muted" style={{ textAlign: 'center', padding: 14 }}>—</td></tr>
+                <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 14 }}>—</td></tr>
               )}
             </tbody>
           </table>
@@ -391,21 +539,71 @@ function OrderDetailModal({
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
-          <button
-            className="btn btn-pri"
-            style={{ flex: 2 }}
-            onClick={async () => {
-              if (!confirm(t('cancelOrderConfirm', { number: order.number }))) return;
-              await api(`/orders/${order.id}/cancel`, { method: 'PATCH', body: { reason: 'cancelled by staff' } });
-              onChanged();
-              onClose();
-            }}
-            disabled={order.status === 'CANCELLED' || order.status === 'COMPLETED'}
-          >
-            {t('cancelOrder')}
+          <button className="btn btn-ghost" onClick={reprint} title={t('reprint')}>
+            <Icon.print size={16} /> {t('reprint')}
           </button>
+          {canEdit && (
+            <Link
+              href={`/${locale}/order?edit=${order.id}`}
+              className="btn btn-ghost"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              onClick={onClose}
+            >
+              {t('editItems')}
+            </Link>
+          )}
+          {canPay && (
+            <button
+              className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+              style={{ flex: 1 }}
+              onClick={markPaid}
+              disabled={busy}
+            >
+              {t('payNow')} {AED(order.total)}
+            </button>
+          )}
+          {canRefund && (
+            <button
+              className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+              style={{ flex: 1 }}
+              onClick={() => setConfirmRefund({ kind: 'all' })}
+              disabled={busy}
+            >
+              {t('refundAll')}
+            </button>
+          )}
         </div>
+
+        {confirmRefund && (
+          <div className="modal-scrim show" onClick={() => setConfirmRefund(null)} style={{ zIndex: 220 }}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-head">
+                <h3>{confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}</h3>
+                <button className="x" onClick={() => setConfirmRefund(null)}>×</button>
+              </div>
+              <div className="modal-body">
+                <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>
+                  {confirmRefund.kind === 'all'
+                    ? t('refundAllConfirm', { amount: AED(order.total), number: order.number })
+                    : t('voidLineConfirm', { amount: AED(confirmRefund.line.lineTotal), name: confirmRefund.line.nameSnapshot })}
+                </p>
+              </div>
+              <div className="modal-foot">
+                <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmRefund(null)}>
+                  {tCommon('cancel')}
+                </button>
+                <button
+                  className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+                  style={{ flex: 1 }}
+                  onClick={() => confirmRefund.kind === 'all' ? refundAll() : refundLine(confirmRefund.line)}
+                  disabled={busy}
+                >
+                  {confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

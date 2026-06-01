@@ -198,6 +198,9 @@ input,select{font:inherit}
 .col-head .cl{font-size:13.5px;font-weight:600;color:var(--text);flex:1}
 .col-head .cc{font-size:11px;font-weight:700;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:2px 8px}
 .col-body{padding:10px;display:flex;flex-direction:column;gap:9px}
+.col.drop-target{outline:2px dashed var(--accent);outline-offset:-4px;background:var(--accent-soft)}
+.ocard[draggable=true]{cursor:grab}
+.ocard[draggable=true]:active{cursor:grabbing}
 .ocard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;transition:all .15s}
 .ocard:hover{box-shadow:var(--shadow);border-color:var(--accent)}
 .ocard .oc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
