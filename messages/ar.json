@@ -259,7 +259,7 @@
     "deliveryFee": "Delivery fee",
     "cancelOrder": "Cancel order",
     "cancelOrderConfirm": "Cancel order #{number}? This can't be undone.",
-    "activeShortDrag": "{count, plural, =0 {no active orders} one {1 active · drag a card or tap to advance} other {# active · drag a card or tap to advance}}",
+    "activeShortDrag": "{count, plural, =0 {no active orders} one {1 active · drag-free, tap to advance} other {# active · drag-free, tap to advance}}",
     "today": "Today",
     "tomorrow": "Tomorrow",
     "yesterday": "Yesterday",
