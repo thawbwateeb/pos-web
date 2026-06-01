@@ -82,6 +82,7 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
               <th className="num">{t('table.reorder')}</th>
               <th className="num">{t('table.cost')}</th>
               <th className="num">{t('table.value')}</th>
+              <th>{t('table.status')}</th>
               <th></th>
             </tr>
           </thead>
@@ -96,20 +97,27 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
                 <tr key={it.id}>
                   <td>
                     <b>{it.name}</b>
-                    {low && <span className="pill unpaid" style={{ marginLeft: 8 }}>{t('lowStock')}</span>}
                   </td>
                   <td>{it.category}</td>
                   <td className="num tnum">{stock.toLocaleString()} <span className="muted" style={{ fontSize: 11 }}>{it.unit}</span></td>
                   <td className="num">
                     <div className="inv-adj">
-                      <button onClick={() => adjust(it, 'PURCHASE', 1)}>+1</button>
-                      <button onClick={() => adjust(it, 'PURCHASE', 5)}>+5</button>
+                      <button onClick={() => adjust(it, 'USAGE', 10)} disabled={stock <= 0}>−10</button>
                       <button onClick={() => adjust(it, 'USAGE', 1)} disabled={stock <= 0}>−1</button>
+                      <button onClick={() => adjust(it, 'PURCHASE', 1)}>+1</button>
+                      <button onClick={() => adjust(it, 'PURCHASE', 10)}>+10</button>
                     </div>
                   </td>
                   <td className="num tnum">{reorder.toLocaleString()}</td>
                   <td className="num tnum">{AED(cost)}</td>
                   <td className="num tnum">{AED(value)}</td>
+                  <td>
+                    {low ? (
+                      <span className="pill unpaid">{t('lowStock')}</span>
+                    ) : (
+                      <span className="pill paid">{t('inStock')}</span>
+                    )}
+                  </td>
                   <td className="num">
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditing(it)}>{tCommon('edit')}</button>
                     <button
@@ -128,7 +136,7 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
               );
             })}
             {items.length === 0 && (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>{t('empty')}</td></tr>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>{t('empty')}</td></tr>
             )}
           </tbody>
         </table>
@@ -148,10 +156,11 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
 function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose: () => void; onSaved: () => void }) {
   const t = useTranslations('Settings.inventory');
   const tCommon = useTranslations('Common');
+  const CATEGORIES = ['Chemicals', 'Packaging', 'Equipment', 'Other'] as const;
   const [f, setF] = useState({
     name: initial?.name ?? '',
     category: initial?.category ?? 'Chemicals',
-    unit: initial?.unit ?? 'L',
+    unit: initial?.unit ?? 'pcs',
     stock: Number(initial?.stock ?? 0),
     reorder: Number(initial?.reorder ?? 0),
     cost: Number(initial?.cost ?? 0),
@@ -178,7 +187,12 @@ function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose
         <div className="modal-body">
           <div className="field"><label>{t('fields.name')}</label><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <div className="field-2">
-            <div className="field"><label>{t('fields.category')}</label><input className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} /></div>
+            <div className="field">
+              <label>{t('fields.category')}</label>
+              <select className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
             <div className="field"><label>{t('fields.unit')}</label><input className="input" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} /></div>
           </div>
           <div className="field-2">

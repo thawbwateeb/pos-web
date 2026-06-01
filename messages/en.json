@@ -980,8 +980,10 @@
         "adjust": "Adjust",
         "reorder": "Reorder at",
         "cost": "Cost / unit",
-        "value": "Value"
+        "value": "Value",
+        "status": "Status"
       },
+      "inStock": "In stock",
       "fields": {
         "name": "Name",
         "category": "Category",

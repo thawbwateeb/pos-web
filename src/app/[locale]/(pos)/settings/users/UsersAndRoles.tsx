@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import { initials } from '@/lib/format';
 import type { PermissionAction, Role, Store, UserRow } from '@/lib/types';
 
 const ACTIONS: { key: PermissionAction; label: string }[] = [
@@ -25,6 +26,9 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
   const [roles, setRoles] = useState(initialRoles);
   const [editing, setEditing] = useState<UserRow | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addingRole, setAddingRole] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
   const toast = useToast();
 
   function reloadAll() {
@@ -40,26 +44,37 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
     setRoles((rs) => rs.map((r) => r.id !== role.id ? r : { ...r, permissions: r.permissions.map((p) => p.action === action ? { ...p, allowed } : p) }));
   }
 
-  async function addRole() {
-    const name = prompt('Role name (e.g. Supervisor)');
-    if (!name) return;
+  async function createRole(name: string) {
+    if (roles.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+      toast.show('That role already exists');
+      return;
+    }
     await api('/roles', { method: 'POST', body: { name } });
+    setAddingRole(false);
     reloadAll();
     toast.show(`Role "${name}" created`);
   }
 
-  async function delRole(role: Role) {
-    if (role.isSystemManager) return;
-    const usersUsing = users.filter((u) => u.role.id === role.id).length;
-    if (usersUsing > 0) {
-      if (!confirm(`${usersUsing} user(s) use this role. Reassign to "${roles.find((r) => !r.isSystemManager && r.id !== role.id)?.name}" and delete?`)) return;
-      const reassignTo = roles.find((r) => !r.isSystemManager && r.id !== role.id)?.id;
-      await api(`/roles/${role.id}`, { method: 'DELETE', body: { reassignTo } });
-    } else {
-      if (!confirm(`Delete role "${role.name}"?`)) return;
-      await api(`/roles/${role.id}`, { method: 'DELETE' });
-    }
+  async function confirmDeleteUser() {
+    if (!deletingUser) return;
+    await api(`/users/${deletingUser.id}`, { method: 'DELETE' });
+    setDeletingUser(null);
     reloadAll();
+    toast.show('User removed');
+  }
+
+  async function confirmDeleteRole() {
+    if (!deletingRole) return;
+    const usersUsing = users.filter((u) => u.role.id === deletingRole.id).length;
+    if (usersUsing > 0) {
+      const reassignTo = roles.find((r) => !r.isSystemManager && r.id !== deletingRole.id)?.id;
+      await api(`/roles/${deletingRole.id}`, { method: 'DELETE', body: { reassignTo } });
+    } else {
+      await api(`/roles/${deletingRole.id}`, { method: 'DELETE' });
+    }
+    setDeletingRole(null);
+    reloadAll();
+    toast.show('Role removed');
   }
 
   return (
@@ -82,7 +97,21 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
               const all = stores.length === granted.length;
               return (
                 <tr key={u.id}>
-                  <td>{u.fullName}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div
+                        style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: 'var(--accent-soft)', color: 'var(--accent)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 600, fontSize: 12, flexShrink: 0,
+                        }}
+                      >
+                        {initials(u.fullName)}
+                      </div>
+                      <b>{u.fullName}</b>
+                    </div>
+                  </td>
                   <td className="muted">{u.email}</td>
                   <td>
                     <select className="input" style={{ width: 130, padding: '6px 10px' }} value={u.role.id}
@@ -101,10 +130,22 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
                         : granted.map((sid) => <span key={sid} className="st-tag">{stores.find((s) => s.id === sid)?.name ?? sid}</span>)}
                     </div>
                   </td>
-                  <td><span className={`switch${u.active ? ' on' : ''}`} role="button" onClick={async () => { await api(`/users/${u.id}`, { method: 'PATCH', body: { active: !u.active } }); reloadAll(); }} /></td>
+                  <td>
+                    <span
+                      className={`switch${u.active ? ' on' : ''}`}
+                      role="button"
+                      onClick={async () => { await api(`/users/${u.id}`, { method: 'PATCH', body: { active: !u.active } }); reloadAll(); }}
+                    />
+                  </td>
                   <td className="num">
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditing(u)}>Edit</button>
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={async () => { if (confirm(`Remove ${u.fullName}?`)) { await api(`/users/${u.id}`, { method: 'DELETE' }); reloadAll(); } }}>Delete</button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: 'var(--danger)' }}
+                      onClick={() => setDeletingUser(u)}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               );
@@ -119,7 +160,7 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
             <h3 style={{ margin: 0 }}>Roles & permissions</h3>
             <div className="csub" style={{ marginTop: 2 }}>Create roles and choose what each can do. Manager always has full access.</div>
           </div>
-          <button className="btn btn-pri btn-sm" onClick={addRole}>+ Add role</button>
+          <button className="btn btn-pri btn-sm" onClick={() => setAddingRole(true)}>+ Add role</button>
         </div>
         <table className="tbl perm-tbl">
           <thead>
@@ -130,7 +171,7 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
                   <span className="perm-col">
                     {r.name}
                     {!r.isSystemManager && (
-                      <button className="perm-del" onClick={() => delRole(r)} title="Delete role">×</button>
+                      <button className="perm-del" onClick={() => setDeletingRole(r)} title="Delete role">×</button>
                     )}
                   </span>
                 </th>
@@ -149,8 +190,17 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
                         className={`perm${allowed ? ' on' : ''}`}
                         disabled={r.isSystemManager}
                         onClick={() => togglePerm(r, a.key, !allowed)}
+                        aria-label={allowed ? 'Allowed' : 'Denied'}
                       >
-                        {allowed ? '✓' : '×'}
+                        {allowed ? (
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 12l5 5L20 6" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 6l12 12M18 6L6 18" />
+                          </svg>
+                        )}
                       </button>
                     </td>
                   );
@@ -171,6 +221,87 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
           onSaved={() => { setAdding(false); setEditing(null); reloadAll(); }}
         />
       )}
+
+      {addingRole && <AddRoleModal onClose={() => setAddingRole(false)} onCreate={createRole} />}
+
+      {deletingUser && (
+        <ConfirmModal
+          title="Remove user?"
+          body={`Remove ${deletingUser.fullName} (${deletingUser.email})? They'll no longer be able to sign in.`}
+          confirmLabel="Remove"
+          onCancel={() => setDeletingUser(null)}
+          onConfirm={confirmDeleteUser}
+        />
+      )}
+
+      {deletingRole && (() => {
+        const usersUsing = users.filter((u) => u.role.id === deletingRole.id).length;
+        const fallback = roles.find((r) => !r.isSystemManager && r.id !== deletingRole.id);
+        const body = usersUsing > 0
+          ? `${usersUsing} user(s) currently assigned to "${deletingRole.name}" will be moved to "${fallback?.name ?? 'another role'}".`
+          : `Delete role "${deletingRole.name}"?`;
+        return (
+          <ConfirmModal
+            title="Delete role?"
+            body={body}
+            confirmLabel="Delete role"
+            onCancel={() => setDeletingRole(null)}
+            onConfirm={confirmDeleteRole}
+          />
+        );
+      })()}
+    </div>
+  );
+}
+
+function AddRoleModal({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
+  const [name, setName] = useState('');
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => { ref.current?.focus(); }, []);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onCreate(name.trim());
+  }
+
+  return (
+    <div className="modal-scrim show" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h3>Add role</h3><button className="x" onClick={onClose}>×</button></div>
+        <form onSubmit={submit}>
+          <div className="modal-body">
+            <div className="field">
+              <label>Role name</label>
+              <input ref={ref} className="input" placeholder="e.g. Supervisor" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="note" style={{ marginTop: 7 }}>
+              New roles start with no permissions. Toggle them on in the table below.
+            </div>
+          </div>
+          <div className="modal-foot">
+            <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-pri" style={{ flex: 2 }} disabled={!name.trim()}>Create role</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({ title, body, confirmLabel, onCancel, onConfirm }: { title: string; body: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="modal-scrim show" onClick={onCancel}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h3>{title}</h3><button className="x" onClick={onCancel}>×</button></div>
+        <div className="modal-body">
+          <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>{body}</p>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onCancel}>Cancel</button>
+          <button className="btn btn-pri" style={{ flex: 1 }} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -185,7 +316,10 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
     storeIds: editing?.userStores.map((us) => us.storeId) ?? [],
   });
   const [busy, setBusy] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+
+  useEffect(() => { nameRef.current?.focus(); }, []);
 
   function toggleStore(id: string) {
     setF((cur) => ({
@@ -194,16 +328,29 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
     }));
   }
 
+  function toggleAllStores() {
+    setF((cur) => ({
+      ...cur,
+      storeIds: cur.storeIds.length === stores.length ? [] : stores.map((s) => s.id),
+    }));
+  }
+
   async function save() {
-    if (!f.fullName || !f.email) return toast.show('Name and email required');
+    // Auto-generate email if blank (matches design ops.js:295).
+    let email = f.email.trim();
+    if (!email && f.fullName) {
+      email = f.fullName.toLowerCase().replace(/\s+/g, '.') + '@thawbwateeb.com';
+    }
+    if (!f.fullName) return toast.show('Name required');
+    if (!email) return toast.show('Email required');
     if (!isEdit && !f.password) return toast.show('Password required');
     if (f.storeIds.length === 0) return toast.show('Select at least one store');
     setBusy(true);
     try {
       if (isEdit) {
-        await api(`/users/${editing!.id}`, { method: 'PATCH', body: { fullName: f.fullName, email: f.email, roleId: f.roleId, storeIds: f.storeIds, ...(f.password ? { password: f.password } : {}) } });
+        await api(`/users/${editing!.id}`, { method: 'PATCH', body: { fullName: f.fullName, email, roleId: f.roleId, storeIds: f.storeIds, ...(f.password ? { password: f.password } : {}) } });
       } else {
-        await api('/users', { method: 'POST', body: f });
+        await api('/users', { method: 'POST', body: { ...f, email } });
       }
       onSaved();
     } catch (e: any) {
@@ -211,26 +358,51 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
     } finally { setBusy(false); }
   }
 
+  const allSelected = f.storeIds.length === stores.length && stores.length > 0;
+
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{isEdit ? 'Edit user' : 'Add user'}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body fin">
-          <div className="field"><label>Full name</label><input className="input" value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} /></div>
-          <div className="field"><label>Email</label><input className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
-          <div className="field"><label>Password{isEdit ? ' (leave blank to keep)' : ''}</label><input type="password" className="input" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></div>
-          <div className="field"><label>Role</label>
+          <div className="field">
+            <label>Full name</label>
+            <input ref={nameRef} className="input" value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} />
+          </div>
+          <div className="field-2">
+            <div className="field">
+              <label>Email</label>
+              <input type="email" className="input" placeholder="name@thawbwateeb.com" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+            </div>
+            <div className="field">
+              <label>{isEdit ? 'Reset password' : 'Password'}</label>
+              <input
+                type="text"
+                className="input"
+                placeholder={isEdit ? 'Leave blank to keep' : 'Set a password'}
+                value={f.password}
+                onChange={(e) => setF({ ...f, password: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label>Role</label>
             <select className="input" value={f.roleId} onChange={(e) => setF({ ...f, roleId: e.target.value })}>
               {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           <div className="field">
-            <label>Store access ({f.storeIds.length}/{stores.length})</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ margin: 0 }}>Store access</label>
+              <button type="button" className="t-btn ghost" onClick={toggleAllStores}>
+                {allSelected ? 'Clear all' : 'Select all'}
+              </button>
+            </div>
             <div className="store-access">
               {stores.map((s) => (
-                <label key={s.id} className="sa-row">
+                <label key={s.id} className={`sa-row${s.active === false ? ' dis' : ''}`}>
                   <input type="checkbox" checked={f.storeIds.includes(s.id)} onChange={() => toggleStore(s.id)} />
-                  <div className="sa-nm">{s.name}<em>{s.area ?? s.address ?? ''}</em></div>
+                  <div className="sa-nm">{s.name}<em>{s.area ?? s.address ?? ''}{s.active === false ? ' · Closed' : ''}</em></div>
                 </label>
               ))}
             </div>
