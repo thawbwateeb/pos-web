@@ -129,6 +129,9 @@ export default function PaymentsScreen({
       <div className="card">
         <table className="tbl">
           <thead>
+            {/* Design app.js:636 — six columns: Order / Customer / Items /
+                Method / Amount / Status + an unlabeled action col. The
+                "When" column was an addition; removed for pixel parity. */}
             <tr>
               <th>{t('table.order')}</th>
               <th>{t('table.customer')}</th>
@@ -136,7 +139,6 @@ export default function PaymentsScreen({
               <th>{t('table.method')}</th>
               <th className="num">{t('table.amount')}</th>
               <th>{t('table.status')}</th>
-              <th>{t('table.when')}</th>
               <th></th>
             </tr>
           </thead>
@@ -158,7 +160,6 @@ export default function PaymentsScreen({
                         {refunded ? t('refundedShort') : p.status === 'SUCCEEDED' ? t('paid') : p.status.toLowerCase()}
                       </span>
                     </td>
-                    <td className="muted">{shortTime(p.processedAt ?? p.createdAt)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         {!refunded && p.status === 'SUCCEEDED' && (
@@ -181,7 +182,6 @@ export default function PaymentsScreen({
                   <td><span className="muted">—</span></td>
                   <td className="num t-amt">{AED(o.total)}</td>
                   <td><span className="pill unpaid"><span className="d" style={{ background: 'currentColor' }} />{t('unpaid')}</span></td>
-                  <td className="muted">{shortTime(o.createdAt)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       <button className="t-btn" onClick={() => takePayment(o.id)}>{t('takePayment')}</button>
@@ -191,7 +191,7 @@ export default function PaymentsScreen({
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>{t('noResults')}</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>{t('noResults')}</td></tr>
             )}
           </tbody>
         </table>
