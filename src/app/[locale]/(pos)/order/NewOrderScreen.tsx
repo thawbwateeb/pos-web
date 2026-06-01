@@ -8,7 +8,7 @@ import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
-import type { Bootstrap, CatalogueResponse, Customer, OrderType, PaymentMethod } from '@/lib/types';
+import type { Bootstrap, CatalogueResponse, Customer, OrderType, PaymentMethod, Promo } from '@/lib/types';
 
 interface CartLine {
   key: string;
@@ -29,10 +29,12 @@ export default function NewOrderScreen({
   catalogue,
   meta,
   bootstrap,
+  promos,
 }: {
   catalogue: CatalogueResponse;
   meta: MetaResponse;
   bootstrap: Bootstrap;
+  promos: Promo[];
 }) {
   const router = useRouter();
   const params = useParams<{ locale: string }>();
@@ -52,7 +54,10 @@ export default function NewOrderScreen({
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [custPicker, setCustPicker] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [pay, setPay] = useState<{ method: PaymentMethod | null } | null>(null);
+  const [expressOn, setExpressOn] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<Promo | null>(null);
+  const [promoPicker, setPromoPicker] = useState(false);
+  const [pay, setPay] = useState<{ method: PaymentMethod | null; cashGiven?: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const allItems = useMemo(
@@ -70,11 +75,21 @@ export default function NewOrderScreen({
     return true;
   });
 
+  // ─── Totals: subtotal → +express → −discount → +tax = grand ──────────
   const subtotal = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+  const expressPct = bootstrap.business.branding?.posPrimary ? 30 : 30; // express surcharge % — from settings later
+  const expressAmount = expressOn ? +(subtotal * (expressPct / 100)).toFixed(2) : 0;
+  const discountAmount = appliedPromo
+    ? appliedPromo.kind === 'PERCENT'
+      ? +(subtotal * (Number(appliedPromo.value) / 100)).toFixed(2)
+      : Number(appliedPromo.value)
+    : 0;
   const taxRate = Number(bootstrap.business.tax?.rate ?? 0);
   const taxEnabled = bootstrap.business.tax?.enabled ?? false;
-  const tax = taxEnabled ? +(subtotal * (taxRate / 100)).toFixed(2) : 0;
-  const total = subtotal + tax;
+  const taxableBase = subtotal + expressAmount - discountAmount;
+  const tax = taxEnabled ? +(taxableBase * (taxRate / 100)).toFixed(2) : 0;
+  const total = +(taxableBase + tax).toFixed(2);
+  const currency = bootstrap.business.branding?.currency ?? 'AED';
 
   function addToCart(item: typeof allItems[number]) {
     const price = tier ? item.prices[tier.externalKey] : undefined;
@@ -91,6 +106,26 @@ export default function NewOrderScreen({
     setCart((cur) => cur.flatMap((l) => (l.key !== key ? [l] : qty <= 0 ? [] : [{ ...l, qty }])));
   }
 
+  function resetCart() {
+    setCart([]);
+    setCustomer(null);
+    setExpressOn(false);
+    setAppliedPromo(null);
+    setOrderType('WALK_IN');
+  }
+
+  function cancelOrder() {
+    if (!cart.length) return;
+    if (!confirm(t('cancelConfirm'))) return;
+    resetCart();
+    toast.show(t('cancelled'));
+  }
+
+  function printReceipt() {
+    if (!cart.length) return;
+    toast.show(t('receiptPrinted'));
+  }
+
   async function charge() {
     if (!pay?.method) return toast.show(t('pickPaymentMethod'));
     setBusy(true);
@@ -98,11 +133,20 @@ export default function NewOrderScreen({
       const order = await api<any>('/orders', {
         method: 'POST',
         storeId,
-        body: { storeId, type: orderType, customerId: customer?.id, items: cart.map((l) => ({ itemId: l.itemId, tierId: l.tierId, qty: l.qty })) },
+        body: {
+          storeId,
+          type: orderType,
+          customerId: customer?.id,
+          expressOn,
+          expressPct,
+          promoCode: appliedPromo?.code,
+          items: cart.map((l) => ({ itemId: l.itemId, tierId: l.tierId, qty: l.qty })),
+        },
       });
       await api('/payments', { method: 'POST', body: { orderId: order.id, method: pay.method, amount: Number(order.total) } });
       toast.show(t('orderCharged', { number: order.number, amount: AED(order.total) }));
-      setCart([]); setCustomer(null); setPay(null);
+      resetCart();
+      setPay(null);
       router.push(`/${locale}/orders`);
     } catch (e: any) {
       toast.show(e?.detail?.message || t('couldNotCreate'));
@@ -111,6 +155,7 @@ export default function NewOrderScreen({
 
   return (
     <div className="order-grid">
+      {/* PICKER */}
       <div className="picker">
         <div className="tier-tabs">
           {tiers.map((tt) => (
@@ -149,7 +194,7 @@ export default function NewOrderScreen({
                   {unavail ? <b style={{ fontSize: 11, color: 'var(--faint)' }}>—</b> : (
                     <>
                       <b>{Number(price).toFixed(price! % 1 ? 2 : 0)}</b>
-                      <span>{bootstrap.business.branding?.currency ?? 'AED'}</span>
+                      <span>{currency}</span>
                     </>
                   )}
                 </div>
@@ -160,18 +205,29 @@ export default function NewOrderScreen({
         </div>
       </div>
 
+      {/* CART */}
       <aside className="cart">
         <div className="cart-head">
           <div className="row1">
             <div>
               <div className="onum">{t('newOrder')}</div>
-              <div className="otype">{cart.length === 1 ? `1 ${tCommon('item').toLowerCase()}` : `${cart.length} ${tCommon('items').toLowerCase()}`}</div>
+              <div className="otype">
+                {cart.length === 1
+                  ? `1 ${tCommon('item').toLowerCase()}`
+                  : `${cart.length} ${tCommon('items').toLowerCase()}`}
+              </div>
             </div>
             <div className="otype-toggle">
               <button className={orderType === 'WALK_IN' ? 'on' : ''} onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
               <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
             </div>
           </div>
+
+          <button className={`exp-toggle${expressOn ? ' on' : ''}`} onClick={() => setExpressOn((v) => !v)}>
+            <span>{t('expressLabel', { pct: expressPct })}</span>
+            <span className={`switch${expressOn ? ' on' : ''}`} />
+          </button>
+
           <button className="cust-attach" onClick={() => setCustPicker(true)}>
             <div className="av">{customer ? initials(customer.fullName) : '+'}</div>
             <div className="ct">
@@ -208,16 +264,45 @@ export default function NewOrderScreen({
         </div>
 
         <div className="cart-foot">
+          <div style={{ marginBottom: 12 }}>
+            {appliedPromo ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', background: 'var(--ok-soft)', border: '1px solid rgba(22,163,74,.25)', borderRadius: 'var(--r-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <Icon.ticket size={16} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ok)' }}>{appliedPromo.code}</span>
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{t('applied')}</span>
+                </div>
+                <button onClick={() => setAppliedPromo(null)} style={{ width: 24, height: 24, borderRadius: '50%', background: '#fff', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>×</button>
+              </div>
+            ) : (
+              <button onClick={() => setPromoPicker(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10, border: '1px dashed var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, background: 'var(--surface-2)' }}>
+                <Icon.ticket size={16} /> {t('addPromo')}
+              </button>
+            )}
+          </div>
+
           <div className="totals">
             <div className="tr"><span>{tCommon('subtotal')}</span><b>{AED(subtotal)}</b></div>
-            {taxEnabled && <div className="tr"><span>{bootstrap.business.tax?.label ?? tCommon('vat')} {taxRate}%</span><b>{AED(tax)}</b></div>}
+            {discountAmount > 0 && (
+              <div className="tr"><span>{tCommon('discount')} ({appliedPromo?.code})</span><b style={{ color: 'var(--ok)' }}>−{AED(discountAmount)}</b></div>
+            )}
+            {expressAmount > 0 && (
+              <div className="tr"><span>{t('expressShort', { pct: expressPct })}</span><b>{AED(expressAmount)}</b></div>
+            )}
+            {taxEnabled && (
+              <div className="tr"><span>{bootstrap.business.tax?.label ?? tCommon('vat')} {taxRate}%</span><b>{AED(tax)}</b></div>
+            )}
             <div className="grand">
               <span className="gl">{tCommon('total')}</span>
-              <span className="gv"><span className="cur">{bootstrap.business.branding?.currency ?? 'AED'} </span>{total.toFixed(2)}</span>
+              <span className="gv"><span className="cur">{currency} </span>{total.toFixed(2)}</span>
             </div>
           </div>
+
           <div className="cart-actions">
-            <button className="btn btn-hold">{t('hold')}</button>
+            <button className="btn btn-hold" title={t('printReceipt')} onClick={printReceipt}>
+              <Icon.print size={16} />
+            </button>
+            <button className="btn btn-hold" onClick={cancelOrder}>{tCommon('cancel')}</button>
             <button className="btn btn-charge" disabled={cart.length === 0} onClick={() => setPay({ method: null })}>
               {t('charge')} {AED(total)}
             </button>
@@ -228,18 +313,22 @@ export default function NewOrderScreen({
       {pay && (
         <PayModal
           total={total}
-          currency={bootstrap.business.branding?.currency ?? 'AED'}
+          currency={currency}
           methods={meta.paymentMethods}
           method={pay.method}
+          cashGiven={pay.cashGiven}
           busy={busy}
+          onSetMethod={(method) => setPay({ method, cashGiven: pay.cashGiven })}
+          onSetCash={(cashGiven) => setPay({ method: pay.method, cashGiven })}
           tCharge={t('chargeLabel')}
           tTitle={t('takePayment')}
           tCancel={tCommon('cancel')}
           tConfirm={t('chargeReceipt')}
+          tCashGiven={t('cashGiven')}
+          tChange={t('change')}
           methodLabel={(k) => tMethod(k as any)}
           methodSub={(k) => tMethodSub(k as any)}
           onClose={() => setPay(null)}
-          onConfirm={(method) => setPay({ method })}
           onCharge={charge}
         />
       )}
@@ -250,21 +339,38 @@ export default function NewOrderScreen({
           onPick={(c) => { setCustomer(c); setCustPicker(false); }}
         />
       )}
+
+      {promoPicker && (
+        <PromoPicker
+          promos={promos}
+          onClose={() => setPromoPicker(false)}
+          onApply={(p) => { setAppliedPromo(p); setPromoPicker(false); toast.show(t('promoApplied', { code: p.code })); }}
+        />
+      )}
     </div>
   );
 }
 
+// ─── Sub-components ────────────────────────────────────────────────────
+
 function PayModal({
-  total, currency, methods, method, busy, tCharge, tTitle, tCancel, tConfirm, methodLabel, methodSub,
-  onClose, onConfirm, onCharge,
+  total, currency, methods, method, cashGiven, busy,
+  tCharge, tTitle, tCancel, tConfirm, tCashGiven, tChange,
+  methodLabel, methodSub,
+  onSetMethod, onSetCash, onClose, onCharge,
 }: {
   total: number; currency: string;
   methods: { key: string; icon: string }[];
-  method: PaymentMethod | null; busy: boolean;
+  method: PaymentMethod | null; cashGiven?: number; busy: boolean;
   tCharge: string; tTitle: string; tCancel: string; tConfirm: string;
+  tCashGiven: string; tChange: string;
   methodLabel: (k: string) => string; methodSub: (k: string) => string;
-  onClose: () => void; onConfirm: (m: PaymentMethod) => void; onCharge: () => void;
+  onSetMethod: (m: PaymentMethod) => void;
+  onSetCash: (n: number | undefined) => void;
+  onClose: () => void; onCharge: () => void;
 }) {
+  const change = method === 'CASH' && cashGiven != null ? Math.max(0, cashGiven - total) : 0;
+
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -278,17 +384,46 @@ function PayModal({
             {methods.map((m) => {
               const Ic = ICON_MAP[m.icon] ?? Icon.card;
               return (
-                <button key={m.key} className={`pay-m${method === m.key ? ' sel' : ''}`} onClick={() => onConfirm(m.key as PaymentMethod)}>
+                <button key={m.key} className={`pay-m${method === m.key ? ' sel' : ''}`} onClick={() => onSetMethod(m.key as PaymentMethod)}>
                   <Ic />
                   <div><b>{methodLabel(m.key)}</b><span>{methodSub(m.key)}</span></div>
                 </button>
               );
             })}
           </div>
+
+          {method === 'CASH' && (
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label>{tCashGiven}</label>
+                <input
+                  className="input"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  autoFocus
+                  placeholder="0.00"
+                  value={cashGiven ?? ''}
+                  onChange={(e) => onSetCash(e.target.value ? Number(e.target.value) : undefined)}
+                />
+              </div>
+              {cashGiven != null && cashGiven >= total && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                  <span style={{ color: 'var(--muted)' }}>{tChange}</span>
+                  <b style={{ color: 'var(--ok)' }}>{currency} {change.toFixed(2)}</b>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCancel}</button>
-          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={onCharge} disabled={busy || !method}>
+          <button
+            className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+            style={{ flex: 2 }}
+            onClick={onCharge}
+            disabled={busy || !method || (method === 'CASH' && (cashGiven ?? 0) < total)}
+          >
             {tConfirm}
           </button>
         </div>
@@ -327,10 +462,34 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
                 <span style={{ color: 'var(--muted)', fontSize: 11, marginLeft: 'auto' }}>{c.phone}</span>
               </button>
             ))}
-            {!loading && q && results.length === 0 && (
-              <div className="muted" style={{ fontSize: 12, padding: 8 }}>—</div>
-            )}
+            {!loading && q && results.length === 0 && <div className="muted" style={{ fontSize: 12, padding: 8 }}>—</div>}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: () => void; onApply: (p: Promo) => void }) {
+  const t = useTranslations('Order');
+  return (
+    <div className="modal-scrim show" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h3>{t('applyPromo')}</h3><button className="x" onClick={onClose}>×</button></div>
+        <div className="modal-body">
+          {promos.length === 0 ? (
+            <div className="muted" style={{ fontSize: 13, padding: 8 }}>{t('noPromos')}</div>
+          ) : (
+            promos.map((p) => (
+              <button key={p.id} className="role-opt" onClick={() => onApply(p)}>
+                <span className="rav">{p.kind === 'PERCENT' ? `${p.value}%` : p.value}</span>
+                <div className="ri">
+                  <b>{p.code}</b>
+                  <span>{p.description ?? '—'}</span>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>
