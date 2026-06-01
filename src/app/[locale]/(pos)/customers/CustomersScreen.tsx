@@ -181,24 +181,74 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
 
 function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [data, setData] = useState<any>(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ fullName: '', phone: '', email: '', area: '', address: '', notes: '' });
+  const [busy, setBusy] = useState(false);
   const t = useTranslations('Customers');
   const tCommon = useTranslations('Common');
+  const toast = useToast();
 
   useEffect(() => {
-    api<any>(`/customers/${id}`).then(setData);
+    api<any>(`/customers/${id}`).then((d) => {
+      setData(d);
+      setForm({
+        fullName: d.fullName ?? '',
+        phone: d.phone ?? '',
+        email: d.email ?? '',
+        area: d.area ?? '',
+        address: d.address ?? '',
+        notes: d.notes ?? '',
+      });
+    });
     api<any>(`/loyalty/customers/${id}`).then((l) => setData((d: any) => ({ ...(d ?? {}), loyalty: l })));
   }, [id]);
+
+  async function saveEdit() {
+    if (!form.fullName || !form.phone) return toast.show(t('nameAndPhoneRequired'));
+    setBusy(true);
+    try {
+      const r = await api<any>(`/customers/${id}`, { method: 'PATCH', body: form });
+      setData({ ...data, ...r });
+      setEditing(false);
+      toast.show(t('saved'));
+    } catch (e: any) {
+      toast.show(e?.detail?.message || tCommon('failed'));
+    } finally { setBusy(false); }
+  }
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{data?.fullName ?? tCommon('loading')}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {data && !editing && (
+              <button className="t-btn" onClick={() => setEditing(true)}>
+                {tCommon('edit')}
+              </button>
+            )}
+            <button className="x" onClick={onClose}>×</button>
+          </div>
         </div>
         <div className="modal-body">
           {!data && <div className="muted">{tCommon('loading')}</div>}
-          {data && (
+          {data && editing && (
+            <>
+              <div className="field"><label>{tCommon('name')}</label><input className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></div>
+              <div className="field"><label>{tCommon('phone')}</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div className="field"><label>{tCommon('email')}</label><input className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div className="field-2">
+                <div className="field"><label>{tCommon('area')}</label><input className="input" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} /></div>
+                <div className="field"><label>{tCommon('address')}</label><input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              </div>
+              <div className="field"><label>{t('drawer.notes')}</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button className="btn btn-ghost" onClick={() => setEditing(false)} disabled={busy}>{tCommon('cancel')}</button>
+                <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} onClick={saveEdit} disabled={busy}>{tCommon('save')}</button>
+              </div>
+            </>
+          )}
+          {data && !editing && (
             <>
               <div className="odl-head">
                 <div className="odl-cust">
