@@ -7,9 +7,8 @@ import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
-import { useActiveStoreId, useBootstrap } from '@/components/BootstrapContext';
-import { useMeta } from '@/lib/meta-context';
-import type { CatalogueResponse, Customer, OrderType, PaymentMethod } from '@/lib/types';
+import type { MetaResponse } from '@/lib/meta-context';
+import type { Bootstrap, CatalogueResponse, Customer, OrderType, PaymentMethod } from '@/lib/types';
 
 interface CartLine {
   key: string;
@@ -26,14 +25,20 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   cash: Icon.cash, card: Icon.card, apple: Icon.apple, wallet: Icon.wallet, truck: Icon.truck, gift: Icon.gift,
 };
 
-export default function NewOrderScreen({ catalogue }: { catalogue: CatalogueResponse }) {
+export default function NewOrderScreen({
+  catalogue,
+  meta,
+  bootstrap,
+}: {
+  catalogue: CatalogueResponse;
+  meta: MetaResponse;
+  bootstrap: Bootstrap;
+}) {
   const router = useRouter();
   const params = useParams<{ locale: string }>();
   const locale = params.locale ?? 'en';
   const toast = useToast();
-  const storeId = useActiveStoreId();
-  const bootstrap = useBootstrap();
-  const meta = useMeta();
+  const storeId = bootstrap.activeStoreId;
   const t = useTranslations('Order');
   const tCommon = useTranslations('Common');
   const tMethod = useTranslations('PaymentMethod');
