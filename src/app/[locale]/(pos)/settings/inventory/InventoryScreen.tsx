@@ -45,7 +45,7 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
   );
 
   return (
-    <div className="set-sec" style={{ maxWidth: 1100 }}>
+    <div className="set-sec fin" style={{ maxWidth: 1100 }}>
       <h2>{t('title')}</h2>
       <p className="ssub">{t('sub')}</p>
 
