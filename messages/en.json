@@ -313,43 +313,83 @@
     "stateOff": "off"
   },
   "Reports": {
-    "title": "Report",
+    "title": "Daily Summary",
+    "exportCsv": "Export CSV",
+    "exported": "Report exported as CSV",
+    "printZ": "Print Z-Report",
+    "printed": "Z-Report sent to printer",
     "ranges": {
       "Today": "Today",
       "Yesterday": "Yesterday",
-      "Week": "Week",
-      "Month": "Month"
+      "Week": "Last 7 days",
+      "Month": "This month"
+    },
+    "sections": {
+      "overview": "Overview",
+      "sales": "Sales",
+      "products": "Products & Channels",
+      "financials": "Financials"
     },
     "kpis": {
+      "gross": "Gross Sales",
+      "grossSub": "for {range}",
       "orders": "Orders",
-      "revenue": "Revenue",
+      "ordersSub": "{count, plural, =0 {no orders} one {1 order} other {# orders}}",
       "collected": "Collected",
-      "avgTicket": "Avg ticket"
+      "collectedSub": "received cash + card",
+      "avg": "Avg. Order Value",
+      "avgSub": "per paid order",
+      "outstanding": "Outstanding",
+      "outstandingSub": "awaiting payment",
+      "cardShare": "Card / Digital",
+      "cardShareSub": "of paid volume",
+      "cashShare": "Cash",
+      "cashShareSub": "of paid volume",
+      "refundRate": "Refunds",
+      "refundRateSub": "of paid volume"
     },
-    "subtitles": {
-      "fromSources": "all sources",
-      "received": "received cash + card",
-      "perOrder": "per order"
+    "paymentMix": {
+      "title": "Payment Mix",
+      "sub": "By method"
     },
-    "byStatus": {
-      "title": "By status",
-      "sub": "Workflow distribution"
-    },
-    "byMethod": {
-      "title": "By payment method",
-      "sub": "Where money lands"
+    "statusMix": {
+      "title": "Workflow",
+      "sub": "Orders by status"
     },
     "topItems": {
-      "title": "Top items",
-      "sub": "By volume, this range",
-      "empty": "No orders in this range yet",
+      "title": "Top Items",
+      "sub": "Most processed this range",
+      "item": "Item",
       "qty": "Qty",
+      "revenue": "Revenue",
+      "empty": "No orders in this range yet"
+    },
+    "financialSummary": {
+      "title": "Financial Summary",
+      "sub": "Gross to net",
+      "gross": "Gross sales",
+      "collected": "Collected",
+      "outstanding": "Outstanding",
+      "net": "Net revenue"
+    },
+    "profitMargin": {
+      "title": "Profit & Margin",
+      "sub": "After product cost (assumed 38%)",
+      "profit": "Profit",
+      "margin": "Margin",
+      "cost": "Cost",
       "revenue": "Revenue"
     }
   },
   "Finance": {
     "title": "Financial Vision",
     "subtitle": "Static planning data — {company}, {currency}",
+    "monthlyPlan": "Monthly plan",
+    "line": "Expense line",
+    "total": "Total",
+    "planTotal": "Plan total",
+    "incomeRow": "Income · {scenario}",
+    "profit": "Profit",
     "scenarios": {
       "worst": "Worst",
       "average": "Average",
@@ -372,17 +412,55 @@
       "yearTotal": "12 months total",
       "scenarioAssumption": "scenario assumption"
     },
-    "monthlyPlan": "Monthly plan",
-    "line": "Line",
-    "planTotal": "Plan total",
-    "incomeRow": "Income · {scenario}",
-    "profit": "Profit",
-    "owners": "Capital contributions",
-    "date": "Date",
-    "owner": "Owner",
-    "note": "Note",
-    "totalRaised": "Total raised",
-    "unitEconomicsHint": "Unit economics view — coming soon. Use the plan + scenario tabs above to project profitability."
+    "dashboard": {
+      "incomeVsExpense": "Income vs expenses",
+      "incomeVsExpenseSub": "{scenario} scenario",
+      "income": "Income",
+      "expenses": "Expenses",
+      "ordersCustomers": "Orders & customers",
+      "ordersCustomersSub": "{scenario} scenario",
+      "orders": "Orders",
+      "customers": "Customers",
+      "cumulativeProfit": "Cumulative profit",
+      "cumulativeProfitSub": "Running annual profit, month over month",
+      "cumulative": "Cumulative"
+    },
+    "unit": {
+      "basket": "Avg. basket",
+      "basketSub": "income / orders",
+      "grossPerOrder": "Gross per order",
+      "grossPerOrderSub": "after variable costs (55% margin assumed)",
+      "cac": "CAC",
+      "cacSub": "expenses / new customers",
+      "ltv": "LTV",
+      "ltvSub": "gross/order × orders/customer",
+      "ltvCac": "LTV / CAC",
+      "ltvCacSub": "above 3× is healthy",
+      "payback": "Payback",
+      "paybackSub": "orders to recoup CAC",
+      "assumptions": "Assumptions",
+      "scenarioRow": "Scenario",
+      "annualIncome": "Annual income",
+      "annualOrders": "Annual orders",
+      "annualCustomers": "Annual customers",
+      "ordersPerCust": "Orders per customer",
+      "stripeFee": "Stripe fee"
+    },
+    "owners": {
+      "title": "Owners & Capital",
+      "totalRaised": "Total raised",
+      "acrossOwners": "{count, plural, =0 {no owners} one {1 owner} other {across # owners}}",
+      "largestStake": "Largest stake",
+      "contributions": "Contributions",
+      "earliestLatest": "all-time history",
+      "breakdown": "Ownership breakdown",
+      "breakdownSub": "Share of total capital contributed",
+      "contributionsList": "Capital contributions",
+      "date": "Date",
+      "owner": "Owner",
+      "note": "Note",
+      "amount": "Amount"
+    }
   },
   "Settings": {
     "title": "Settings",
