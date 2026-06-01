@@ -273,7 +273,9 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             onClick={toggleShift}
             title={shifted ? t('checkedIn') : t('checkIn')}
           >
-            {shifted ? t('checkedIn') : t('checkIn')}
+            {/* Design app.js:290 — when on shift the button text is
+                "● On shift · Check Out", not just "Checked In". */}
+            {shifted ? `● ${t('checkedIn')} · ${t('checkOut')}` : t('checkIn')}
           </button>
           <button className="storechip" onClick={() => setStorePickerOpen((v) => !v)}>
             <Icon.shop size={15} />
@@ -281,8 +283,9 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             <Icon.chevd size={14} />
           </button>
           <div className="clock">
-            <span className="t">{now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
-            <span className="d">{now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+            {/* Design app.js:292 — "1:30 AM" single-digit hour + "Fri, 30 May 2026" full date with year. */}
+            <span className="t">{now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}</span>
+            <span className="d">{now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
           <button className="rolechip" onClick={() => setUserMenuOpen(true)} title={t('userMenu')}>
             <div className="nm">
