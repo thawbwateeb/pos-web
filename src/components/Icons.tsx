@@ -7,7 +7,8 @@ export const LOGO_PATH = (
 );
 
 export const LOGO_ICON = (
-  <svg width="23" height="18" viewBox="112 272 800 480" fill="currentColor">
+  // Design POS.html line 18 uses 26x20 in the rail logo slot, not 23x18.
+  <svg width="26" height="20" viewBox="112 272 800 480" fill="currentColor">
     {LOGO_PATH}
   </svg>
 );
