@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useRef, useState, ReactNode } from 'react';
+import { Icon } from './Icons';
 
 interface ToastCtx { show: (msg: string) => void }
 const Ctx = createContext<ToastCtx | null>(null);
@@ -18,7 +19,10 @@ export function ToastHost({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ show }}>
       {children}
-      <div className={`toast${open ? ' show' : ''}`}>{msg}</div>
+      <div className={`toast${open ? ' show' : ''}`}>
+        <Icon.check size={18} />
+        <span>{msg}</span>
+      </div>
     </Ctx.Provider>
   );
 }

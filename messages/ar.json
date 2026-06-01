@@ -90,7 +90,17 @@
     "pickStore": "Pick a store",
     "globalSearch": "Search orders, customers, items…",
     "checkIn": "Check In",
-    "checkedIn": "Checked In"
+    "checkedIn": "Checked In",
+    "manageStores": "Manage stores",
+    "endShiftConfirm": "End your shift now? You've been on shift {h}h {m}m.",
+    "endShift": "End shift",
+    "shiftEnded": "Shift ended · {h}h {m}m",
+    "userMenu": "Account",
+    "yourRole": "Your role",
+    "activeStore": "Active store",
+    "searchEmpty": "No matches",
+    "searchOrders": "Orders",
+    "searchCustomers": "Customers"
   },
   "Crumbs": {
     "pointOfSale": "POINT OF SALE",
