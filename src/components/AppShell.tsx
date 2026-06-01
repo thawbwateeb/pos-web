@@ -30,8 +30,6 @@ const NAV: Array<{
   { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'finance',       titleKey: 'payments' },
   { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',           titleKey: 'customers' },
   { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',     titleKey: 'whatsappBusiness', perm: 'WHATSAPP' },
-  { id: 'delivery', tKey: 'delivery',   Icon: Icon.truck,   crumb: 'operations',    titleKey: 'delivery' },
-  { id: 'inspection',tKey: 'inspection',Icon: Icon.check,   crumb: 'operations',    titleKey: 'inspection' },
   { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',       titleKey: 'dailySummary',     perm: 'VIEW_REPORTS' },
   { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'finance',       titleKey: 'financialVision',  perm: 'VIEW_FINANCE' },
   { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration', titleKey: 'settings',         perm: 'SETTINGS' },
