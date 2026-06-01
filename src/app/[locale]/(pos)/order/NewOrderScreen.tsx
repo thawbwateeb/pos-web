@@ -273,11 +273,14 @@ export default function NewOrderScreen({
       <div className="picker">
         <div className="tier-tabs">
           {tiers.map((tt) => (
-            <button key={tt.id} className={`tier-tab${tierKey === tt.externalKey ? ' active' : ''}`} onClick={() => setTierKey(tt.externalKey)}>
-              <div>
-                <div className="tt">{tt.name}</div>
-                <div className="ts">{tt.short}</div>
-              </div>
+            <button
+              key={tt.id}
+              className={`tier-tab${tierKey === tt.externalKey ? ' active' : ''}`}
+              onClick={() => setTierKey(tt.externalKey)}
+            >
+              {/* Design app.js:328 renders just <span class="tt">{name}</span> —
+                  no .ts sub-label, no wrapper div. Keep it flat. */}
+              <span className="tt">{tt.name}</span>
             </button>
           ))}
         </div>
@@ -305,7 +308,10 @@ export default function NewOrderScreen({
                 <GarmentIcon name={item.name} size={28} className="ic-ico" />
                 <div className="ic-name">{item.name}</div>
                 <div className="ic-price">
-                  {unavail ? <b style={{ fontSize: 11, color: 'var(--faint)' }}>—</b> : (
+                  {unavail ? (
+                    /* Design app.js:387 — unavailable shows literal label, not "—". */
+                    <span className="np">{t('notInTier')}</span>
+                  ) : (
                     <>
                       <b>{Number(price).toFixed(price! % 1 ? 2 : 0)}</b>
                       <span>{currency}</span>
@@ -322,21 +328,21 @@ export default function NewOrderScreen({
       {/* CART */}
       <aside className="cart">
         <div className="cart-head">
+          {/* Design app.js:429-434 — .row1 has TWO direct children (.onum + .otype),
+              and .otype-toggle is a SIBLING of .row1, not nested inside. */}
           <div className="row1">
-            <div>
-              <div className="onum">
-                {isEditing ? t('editingOrder', { number: editing!.number }) : t('newOrder')}
-              </div>
-              <div className="otype">
-                {cart.length === 1
-                  ? `1 ${tCommon('item').toLowerCase()}`
-                  : `${cart.length} ${tCommon('items').toLowerCase()}`}
-              </div>
+            <div className="onum">
+              {isEditing ? `#${editing!.number}` : `#${(bootstrap.business as any).nextOrderNumber ?? ''}`}
             </div>
-            <div className="otype-toggle">
-              <button className={orderType === 'WALK_IN' ? 'on' : ''} onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
-              <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
+            <div className="otype">
+              {cart.length === 1
+                ? `1 ${tCommon('item').toLowerCase()}`
+                : `${cart.length} ${tCommon('items').toLowerCase()}`}
             </div>
+          </div>
+          <div className="otype-toggle">
+            <button className={orderType === 'WALK_IN' ? 'on' : ''} onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
+            <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
           </div>
 
           <button className={`exp-toggle${expressOn ? ' on' : ''}`} onClick={() => setExpressOn((v) => !v)}>
@@ -347,8 +353,9 @@ export default function NewOrderScreen({
           <button className="cust-attach" onClick={() => setCustPicker(true)}>
             <div className="av">{customer ? initials(customer.fullName) : '+'}</div>
             <div className="ct">
-              <b>{customer ? customer.fullName : t('addCustomer')}</b>
-              <span>{customer ? customer.phone : t('checkoutAsGuest')}</span>
+              {/* Design app.js:438-439 — "Attach customer" / "Walk-in guest" copy. */}
+              <b>{customer ? customer.fullName : t('attachCustomer')}</b>
+              <span>{customer ? customer.phone : t('walkInGuest')}</span>
             </div>
             <Icon.chevd size={14} className="chev" />
           </button>
@@ -357,7 +364,8 @@ export default function NewOrderScreen({
         <div className="cart-lines">
           {cart.length === 0 ? (
             <div className="cart-empty">
-              <Icon.bag size={42} />
+              {/* Design app.js:425 — bag icon at 46px, not 42. */}
+              <Icon.bag size={46} />
               <div className="serif">{t('emptyCart')}</div>
               <p>{t('emptyCartHint')}</p>
             </div>
@@ -370,7 +378,8 @@ export default function NewOrderScreen({
                 </div>
                 <div className="qty">
                   <button onClick={() => setQty(l.key, l.qty - 1)}>−</button>
-                  <div className="n">{l.qty}</div>
+                  {/* Design app.js:422 — .qty .n is a <span>, not a <div>. */}
+                  <span className="n">{l.qty}</span>
                   <button onClick={() => setQty(l.key, l.qty + 1)}>+</button>
                 </div>
                 <div className="lp">{AED(l.unitPrice * l.qty)}</div>
