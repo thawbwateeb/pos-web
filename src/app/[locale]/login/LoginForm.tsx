@@ -14,7 +14,7 @@ export default function LoginForm({ next }: { next: string }) {
   const locale = params.locale ?? 'en';
   const t = useTranslations('Login');
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('staff@thawbwateeb.com');
   const [password, setPassword] = useState('');
   const [businessSlug, setBusinessSlug] = useState<string | undefined>();
   const [businessChoices, setBusinessChoices] = useState<BusinessOption[]>([]);
@@ -64,6 +64,7 @@ export default function LoginForm({ next }: { next: string }) {
           <label className="lg-field">
             <span>{t('email')}</span>
             <input
+              id="lg-email"
               type="email"
               value={email}
               autoComplete="username"
@@ -82,6 +83,7 @@ export default function LoginForm({ next }: { next: string }) {
             <div className="lg-pin">
               <input
                 ref={pwRef}
+                id="lg-pin"
                 type={showPw ? 'text' : 'password'}
                 placeholder="••••••••"
                 autoComplete="current-password"
