@@ -1,9 +1,13 @@
-# Approve native build scripts. `allowBuilds` is read by pnpm 11; older pnpm 10
-# reads `onlyBuiltDependencies`. Both are listed so CI works on either version.
+# Single-package "workspace" — see pos-api/pnpm-workspace.yaml for why
+# `packages:` is here.
+packages:
+  - '.'
+
 allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
   unrs-resolver: true
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'

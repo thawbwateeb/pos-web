@@ -1,0 +1,17 @@
+# Pin pnpm via corepack so Railway uses the version in package.json's
+# `packageManager` field (11.4.0) — see pos-api/nixpacks.toml for context.
+[phases.setup]
+nixPkgs = ['nodejs_22', 'corepack']
+
+[phases.install]
+cmds = [
+  'corepack enable',
+  'corepack prepare pnpm@11.4.0 --activate',
+  'pnpm install --frozen-lockfile --prefer-offline',
+]
+
+[phases.build]
+cmds = ['pnpm build']
+
+[start]
+cmd = 'pnpm start'
