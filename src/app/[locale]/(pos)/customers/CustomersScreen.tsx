@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
@@ -9,45 +9,17 @@ import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
 import type { Customer } from '@/lib/types';
 
-type Segment = 'all' | 'vip' | 'subscribers' | 'new' | 'inactive';
-
 export default function CustomersScreen({ initial, initialQ }: { initial: Customer[]; initialQ: string }) {
   const router = useRouter();
   const params = useParams<{ locale: string }>();
   const locale = params.locale ?? 'en';
-  const [q, setQ] = useState(initialQ);
+  const q = initialQ;
   const [list, setList] = useState(initial);
-  const [seg, setSeg] = useState<Segment>('all');
   const [open, setOpen] = useState<Customer | null>(null);
   const [adding, setAdding] = useState(false);
   const t = useTranslations('Customers');
   const tCommon = useTranslations('Common');
   const toast = useToast();
-
-  useEffect(() => {
-    const id = setTimeout(async () => {
-      const r = await api<Customer[]>(`/customers${q ? `?q=${encodeURIComponent(q)}` : ''}`);
-      setList(r);
-    }, 250);
-    return () => clearTimeout(id);
-  }, [q]);
-
-  const totalSpend = list.reduce((s, c) => s + Number(c.totalSpend), 0);
-  const subscriberCount = list.filter((c) => c.isSubscriber).length;
-  const vipCount = list.filter((c) => c.tags?.some((tg) => tg.tag.name.toLowerCase() === 'vip')).length;
-  const avgOrders = list.length ? Math.round(list.reduce((s, c) => s + c.totalOrders, 0) / list.length) : 0;
-
-  const filtered = useMemo(() => {
-    return list.filter((c) => {
-      switch (seg) {
-        case 'vip': return c.tags?.some((tg) => tg.tag.name.toLowerCase() === 'vip');
-        case 'subscribers': return c.isSubscriber;
-        case 'new': return c.totalOrders <= 1;
-        case 'inactive': return c.totalOrders === 0;
-        default: return true;
-      }
-    });
-  }, [list, seg]);
 
   return (
     <div className="page">
@@ -56,50 +28,12 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
           <h2>{t('directoryTitle')}</h2>
           <span className="sub">{t('directorySub', { count: list.length })}</span>
         </div>
-        <div className="actions">
-          <div className="search" style={{ background: 'var(--surface)' }}>
-            <Icon.search size={14} />
-            <input placeholder={t('search')} value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-          <button className="btn btn-pri" onClick={() => setAdding(true)}>
-            <Icon.plus size={16} /> {t('newCustomer')}
-          </button>
-        </div>
-      </div>
-
-      <div className="stat-row">
-        <div className="stat">
-          <div className="sico"><Icon.users size={34} /></div>
-          <div className="sk">{t('kpis.total')}</div>
-          <div className="sv">{list.length}</div>
-          <div className="sd">{t('kpis.totalSub')}</div>
-        </div>
-        <div className="stat">
-          <div className="sico"><Icon.loyal size={34} /></div>
-          <div className="sk">{t('kpis.vip')}</div>
-          <div className="sv">{vipCount}</div>
-          <div className="sd">{t('kpis.vipSub')}</div>
-        </div>
-        <div className="stat">
-          <div className="sk">{t('kpis.subscribers')}</div>
-          <div className="sv">{subscriberCount}</div>
-          <div className="sd">{t('kpis.subscribersSub')}</div>
-        </div>
-        <div className="stat">
-          <div className="sk">{t('kpis.lifetimeSpend')}</div>
-          <div className="sv"><span className="cur">AED</span> {Math.round(totalSpend).toLocaleString()}</div>
-          <div className="sd">{t('kpis.avgOrders', { count: avgOrders })}</div>
-        </div>
-      </div>
-
-      <div className="page-head" style={{ marginBottom: 14 }}>
-        <div className="seg">
-          {(['all', 'vip', 'subscribers', 'new', 'inactive'] as Segment[]).map((key) => (
-            <button key={key} className={seg === key ? 'on' : ''} onClick={() => setSeg(key)}>
-              {t(`segments.${key}` as any)}
-            </button>
-          ))}
-        </div>
+        {/* Design app.js:664 — only the "+ New Customer" button lives in
+            page-head. No page-level search (topbar global search handles
+            it), no KPI strip, no segment chips. */}
+        <button className="btn btn-pri" onClick={() => setAdding(true)}>
+          <Icon.plus size={16} /> {t('newCustomer')}
+        </button>
       </div>
 
       <div className="card">
@@ -116,17 +50,11 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => (
+            {list.map((c) => (
               <tr key={c.id}>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 12 }}>{initials(c.fullName)}</div>
-                    <div>
-                      <div className="t-name">{c.fullName}</div>
-                      <div className="muted" style={{ fontSize: 11 }}>{c.externalCode}</div>
-                    </div>
-                  </div>
-                </td>
+                {/* Design app.js:671 — name cell is just .t-name with the
+                    full name. No avatar circle, no external-code subtitle. */}
+                <td><b className="t-name">{c.fullName}</b></td>
                 <td className="mono" style={{ fontSize: 12 }}>{c.phone}</td>
                 <td>{c.area ?? <span className="muted">—</span>}</td>
                 <td className="num">{c.totalOrders}</td>
@@ -141,7 +69,9 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
                 </td>
                 <td className="num">
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <button className="t-btn ghost" onClick={() => setOpen(c)}>{tCommon('view')}</button>
+                    {/* Design app.js:677 — buttons are "Edit" and "New Order".
+                        Mine kept "View" + "New Order" — switching to Edit. */}
+                    <button className="t-btn ghost" onClick={() => setOpen(c)}>{tCommon('edit')}</button>
                     <button
                       className="t-btn"
                       onClick={() => {
@@ -156,7 +86,7 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {list.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>{t('noResults', { q })}</td></tr>
             )}
           </tbody>
