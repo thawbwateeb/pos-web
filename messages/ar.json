@@ -73,6 +73,7 @@
     "missingEmail": "Please enter your email.",
     "missingPassword": "Please enter your password.",
     "invalidCredentials": "Invalid credentials",
+    "resetLinkSent": "A reset link has been sent to your email.",
     "version": "v2.4"
   },
   "Nav": {

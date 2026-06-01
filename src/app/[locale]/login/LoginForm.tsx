@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
@@ -21,6 +21,10 @@ export default function LoginForm({ next }: { next: string }) {
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ kind: 'err' | 'info'; text: string } | null>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
+
+  // Match design login.js:28 — focus password on mount.
+  useEffect(() => { pwRef.current?.focus(); }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,13 +63,31 @@ export default function LoginForm({ next }: { next: string }) {
         <form onSubmit={submit}>
           <label className="lg-field">
             <span>{t('email')}</span>
-            <input type="email" value={email} autoComplete="username" onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              value={email}
+              autoComplete="username"
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  pwRef.current?.focus();
+                }
+              }}
+            />
           </label>
 
           <label className="lg-field">
             <span>{t('password')}</span>
             <div className="lg-pin">
-              <input type={showPw ? 'text' : 'password'} placeholder="••••••••" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input
+                ref={pwRef}
+                type={showPw ? 'text' : 'password'}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
               <button type="button" id="lg-eye" title={t('showPassword')} onClick={() => setShowPw((v) => !v)}>
                 <Icon.eye />
               </button>
@@ -82,11 +104,26 @@ export default function LoginForm({ next }: { next: string }) {
             </label>
           )}
 
+          <div className="lg-row">
+            <label className="lg-remember">
+              <input type="checkbox" id="lg-remember" defaultChecked />
+              <span>{t('remember')}</span>
+            </label>
+            <button
+              id="lg-forgot"
+              type="button"
+              onClick={() => setErr({ kind: 'info', text: t('resetLinkSent') })}
+            >
+              {t('forgot')}
+            </button>
+          </div>
+
           {err && <div className={`lg-err ${err.kind === 'info' ? 'info' : ''}`}>{err.text}</div>}
 
           <button className={`lg-submit${busy ? ' btn-loading' : ''}`} type="submit" disabled={busy}>
             {busy ? <span className="lg-spin" /> : null}
-            {busy ? t('signingIn') : t('signIn')} <Icon.arrowRight />
+            {busy ? t('signingIn') : t('signIn')}
+            {!busy && <Icon.arrowRight />}
           </button>
           <div className="lg-foot">
             <span>{t('roleHint')}</span>
