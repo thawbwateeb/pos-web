@@ -14,18 +14,28 @@ import { ToastHost, useToast } from './Toast';
 // Each rail entry carries the i18n key for its short label, the icon, AND
 // the topbar crumb namespace + page-title key for that route. This way the
 // topbar text always matches what the user clicked.
-const NAV = [
+// `perm` is the permission gate — design hides Finance + Settings unless
+// the user has access (app.js:261 `state.role==='Manager'`); we map that
+// to the equivalent PermissionAction.
+const NAV: Array<{
+  id: string;
+  tKey: string;
+  Icon: (props: { size?: number; className?: string }) => any;
+  crumb: string;
+  titleKey: string;
+  perm?: PermissionAction;
+}> = [
   { id: 'order',    tKey: 'newOrder',   Icon: Icon.receipt, crumb: 'pointOfSale',   titleKey: 'newOrder' },
   { id: 'orders',   tKey: 'orders',     Icon: Icon.board,   crumb: 'operations',    titleKey: 'ordersBoard' },
   { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'finance',       titleKey: 'payments' },
   { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',           titleKey: 'customers' },
-  { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',     titleKey: 'whatsappBusiness' },
+  { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',     titleKey: 'whatsappBusiness', perm: 'WHATSAPP' },
   { id: 'delivery', tKey: 'delivery',   Icon: Icon.truck,   crumb: 'operations',    titleKey: 'delivery' },
   { id: 'inspection',tKey: 'inspection',Icon: Icon.check,   crumb: 'operations',    titleKey: 'inspection' },
-  { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',       titleKey: 'dailySummary' },
-  { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'finance',       titleKey: 'financialVision' },
-  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration', titleKey: 'settings' },
-] as const;
+  { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',       titleKey: 'dailySummary',     perm: 'VIEW_REPORTS' },
+  { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'finance',       titleKey: 'financialVision',  perm: 'VIEW_FINANCE' },
+  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration', titleKey: 'settings',         perm: 'SETTINGS' },
+];
 
 interface AppShellProps {
   bootstrap: Bootstrap;
@@ -174,7 +184,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
       <aside className="rail">
         <div className="logo" title={u.fullName}>{LOGO_ICON}</div>
         <nav className="nav">
-          {NAV.map(({ id, tKey, Icon: NavIcon }) => {
+          {NAV.filter((n) => !n.perm || u.role.isSystemManager || !!u.role.permissions[n.perm]).map(({ id, tKey, Icon: NavIcon }) => {
             const isOn = active === id;
             const badge = (badges as any)[id];
             return (
@@ -194,7 +204,10 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
           })}
         </nav>
         <button className="role" title={u.role.name} onClick={() => setUserMenuOpen(true)}>
-          {initials(u.fullName)}
+          {/* Design (app.js:268) shows the role's initial here ("M" for Manager,
+              "C" for Cashier, "D" for Driver), not the user's full-name
+              initials — so the rail's bottom chip mirrors role identity. */}
+          {(u.role.name?.[0] ?? '?').toUpperCase()}
         </button>
       </aside>
 
