@@ -709,6 +709,30 @@
       "sub": "Chemicals, packaging, and supplies your store consumes.",
       "tableTitle": "Inventory items",
       "labelSingular": "item",
+      "addTitle": "Add item",
+      "editTitle": "Edit item",
+      "lowStock": "Low",
+      "addedStock": "+{qty} {unit} added",
+      "removedStock": "−{qty} {unit} removed",
+      "deleteConfirm": "Delete {name}?",
+      "empty": "No inventory tracked yet — add an item to get started.",
+      "kpis": {
+        "skus": "SKUs tracked",
+        "skusSub": "across {categories} categories",
+        "lowStock": "Low-stock items",
+        "lowStockSub": "below reorder threshold",
+        "value": "Stock value",
+        "valueSub": "at current cost"
+      },
+      "table": {
+        "item": "Item",
+        "category": "Category",
+        "stock": "Stock",
+        "adjust": "Adjust",
+        "reorder": "Reorder at",
+        "cost": "Cost / unit",
+        "value": "Value"
+      },
       "fields": {
         "name": "Name",
         "category": "Category",
