@@ -1,0 +1,6 @@
+# Approve native build scripts. `allowBuilds` is read by pnpm 11; older pnpm 10
+# reads `onlyBuiltDependencies`. Both are listed so CI works on either version.
+allowBuilds:
+  unrs-resolver: true
+onlyBuiltDependencies:
+  - unrs-resolver
