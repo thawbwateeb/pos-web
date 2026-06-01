@@ -218,6 +218,8 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
           <div className="search" ref={searchWrapRef} style={{ position: 'relative' }}>
             <Icon.search size={16} />
             <input
+              id="global-search"
+              autoComplete="off"
               placeholder={t('globalSearch')}
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -277,22 +279,23 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 "● On shift · Check Out", not just "Checked In". */}
             {shifted ? `● ${t('checkedIn')} · ${t('checkOut')}` : t('checkIn')}
           </button>
-          <button className="storechip" onClick={() => setStorePickerOpen((v) => !v)}>
-            <Icon.shop size={15} />
+          {/* Design app.js:291 — storechip uses 16px icons (not 15) and has title. */}
+          <button className="storechip" title={t('switchStore')} onClick={() => setStorePickerOpen((v) => !v)}>
+            <Icon.shop size={16} />
             <span className="snm">{activeStore?.name ?? t('pickStore')}</span>
             <Icon.chevd size={14} />
           </button>
           <div className="clock">
-            {/* Design app.js:292 — "1:30 AM" single-digit hour + "Fri, 30 May 2026" full date with year. */}
             <span className="t">{now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}</span>
             <span className="d">{now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
-          <button className="rolechip" onClick={() => setUserMenuOpen(true)} title={t('userMenu')}>
-            <div className="nm">
+          {/* Design app.js:293-296 — .nm and .av are <span>, not <div>. */}
+          <button className="rolechip" onClick={() => setUserMenuOpen(true)}>
+            <span className="nm">
               <b>{u.role.name}</b>
               <span>{activeStore?.name ?? '—'}</span>
-            </div>
-            <div className="av">{initials(u.fullName)}</div>
+            </span>
+            <span className="av">{initials(u.fullName)}</span>
           </button>
         </header>
         <div className="screen">{children}</div>
