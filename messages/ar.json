@@ -300,17 +300,30 @@
     }
   },
   "WhatsApp": {
-    "businessLabel": "WhatsApp Business",
+    "businessLabel": "Thawb Wa Teeb",
+    "businessSub": "WhatsApp Business",
+    "title": "WhatsApp Business",
     "searchPlaceholder": "Search conversations",
     "noConversations": "No conversations yet",
-    "title": "WhatsApp Business",
     "empty": "Pick a conversation to start replying. The bot ({botName}) is {state}.",
-    "botActive": "✓ Bot active",
-    "botPaused": "⏸ Bot paused",
-    "typeMessage": "Type a message",
-    "failedToSend": "Failed to send",
     "stateOn": "on",
-    "stateOff": "off"
+    "stateOff": "off",
+    "botActive": "Bot active",
+    "botPaused": "Bot paused",
+    "botPause": "Pause bot for this chat",
+    "botResume": "Resume bot",
+    "botResumed": "Bot resumed for this chat",
+    "takeoverNotice": "You've taken over — bot is paused for this chat.",
+    "sentPaused": "Sent · bot paused {mins}m for this chat",
+    "typeMessage": "Type a message",
+    "emoji": "Emoji",
+    "menu": "Menu",
+    "menuOptions": {
+      "unread": "Mark as unread",
+      "info": "Contact info"
+    },
+    "markedUnread": "Marked as unread",
+    "failedToSend": "Failed to send"
   },
   "Reports": {
     "title": "Daily Summary",
