@@ -310,9 +310,8 @@ export default function WhatsappScreen({
                 <span>{t('businessSub')}</span>
               </div>
             </div>
-            {/* Design whatsapp.js:79 — single .wa-side-ico div for "New chat",
-                no settings gear in sidebar (settings lives in Settings nav). */}
-            <div className="wa-side-ico" role="button" title={t('newChat')} onClick={() => setNewChatOpen(true)}>
+            {/* Design whatsapp.js:79 — .wa-side-ico div id="wa-newchat". */}
+            <div className="wa-side-ico" id="wa-newchat" role="button" title={t('newChat')} onClick={() => setNewChatOpen(true)}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 8v8M8 12h8" />
@@ -323,13 +322,14 @@ export default function WhatsappScreen({
             <div className="wa-search-box">
               <Icon.search size={16} />
               <input
+                id="wa-q"
                 placeholder={t('searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
-          <div className="wa-list">
+          <div className="wa-list" id="wa-list">
             {filtered.map((c) => {
               const last = c.lastMsgAt ? new Date(c.lastMsgAt) : null;
               const previewBody = c.lastMsgPreview ?? '';
@@ -371,21 +371,23 @@ export default function WhatsappScreen({
           </div>
         </aside>
 
-        {/* MAIN THREAD */}
-        <section className="wa-main">
-          {!thread ? (
-            /* Design whatsapp.js:95 — empty state uses h2 "WhatsApp Business"
-               and p "Select a chat to start messaging your customers." */
-            <div className="wa-empty">
-              <div className="wa-empty-in">
-                <div className="wa-empty-logo">
-                  <Icon.whatsapp size={60} />
-                </div>
-                <h2>{t('title')}</h2>
-                <p>{t('emptyHint')}</p>
+        {/* MAIN THREAD — design whatsapp.js:95 renders the empty state as
+            <div class="wa-main wa-empty">, with both classes on the SAME
+            element. Empty-logo is a tiny arc SVG, not the full WhatsApp logo. */}
+        {!thread ? (
+          <section className="wa-main wa-empty">
+            <div className="wa-empty-in">
+              <div className="wa-empty-logo">
+                <svg viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 4c0-1 .8-1.8 1.8-1.8S15.6 3 15.6 4" />
+                </svg>
               </div>
+              <h2>{t('title')}</h2>
+              <p>{t('emptyHint')}</p>
             </div>
-          ) : (
+          </section>
+        ) : (
+          <section className="wa-main">
             <>
               <div className="wa-head">
                 <div className="wa-av">{initials(thread.name)}</div>
@@ -396,11 +398,10 @@ export default function WhatsappScreen({
                     {thread.area ? ` · ${thread.area}` : ''}
                   </div>
                 </div>
-                {/* Design whatsapp.js:110 — wa-bot-toggle is a <div>, not button.
-                    Icon is a robot SVG: when on shows two-eye robot,
-                    when off shows cross-eyed robot. */}
+                {/* Design whatsapp.js:110 — wa-bot-toggle <div> id="wa-bottoggle". */}
                 <div
                   className={`wa-bot-toggle ${thread.botPaused ? 'off' : 'on'}`}
+                  id="wa-bottoggle"
                   role="button"
                   onClick={toggleBot}
                   title={thread.botPaused ? t('botResume') : t('botPause')}
@@ -425,9 +426,9 @@ export default function WhatsappScreen({
                       : t('botActive')}
                   </span>
                 </div>
-                {/* Design whatsapp.js:114 — search button before menu button,
-                    both wa-head-ico <div>s with SVG icons. */}
-                <div className="wa-head-ico" role="button" title={t('searchPlaceholder')}>
+                {/* Design whatsapp.js:114 — search btn id="wa-search-btn"
+                    title="Search" (not search-placeholder). */}
+                <div className="wa-head-ico" id="wa-search-btn" role="button" title={t('headerSearch')} onClick={() => { document.getElementById('wa-q')?.focus(); }}>
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="7" />
                     <path d="M21 21l-4.3-4.3" />
@@ -435,9 +436,10 @@ export default function WhatsappScreen({
                 </div>
                 <div
                   className="wa-head-ico"
+                  id="wa-menu-btn"
                   role="button"
                   title={t('menu')}
-                  onClick={() => setMenuOpen((v) => !v)}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
                   style={{ position: 'relative' }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -445,26 +447,21 @@ export default function WhatsappScreen({
                     <circle cx="12" cy="12" r="1.6" />
                     <circle cx="12" cy="19" r="1.6" />
                   </svg>
-                  {menuOpen && (
-                    /* Design whatsapp.js:117-120 menu order: info / unread / clear / order */
-                    <div className="wa-menu" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          toast.show(`${thread.name} · ${thread.phone}`);
-                        }}
-                      >
-                        {t('menuOptions.info')}
-                      </button>
-                      <button onClick={markUnread}>{t('menuOptions.unread')}</button>
-                      <button onClick={clearChat}>{t('menuOptions.clear')}</button>
-                      <button onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
-                    </div>
-                  )}
+                  {/* Design whatsapp.js:116-121 — menu is always rendered with
+                      `hidden` attribute, items have data-m, order is
+                      info / unread / clear / order. */}
+                  <div className="wa-menu" id="wa-menu" hidden={!menuOpen} onClick={(e) => e.stopPropagation()}>
+                    <button data-m="info" onClick={() => { setMenuOpen(false); toast.show(`${thread.name} · ${thread.phone} · ${thread.area ?? '—'}`); }}>
+                      {t('menuOptions.info')}
+                    </button>
+                    <button data-m="unread" onClick={markUnread}>{t('menuOptions.unread')}</button>
+                    <button data-m="clear" onClick={clearChat}>{t('menuOptions.clear')}</button>
+                    <button data-m="order" onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
+                  </div>
                 </div>
               </div>
 
-              <div className="wa-thread" ref={threadRef}>
+              <div className="wa-thread" id="wa-thread" ref={threadRef}>
                 {(() => {
                   const items: React.ReactNode[] = [];
                   let lastDay = '';
@@ -538,35 +535,36 @@ export default function WhatsappScreen({
               {thread.botPaused && (
                 <div className="wa-takeover-bar">
                   {t('takeoverNotice')}
-                  <button onClick={resumeBot}>{t('botResume')}</button>
+                  <button id="wa-resume" onClick={resumeBot}>{t('botResume')}</button>
                 </div>
               )}
 
-              {emojiOpen && (
-                <div className="wa-emoji-bar">
-                  {EMOJI.map((e) => (
-                    <button key={e} onClick={() => setDraft((d) => d + e)}>
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Design whatsapp.js:126 — emoji-bar is always rendered with
+                  hidden attr, not conditionally mounted. */}
+              <div className="wa-emoji-bar" id="wa-emoji-bar" hidden={!emojiOpen}>
+                {EMOJI.map((e) => (
+                  <button key={e} data-emo={e} onClick={() => setDraft((d) => d + e)}>
+                    {e}
+                  </button>
+                ))}
+              </div>
 
-              {/* Design whatsapp.js:127-133 — composer uses SVG icons, not emojis,
-                  in the wa-comp-ico / wa-send buttons. */}
+              {/* Design whatsapp.js:127-133 — composer uses SVG icons; each
+                  composer button has design-matching id. Send button has
+                  no title attribute. */}
               <div className="wa-composer">
-                <button className="wa-comp-ico" onClick={() => setEmojiOpen((v) => !v)} title={t('emoji')}>
+                <button className="wa-comp-ico" id="wa-emoji" onClick={() => setEmojiOpen((v) => !v)} title={t('emoji')}>
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M9 10h.01M15 10h.01M8.5 14a4 4 0 0 0 7 0" />
                   </svg>
                 </button>
-                <button className="wa-comp-ico wa-attach" onClick={openFilePicker} title={t('attach')} aria-label={t('uploadImage')}>
+                <button className="wa-comp-ico wa-attach" id="wa-attach" onClick={openFilePicker} title={t('attach')} aria-label={t('uploadImage')}>
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 17.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8" />
                   </svg>
                 </button>
-                <input ref={fileInputRef} type="file" accept="image/*,application/pdf" hidden onChange={onFileChosen} />
+                <input ref={fileInputRef} id="wa-file" type="file" accept="image/*,application/pdf" hidden onChange={onFileChosen} />
                 <input
                   id="wa-input"
                   value={draft}
@@ -574,15 +572,15 @@ export default function WhatsappScreen({
                   onKeyDown={(e) => e.key === 'Enter' && send()}
                   placeholder={t('typeMessage')}
                 />
-                <button className="wa-send" onClick={send} title={t('typeMessage')}>
+                <button className="wa-send" id="wa-send" onClick={send}>
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 12l16-8-6 16-3-6-7-2z" />
                   </svg>
                 </button>
               </div>
             </>
-          )}
-        </section>
+          </section>
+        )}
       </div>
 
       {newChatOpen && (

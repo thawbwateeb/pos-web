@@ -394,7 +394,8 @@
     "businessLabel": "Thawb Wa Teeb",
     "businessSub": "WhatsApp Business",
     "title": "WhatsApp Business",
-    "searchPlaceholder": "Search conversations",
+    "searchPlaceholder": "Search or start new chat",
+    "headerSearch": "Search",
     "noConversations": "No conversations yet",
     "empty": "Pick a conversation to start replying. The bot ({botName}) is {state}.",
     "emptyHint": "Select a chat to start messaging your customers.",
@@ -413,12 +414,12 @@
     "menuOptions": {
       "unread": "Mark as unread",
       "info": "Contact info",
-      "clear": "Clear chat",
-      "viewOrders": "View customer orders"
+      "clear": "Clear messages",
+      "viewOrders": "Create order"
     },
     "markedUnread": "Marked as unread",
     "failedToSend": "Failed to send",
-    "botPausedTimer": "Paused · {mins}m",
+    "botPausedTimer": "Paused {mins}m",
     "attach": "Attach",
     "uploadImage": "Send image",
     "uploadComingSoon": "Image upload coming soon",
