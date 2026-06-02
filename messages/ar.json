@@ -510,7 +510,8 @@
     },
     "kpis": {
       "gross": "Gross Sales",
-      "grossSub": "▲ 12% vs avg Friday",
+      "grossTrendPct": "▲ 12%",
+      "grossTrendSub": "vs avg Friday",
       "orders": "Orders",
       "ordersSub": "{walk} walk-in · {deliv} pickup & delivery",
       "items": "Items Processed",
@@ -522,7 +523,8 @@
       "outstanding": "Outstanding",
       "outstandingSub": "{count} unpaid orders",
       "newCustomers": "New Customers",
-      "newCustomersSub": "▲ 3 vs yesterday",
+      "newCustomersTrendPct": "▲ 3",
+      "newCustomersTrendSub": "vs yesterday",
       "turnaround": "Avg. Turnaround",
       "turnaroundSub": "within 24h target"
     },

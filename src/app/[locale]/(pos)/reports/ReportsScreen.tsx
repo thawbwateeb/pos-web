@@ -213,7 +213,9 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <div className="sv">
             <span className="cur">AED</span> {Math.round(total).toLocaleString()}
           </div>
-          <div className="sd"><b className="up">{t('kpis.grossSub')}</b></div>
+          {/* Design app.js:798 — only the trend percentage is in <b class="up">;
+              the " vs avg Friday" tail is plain text. */}
+          <div className="sd"><b className="up">{t('kpis.grossTrendPct')}</b> {t('kpis.grossTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.orders')}</div>
@@ -251,7 +253,9 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
         <div className="stat">
           <div className="sk">{t('kpis.newCustomers')}</div>
           <div className="sv">{newCust}</div>
-          <div className="sd"><b className="up">{t('kpis.newCustomersSub')}</b></div>
+          {/* Design app.js:806 — only the "▲ 3" trend is in <b class="up">;
+              the " vs yesterday" tail is plain text. */}
+          <div className="sd"><b className="up">{t('kpis.newCustomersTrendPct')}</b> {t('kpis.newCustomersTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.turnaround')}</div>
