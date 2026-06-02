@@ -315,8 +315,18 @@ export default function NewOrderScreen({
           </div>
         </div>
 
-        {/* Design app.js:345 — id="item-grid". */}
+        {/* Design app.js:345 — id="item-grid". Empty state copied verbatim
+            from renderItems line 369: <div class="empty-state"
+            style="grid-column:1/-1"><span class="serif">No items</span>
+            Try another search.</div> — note the second line is plain
+            text, not a <p>. */}
         <div className="item-grid" id="item-grid">
+          {visibleItems.length === 0 && (
+            <div className="empty-state" style={{ gridColumn: '1/-1' }}>
+              <span className="serif">{t('noItems')}</span>
+              {t('tryAnotherSearch')}
+            </div>
+          )}
           {visibleItems.map((item) => {
             const price = tier ? item.prices[tier.externalKey] : undefined;
             const unavail = price == null;
@@ -353,11 +363,17 @@ export default function NewOrderScreen({
                 {isEditing ? `#${editing!.number}` : `#${(bootstrap.business as any).nextOrderNumber ?? ''}`}
               </div>
               <span className="otype">
+                {/* Design app.js:430 — uses t.count which sums qty across
+                    lines (count: state.cart.reduce((s,l)=>s+l.qty,0)),
+                    NOT cart.length (distinct line count). */}
                 {isEditing
                   ? t('detailingOrder')
-                  : cart.length === 1
-                    ? `1 ${tCommon('item').toLowerCase()}`
-                    : `${cart.length} ${tCommon('items').toLowerCase()}`}
+                  : (() => {
+                      const totalQty = cart.reduce((s, l) => s + l.qty, 0);
+                      return totalQty === 1
+                        ? `1 ${tCommon('item').toLowerCase()}`
+                        : `${totalQty} ${tCommon('items').toLowerCase()}`;
+                    })()}
               </span>
             </div>
             <div className="otype-toggle">
@@ -397,10 +413,9 @@ export default function NewOrderScreen({
               <p>{t('emptyCartHint')}</p>
             </div>
           ) : (
-            cart.map((l) => {
-              /* Design app.js:421 — .tr shows "{tier.short} · {unit} ea" with
-                 unit two-decimals and NO currency. .lp shows just total
-                 two-decimals, no currency. */
+            cart.map((l, i) => {
+              /* Design app.js:421-422 — .tr shows "{tier.short} · {unit} ea";
+                 .qty buttons carry data-dec="${i}" / data-inc="${i}". */
               const tierShort = tiers.find((tt) => tt.id === l.tierId)?.short ?? l.tierName;
               return (
                 <div key={l.key} className="cline">
@@ -409,9 +424,9 @@ export default function NewOrderScreen({
                     <div className="tr">{tierShort} · {l.unitPrice.toFixed(2)} ea</div>
                   </div>
                   <div className="qty">
-                    <button onClick={() => setQty(l.key, l.qty - 1)}>−</button>
+                    <button data-dec={i} onClick={() => setQty(l.key, l.qty - 1)}>−</button>
                     <span className="n">{l.qty}</span>
-                    <button onClick={() => setQty(l.key, l.qty + 1)}>+</button>
+                    <button data-inc={i} onClick={() => setQty(l.key, l.qty + 1)}>+</button>
                   </div>
                   <div className="lp">{(l.unitPrice * l.qty).toFixed(2)}</div>
                 </div>
