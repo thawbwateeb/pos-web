@@ -1,14 +1,33 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED, AED0, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 
-// ─────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────
+/* Design ops.js:23-93 (renderCashShift + openMoveModal):
+   Outer: <div class="fin">.
+   KPI row: .grid.g4 of 4 .card.kpi:
+     - Shift gross sales / AED0(gross) / '\${orders} orders since \${open}'
+     - Cash collected / AED0(cash) / 'Card AED0(card) · Account AED0(account)'
+     - Expected in drawer / AED0(expected) / 'Float AED0(float) + cash + movements'
+     - Refunds / AED0(refunds) / 'This shift'
+   Cash movements: .card.flush > .ch h3 'Cash movements' + .btn.btn-pri.btn-sm '+ Add movement' id='cm-add'
+     table.tbl thead: Time / Type / Reason / By / Amount(num) / (action)
+     Row: .tnum time / .pill.ok|mut Paid in|Paid out|Petty cash / reason /
+       .muted by / .num.tnum.pos|neg signed AED / Delete btn data-cmdel
+     tfoot: 'Net cash movements' colspan=4 + AED(inn-out)
+   Cards grid .grid.g2 align-items:start:
+     ZReport card: h3 'End-of-day Z-report' + .csub 'Close the day and reconcile the drawer'
+       .odl-sum: Opening float / Cash sales / Paid in (+) / Paid out / petty (−) / Expected drawer (.tot)
+       'Counted cash in drawer' input id='z-counted'
+       .note id='z-var' (live variance)
+       .btn.btn-pri id='z-close' 'Generate Z-report & close day'
+     Shift summary: h3 'Shift summary' + .csub '\${cashier} · since \${open}'
+       table.tbl: Cash / Card / Digital / Account / Credit / Refunds (.neg)
+       tfoot: 'Net takings' AED(gross-refunds)
+       .btn.btn-ghost id='shift-print' 'Print shift report'
+*/
 
 export type MovementType = 'PAID_IN' | 'PAID_OUT' | 'PETTY_CASH';
 
@@ -64,9 +83,11 @@ export interface ShiftHistoryRow {
   openedBy?: { fullName: string } | null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Screen
-// ─────────────────────────────────────────────────────────────────────────
+const TYPE_LABEL: Record<MovementType, string> = {
+  PAID_IN: 'Paid in',
+  PAID_OUT: 'Paid out',
+  PETTY_CASH: 'Petty cash',
+};
 
 interface Props {
   initialSummary: ShiftSummary | null;
@@ -74,12 +95,10 @@ interface Props {
 }
 
 export default function ShiftsScreen({ initialSummary, initialHistory }: Props) {
-  const t = useTranslations('Shifts');
   const toast = useToast();
-
   const [summary, setSummary] = useState<ShiftSummary | null>(initialSummary);
   const [history, setHistory] = useState<ShiftHistoryRow[]>(initialHistory);
-  const [openModal, setOpenModal] = useState<null | 'open' | 'move' | 'close'>(null);
+  const [openModal, setOpenModal] = useState<null | 'open' | 'move'>(null);
 
   async function refresh() {
     const [s, h] = await Promise.all([
@@ -94,10 +113,10 @@ export default function ShiftsScreen({ initialSummary, initialHistory }: Props) 
     try {
       await api('/shifts/current/open', { method: 'POST', body: { openingFloat } });
       await refresh();
-      toast.show(t('opened'));
+      toast.show('Shift opened');
       setOpenModal(null);
     } catch {
-      toast.show(t('failed'));
+      toast.show('Failed');
     }
   }
 
@@ -105,10 +124,10 @@ export default function ShiftsScreen({ initialSummary, initialHistory }: Props) 
     try {
       await api('/shifts/current/movements', { method: 'POST', body: { type, reason, amount } });
       await refresh();
-      toast.show(t('movedToast', { type: typeLabel(t, type), amount: AED(amount) }));
+      toast.show('Movement added');
       setOpenModal(null);
     } catch {
-      toast.show(t('failed'));
+      toast.show('Failed');
     }
   }
 
@@ -116,78 +135,53 @@ export default function ShiftsScreen({ initialSummary, initialHistory }: Props) 
     try {
       await api(`/shifts/current/movements/${id}`, { method: 'DELETE' });
       await refresh();
+      toast.show('Movement removed');
     } catch {
-      toast.show(t('failed'));
+      toast.show('Failed');
     }
   }
 
   async function closeShift(countedDrawer: number) {
     if (!summary) return;
-    const variance = countedDrawer - summary.kpis.expectedDrawer;
     try {
       await api('/shifts/current/close', { method: 'POST', body: { countedDrawer } });
       await refresh();
-      toast.show(t('closeToast', { amount: AED(variance) }));
-      setOpenModal(null);
+      toast.show('Z-report generated · day closed');
     } catch {
-      toast.show(t('failed'));
+      toast.show('Failed');
     }
   }
 
-  return (
-    <div className="set-sec fin" style={{ maxWidth: 1180 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h2>{t('title')}</h2>
-          <p className="ssub">{t('sub')}</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {summary ? (
-            <>
-              <button className="btn btn-ghost" onClick={() => setOpenModal('move')}>{t('moveCash')}</button>
-              <button className="btn btn-pri" onClick={() => setOpenModal('close')}>{t('closeShift')}</button>
-            </>
-          ) : (
-            <button className="btn btn-pri" onClick={() => setOpenModal('open')}>{t('openShift')}</button>
-          )}
-        </div>
-      </div>
-
-      {summary ? (
-        <ActiveShift
-          summary={summary}
-          onDeleteMovement={deleteMovement}
-          onAddMovement={() => setOpenModal('move')}
-          onCloseShift={() => setOpenModal('close')}
-        />
-      ) : (
+  if (!summary) {
+    return (
+      <div className="fin">
         <div className="set-card" style={{ marginTop: 16 }}>
-          <p className="muted">{t('noShiftOpen')}</p>
+          <p className="muted">No shift open right now.</p>
+          <button className="btn btn-pri" onClick={() => setOpenModal('open')}>Open shift</button>
         </div>
-      )}
+        <HistoryCard rows={history} />
+        {openModal === 'open' && (
+          <OpenShiftModal onClose={() => setOpenModal(null)} onSubmit={openShift} />
+        )}
+      </div>
+    );
+  }
 
+  return (
+    <div className="fin">
+      <ActiveShift
+        summary={summary}
+        onDeleteMovement={deleteMovement}
+        onAddMovement={() => setOpenModal('move')}
+        onCloseShift={closeShift}
+      />
       <HistoryCard rows={history} />
-
-      {openModal === 'open' && (
-        <OpenShiftModal onClose={() => setOpenModal(null)} onSubmit={openShift} />
-      )}
-      {openModal === 'move' && summary && (
+      {openModal === 'move' && (
         <MoveCashModal onClose={() => setOpenModal(null)} onSubmit={addMovement} />
-      )}
-      {openModal === 'close' && summary && (
-        <CloseShiftModal
-          summary={summary}
-          onClose={() => setOpenModal(null)}
-          onSubmit={closeShift}
-        />
       )}
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Active shift content (KPIs + movements + Z-report + summary)
-// ─────────────────────────────────────────────────────────────────────────
 
 function ActiveShift({
   summary,
@@ -198,223 +192,228 @@ function ActiveShift({
   summary: ShiftSummary;
   onDeleteMovement: (id: string) => void;
   onAddMovement: () => void;
-  onCloseShift: () => void;
+  onCloseShift: (counted: number) => void | Promise<void>;
 }) {
-  const t = useTranslations('Shifts');
   const { kpis, movements, breakdown, totals, shift } = summary;
   const openedAt = shortTime(shift.openedAt);
   const cashierName = shift.openedBy?.fullName ?? '—';
+  const cardTotal =
+    breakdown.find((b) => b.method === 'CARD')?.total ?? 0;
+  const accountTotal =
+    breakdown.find((b) => b.method === 'ACCOUNT')?.total ?? 0;
 
   return (
     <>
-      {/* KPI row */}
-      <div className="grid g4" style={{ marginTop: 16, marginBottom: 16 }}>
-        <Kpi label={t('kpiGrossSales')} value={AED0(kpis.grossSales)} sub={`${kpis.orders} · ${openedAt}`} />
-        <Kpi label={t('kpiCashCollected')} value={AED0(kpis.cashCollected)} sub={cashierName} />
-        <Kpi
-          label={t('kpiExpectedDrawer')}
-          value={AED0(kpis.expectedDrawer)}
-          sub={`${t('openingFloat')} ${AED0(totals.openingFloat)}`}
-        />
-        <Kpi label={t('kpiRefunds')} value={AED0(kpis.refunds)} />
+      {/* KPI row (design uses .card.kpi inside .grid.g4) */}
+      <div className="grid g4" style={{ marginBottom: 16 }}>
+        <div className="card kpi">
+          <div className="k">Shift gross sales</div>
+          <div className="v">{AED0(kpis.grossSales)}</div>
+          <div className="d">{kpis.orders} orders since {openedAt}</div>
+        </div>
+        <div className="card kpi">
+          <div className="k">Cash collected</div>
+          <div className="v">{AED0(kpis.cashCollected)}</div>
+          <div className="d">Card {AED0(cardTotal)} · Account {AED0(accountTotal)}</div>
+        </div>
+        <div className="card kpi">
+          <div className="k">Expected in drawer</div>
+          <div className="v">{AED0(kpis.expectedDrawer)}</div>
+          <div className="d">Float {AED0(totals.openingFloat)} + cash + movements</div>
+        </div>
+        <div className="card kpi">
+          <div className="k">Refunds</div>
+          <div className="v">{AED0(kpis.refunds)}</div>
+          <div className="d">This shift</div>
+        </div>
       </div>
 
-      {/* Cash movements table */}
-      <div className="set-card fin" style={{ marginBottom: 16 }}>
+      {/* Cash movements (.card.flush) */}
+      <div className="card flush" style={{ marginBottom: 16 }}>
         <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>{t('movements')}</h3>
-          <button className="btn btn-pri btn-sm" onClick={onAddMovement}>+ {t('moveCash')}</button>
+          <h3 style={{ margin: 0 }}>Cash movements</h3>
+          <button className="btn btn-pri btn-sm" id="cm-add" onClick={onAddMovement}>+ Add movement</button>
         </div>
         <table className="tbl">
           <thead>
             <tr>
-              <th>{t('colTime')}</th>
-              <th>{t('colType')}</th>
-              <th>{t('colReason')}</th>
-              <th>{t('colBy')}</th>
-              <th className="num">{t('colAmount')}</th>
+              <th>Time</th>
+              <th>Type</th>
+              <th>Reason</th>
+              <th>By</th>
+              <th className="num">Amount</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {movements.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 18, color: 'var(--muted)' }}>—</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 18 }}>No movements yet</td></tr>
             )}
-            {movements.map((m) => {
+            {movements.map((m, i) => {
               const positive = m.type === 'PAID_IN';
               const amt = Number(m.amount);
               return (
                 <tr key={m.id}>
                   <td className="tnum">{shortTime(m.createdAt)}</td>
-                  <td><TypeChip type={m.type} /></td>
+                  <td><span className={`pill ${positive ? 'ok' : 'mut'}`}>{TYPE_LABEL[m.type]}</span></td>
                   <td>{m.reason}</td>
                   <td className="muted">{m.by?.fullName ?? '—'}</td>
                   <td className={`num tnum ${positive ? 'pos' : 'neg'}`}>
-                    {positive ? '+ ' : '− '}{AED(amt)}
+                    {positive ? '+' : '−'} {AED(amt)}
                   </td>
                   <td className="num">
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => onDeleteMovement(m.id)}
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      ×
-                    </button>
+                    <button className="btn btn-ghost btn-sm" data-cmdel={i} onClick={() => onDeleteMovement(m.id)}>Delete</button>
                   </td>
                 </tr>
               );
             })}
           </tbody>
-          {movements.length > 0 && (
-            <tfoot>
-              <tr>
-                <td colSpan={4}>—</td>
-                <td className="num tnum">{AED(totals.paidIn - totals.paidOut)}</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          )}
+          <tfoot>
+            <tr>
+              <td colSpan={4}>Net cash movements</td>
+              <td className="num tnum">{AED(totals.paidIn - totals.paidOut)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 
-      {/* Z-report card + Shift summary card */}
+      {/* Z-report + Shift summary (g2 align-items start) */}
       <div className="grid g2" style={{ alignItems: 'start' }}>
         <ZReportCard summary={summary} onClose={onCloseShift} />
-        <ShiftSummaryCard summary={summary} breakdown={breakdown} />
+        <ShiftSummaryCard summary={summary} breakdown={breakdown} cashierName={cashierName} openedAt={openedAt} />
       </div>
     </>
   );
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="card kpi">
-      <div className="k">{label}</div>
-      <div className="v">{value}</div>
-      {sub && <div className="d">{sub}</div>}
-    </div>
-  );
-}
-
-function TypeChip({ type }: { type: MovementType }) {
-  const t = useTranslations('Shifts');
-  const key = type === 'PAID_IN' ? 'IN' : type === 'PAID_OUT' ? 'OUT' : 'DROP';
-  const cls = type === 'PAID_IN' ? 'ok' : 'mut';
-  return <span className={`pill ${cls}`}>{t(`type.${key}`)}</span>;
-}
-
-function typeLabel(t: ReturnType<typeof useTranslations>, type: MovementType): string {
-  const key = type === 'PAID_IN' ? 'IN' : type === 'PAID_OUT' ? 'OUT' : 'DROP';
-  return t(`type.${key}`);
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Z-Report card (read-only display; closing happens via modal)
-// ─────────────────────────────────────────────────────────────────────────
-
-function ZReportCard({ summary, onClose }: { summary: ShiftSummary; onClose: () => void }) {
-  const t = useTranslations('Shifts');
+function ZReportCard({ summary, onClose }: { summary: ShiftSummary; onClose: (counted: number) => void | Promise<void> }) {
   const { totals, kpis } = summary;
+  const [counted, setCounted] = useState<string>('');
+
+  const variance = useMemo(() => {
+    if (!counted) return null;
+    const v = Number(counted);
+    if (!Number.isFinite(v)) return null;
+    return v - kpis.expectedDrawer;
+  }, [counted, kpis.expectedDrawer]);
+
   return (
     <div className="card">
-      <h3>{t('zReport')}</h3>
-      <div className="odl-sum" style={{ margin: '14px 0' }}>
-        <div className="r"><span>{t('openingDrawer')}</span><span>{AED(totals.openingFloat)}</span></div>
-        <div className="r"><span>{t('kpiCashCollected')}</span><span>{AED(totals.cashSales)}</span></div>
-        <div className="r"><span>{t('type.IN')}</span><span>+ {AED(totals.paidIn)}</span></div>
-        <div className="r"><span>{t('type.OUT')} / {t('type.DROP')}</span><span>− {AED(totals.paidOut)}</span></div>
-        <div className="r tot"><span>{t('expected')}</span><span>{AED(kpis.expectedDrawer)}</span></div>
+      <h3>End-of-day Z-report</h3>
+      <div className="csub">Close the day and reconcile the drawer</div>
+      <div className="odl-sum" style={{ marginBottom: 14 }}>
+        <div className="r"><span>Opening float</span><span>{AED(totals.openingFloat)}</span></div>
+        <div className="r"><span>Cash sales</span><span>{AED(totals.cashSales)}</span></div>
+        <div className="r"><span>Paid in</span><span>+ {AED(totals.paidIn)}</span></div>
+        <div className="r"><span>Paid out / petty</span><span>− {AED(totals.paidOut)}</span></div>
+        <div className="r tot"><span>Expected drawer</span><span>{AED(kpis.expectedDrawer)}</span></div>
       </div>
-      <button className="btn btn-pri" onClick={onClose}>{t('closeShift')}</button>
+      <div className="field" style={{ marginBottom: 12 }}>
+        <label>Counted cash in drawer</label>
+        <input
+          className="inp"
+          id="z-counted"
+          type="number"
+          placeholder="0.00"
+          value={counted}
+          onChange={(e) => setCounted(e.target.value)}
+        />
+      </div>
+      <div id="z-var" className="note" style={{ marginBottom: 12 }}>
+        {variance == null ? null : variance === 0 ? (
+          <b style={{ color: 'var(--ok)' }}>Balanced — no variance</b>
+        ) : (
+          <>Variance:{' '}
+            <b style={{ color: variance < 0 ? 'var(--danger)' : 'var(--warn)' }}>
+              {variance > 0 ? '+' : ''}{AED(variance)}
+            </b>
+          </>
+        )}
+      </div>
+      <button
+        className="btn btn-pri"
+        id="z-close"
+        onClick={() => {
+          const v = Number(counted);
+          if (!Number.isFinite(v)) return;
+          onClose(v);
+        }}
+        disabled={!counted}
+      >
+        Generate Z-report &amp; close day
+      </button>
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Shift summary card (payment-method breakdown)
-// ─────────────────────────────────────────────────────────────────────────
 
 function ShiftSummaryCard({
   summary,
   breakdown,
+  cashierName,
+  openedAt,
 }: {
   summary: ShiftSummary;
   breakdown: PaymentBreakdownRow[];
+  cashierName: string;
+  openedAt: string;
 }) {
-  const t = useTranslations('Shifts');
-  const cashier = summary.shift.openedBy?.fullName ?? '—';
-  const openedAt = shortTime(summary.shift.openedAt);
-  const methodLabels: Record<PaymentBreakdownRow['method'], string> = {
-    CASH: 'Cash',
-    CARD: 'Card',
-    APPLE_PAY: 'Apple Pay',
-    ACCOUNT: 'Account',
-    ON_DELIVERY: 'On delivery',
-    GIFT_CARD: 'Gift card',
-  };
+  const toast = useToast();
+  const cash = breakdown.find((b) => b.method === 'CASH')?.total ?? 0;
+  const card =
+    (breakdown.find((b) => b.method === 'CARD')?.total ?? 0) +
+    (breakdown.find((b) => b.method === 'APPLE_PAY')?.total ?? 0);
+  const account =
+    (breakdown.find((b) => b.method === 'ACCOUNT')?.total ?? 0) +
+    (breakdown.find((b) => b.method === 'ON_DELIVERY')?.total ?? 0);
 
   return (
     <div className="card">
-      <h3>{t('summary')}</h3>
-      <div className="csub">{cashier} · {openedAt}</div>
-      <table className="tbl" style={{ marginTop: 8 }}>
+      <h3>Shift summary</h3>
+      <div className="csub">{cashierName} · since {openedAt}</div>
+      <table className="tbl">
         <tbody>
-          {breakdown.length === 0 && (
-            <tr><td colSpan={2} className="muted" style={{ textAlign: 'center', padding: 14 }}>—</td></tr>
-          )}
-          {breakdown.map((row) => (
-            <tr key={row.method}>
-              <td>{methodLabels[row.method]} <span className="muted" style={{ fontSize: 11 }}>· {row.count}</span></td>
-              <td className="num tnum">{AED(row.total)}</td>
-            </tr>
-          ))}
-          {summary.kpis.refunds > 0 && (
-            <tr>
-              <td>{t('kpiRefunds')}</td>
-              <td className="num tnum neg">− {AED(summary.kpis.refunds)}</td>
-            </tr>
-          )}
+          <tr><td>Cash</td><td className="num tnum">{AED(cash)}</td></tr>
+          <tr><td>Card / Digital</td><td className="num tnum">{AED(card)}</td></tr>
+          <tr><td>Account / Credit</td><td className="num tnum">{AED(account)}</td></tr>
+          <tr><td>Refunds</td><td className="num tnum neg">− {AED(summary.kpis.refunds)}</td></tr>
         </tbody>
         <tfoot>
-          <tr><td>{t('summary')}</td><td className="num tnum">{AED(summary.kpis.netTakings)}</td></tr>
+          <tr><td>Net takings</td><td className="num tnum">{AED(summary.kpis.netTakings)}</td></tr>
         </tfoot>
       </table>
+      <button className="btn btn-ghost" id="shift-print" style={{ marginTop: 14 }} onClick={() => toast.show('Shift report sent to printer')}>
+        Print shift report
+      </button>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// History table
-// ─────────────────────────────────────────────────────────────────────────
-
 function HistoryCard({ rows }: { rows: ShiftHistoryRow[] }) {
-  const t = useTranslations('Shifts');
+  if (rows.length === 0) return null;
   return (
     <div className="set-card" style={{ marginTop: 16 }}>
       <h3>History</h3>
       <table className="tbl">
         <thead>
           <tr>
-            <th>{t('colTime')}</th>
-            <th>{t('colTime')} ({t('closeShift')})</th>
-            <th className="num">{t('openingFloat')}</th>
-            <th className="num">{t('counted')}</th>
-            <th className="num">{t('variance')}</th>
-            <th>{t('colBy')}</th>
+            <th>Opened</th>
+            <th>Closed</th>
+            <th className="num">Float</th>
+            <th className="num">Counted</th>
+            <th className="num">Variance</th>
+            <th>By</th>
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 && (
-            <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--muted)' }}>—</td></tr>
-          )}
           {rows.map((s) => {
             const variance = s.variance != null ? Number(s.variance) : null;
             return (
               <tr key={s.id}>
                 <td>{new Date(s.openedAt).toLocaleString()}</td>
                 <td>{s.closedAt ? new Date(s.closedAt).toLocaleString() : '—'}</td>
-                <td className="num tnum">{AED(s.openingFloat)}</td>
-                <td className="num tnum">{s.countedDrawer != null ? AED(s.countedDrawer) : '—'}</td>
+                <td className="num tnum">{AED(Number(s.openingFloat))}</td>
+                <td className="num tnum">{s.countedDrawer != null ? AED(Number(s.countedDrawer)) : '—'}</td>
                 <td className={`num tnum ${variance != null && variance < 0 ? 'neg' : ''}`}>
                   {variance != null ? AED(variance) : '—'}
                 </td>
@@ -427,10 +426,6 @@ function HistoryCard({ rows }: { rows: ShiftHistoryRow[] }) {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Modals
-// ─────────────────────────────────────────────────────────────────────────
 
 function ModalShell({ title, onClose, children, foot }: { title: string; onClose: () => void; children: React.ReactNode; foot: React.ReactNode }) {
   return (
@@ -448,8 +443,6 @@ function ModalShell({ title, onClose, children, foot }: { title: string; onClose
 }
 
 function OpenShiftModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (float: number) => void | Promise<void> }) {
-  const t = useTranslations('Shifts');
-  const tCommon = useTranslations('Common');
   const [amount, setAmount] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
@@ -462,39 +455,24 @@ function OpenShiftModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: 
 
   return (
     <ModalShell
-      title={t('openShift')}
+      title="Open shift"
       onClose={onClose}
-      foot={
-        <>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
-          <button
-            className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
-            style={{ flex: 2 }}
-            onClick={submit}
-            disabled={busy}
-          >
-            {t('openShift')}
-          </button>
-        </>
-      }
+      foot={<>
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>Open shift</button>
+      </>}
     >
       <div className="field">
-        <label>{t('openingFloat')}</label>
-        <input
-          className="inp input"
-          type="number"
-          step="0.01"
-          min="0"
-          autoFocus
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-        />
+        <label>Opening float</label>
+        <input className="inp" type="number" step="0.01" min="0" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
       </div>
     </ModalShell>
   );
 }
 
+/* Design openMoveModal (ops.js:77-93) — Add cash movement modal.
+   Fields: Type select (Paid in/out/Petty cash) id='mv-type' / Reason
+   id='mv-reason' / Amount (AED) id='mv-amt'. Save id='mv-save' 'Add movement'. */
 function MoveCashModal({
   onClose,
   onSubmit,
@@ -502,144 +480,43 @@ function MoveCashModal({
   onClose: () => void;
   onSubmit: (type: MovementType, reason: string, amount: number) => void | Promise<void>;
 }) {
-  const t = useTranslations('Shifts');
-  const tCommon = useTranslations('Common');
   const [type, setType] = useState<MovementType>('PAID_IN');
   const [reason, setReason] = useState('');
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   async function submit() {
     const v = Number(amount);
-    if (!Number.isFinite(v) || v <= 0) return;
+    if (!Number.isFinite(v) || v <= 0) { toast.show('Enter an amount'); return; }
     setBusy(true);
     try { await onSubmit(type, reason.trim() || '—', v); } finally { setBusy(false); }
   }
 
   return (
     <ModalShell
-      title={t('moveCash')}
+      title="Add cash movement"
       onClose={onClose}
-      foot={
-        <>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
-          <button
-            className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
-            style={{ flex: 2 }}
-            onClick={submit}
-            disabled={busy || !Number(amount)}
-          >
-            {tCommon('save')}
-          </button>
-        </>
-      }
+      foot={<>
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} id="mv-save" style={{ flex: 2 }} onClick={submit} disabled={busy}>Add movement</button>
+      </>}
     >
       <div className="field" style={{ marginBottom: 12 }}>
-        <label>{t('moveType')}</label>
-        <select
-          className="inp input"
-          value={type}
-          onChange={(e) => setType(e.target.value as MovementType)}
-        >
-          <option value="PAID_IN">{t('type.IN')}</option>
-          <option value="PAID_OUT">{t('type.OUT')}</option>
-          <option value="PETTY_CASH">{t('type.DROP')}</option>
+        <label>Type</label>
+        <select className="inp" id="mv-type" value={type} onChange={(e) => setType(e.target.value as MovementType)}>
+          <option value="PAID_IN">Paid in</option>
+          <option value="PAID_OUT">Paid out</option>
+          <option value="PETTY_CASH">Petty cash</option>
         </select>
       </div>
       <div className="field" style={{ marginBottom: 12 }}>
-        <label>{t('colReason')}</label>
-        <input
-          className="inp input"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder={t('reasonHint')}
-        />
+        <label>Reason</label>
+        <input className="inp" id="mv-reason" placeholder="e.g. Delivery fuel" value={reason} onChange={(e) => setReason(e.target.value)} />
       </div>
       <div className="field">
-        <label>{t('colAmount')}</label>
-        <input
-          className="inp input"
-          type="number"
-          step="0.01"
-          min="0"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-        />
-      </div>
-    </ModalShell>
-  );
-}
-
-function CloseShiftModal({
-  summary,
-  onClose,
-  onSubmit,
-}: {
-  summary: ShiftSummary;
-  onClose: () => void;
-  onSubmit: (counted: number) => void | Promise<void>;
-}) {
-  const t = useTranslations('Shifts');
-  const tCommon = useTranslations('Common');
-  const expected = summary.kpis.expectedDrawer;
-  const [counted, setCounted] = useState<string>(expected.toFixed(2));
-  const [busy, setBusy] = useState(false);
-
-  const variance = useMemo(() => {
-    const v = Number(counted);
-    return Number.isFinite(v) ? v - expected : 0;
-  }, [counted, expected]);
-
-  async function submit() {
-    const v = Number(counted);
-    if (!Number.isFinite(v)) return;
-    setBusy(true);
-    try { await onSubmit(v); } finally { setBusy(false); }
-  }
-
-  const varianceColor = variance === 0 ? 'var(--ok)' : variance < 0 ? 'var(--danger)' : 'var(--warn)';
-
-  return (
-    <ModalShell
-      title={t('zReport')}
-      onClose={onClose}
-      foot={
-        <>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
-          <button
-            className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
-            style={{ flex: 2 }}
-            onClick={submit}
-            disabled={busy}
-          >
-            {t('closeShift')}
-          </button>
-        </>
-      }
-    >
-      <div className="odl-sum" style={{ marginBottom: 14 }}>
-        <div className="r"><span>{t('openingDrawer')}</span><span>{AED(summary.totals.openingFloat)}</span></div>
-        <div className="r"><span>{t('kpiCashCollected')}</span><span>{AED(summary.totals.cashSales)}</span></div>
-        <div className="r"><span>{t('type.IN')}</span><span>+ {AED(summary.totals.paidIn)}</span></div>
-        <div className="r"><span>{t('type.OUT')} / {t('type.DROP')}</span><span>− {AED(summary.totals.paidOut)}</span></div>
-        <div className="r tot"><span>{t('expected')}</span><span>{AED(expected)}</span></div>
-      </div>
-      <div className="field" style={{ marginBottom: 12 }}>
-        <label>{t('counted')}</label>
-        <input
-          className="inp input"
-          type="number"
-          step="0.01"
-          min="0"
-          autoFocus
-          value={counted}
-          onChange={(e) => setCounted(e.target.value)}
-          placeholder="0.00"
-        />
-      </div>
-      <div className="note" style={{ color: varianceColor }}>
-        <b>{t('variance')}: {variance >= 0 ? '+' : ''}{AED(variance)}</b>
+        <label>Amount (AED)</label>
+        <input className="inp" id="mv-amt" type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
       </div>
     </ModalShell>
   );
