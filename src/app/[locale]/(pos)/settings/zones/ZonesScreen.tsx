@@ -47,11 +47,6 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
     setRows(await api<Zone[]>('/delivery-zones'));
   }
 
-  async function toggleActive(z: Zone) {
-    await api(`/delivery-zones/${z.id}`, { method: 'PATCH', body: { active: !z.active } });
-    reload();
-  }
-
   async function remove(z: Zone) {
     if (!confirm(`Delete zone ${z.name}?`)) return;
     await api(`/delivery-zones/${z.id}`, { method: 'DELETE' });
@@ -59,66 +54,66 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
     reload();
   }
 
+  /* Design app.js:1374-1387 — Service Zones:
+     - .set-sec max-width:none > .page-head h2 'Service Zones' + sub
+       '\${n} zone\${s} · used by the mobile app to restrict ordering to your
+       coverage' + .actions '+ New Zone' (data-zonenew).
+     - .card > table.tbl with 5 cols: (color swatch) / Zone / Points /
+       Preview / (action).
+     - Row: 14px color swatch / .t-name name / '\${n} points' /
+       <svg> polygon thumbnail / .r flex/gap:8/justify-end with View
+       (data-zoneview), Edit (data-zoneedit), Delete (data-zdel). */
   return (
-    <div className="set-sec" style={{ maxWidth: 1100 }}>
-      <h2>Delivery zones</h2>
-      <p className="ssub">Polygon-defined service areas with pricing</p>
-      <div className="set-card">
-        <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>{rows.length} zone{rows.length === 1 ? '' : 's'}</h3>
-          <button className="btn btn-pri btn-sm" onClick={() => setAdding(true)}>+ Add zone</button>
+    <div className="set-sec" style={{ maxWidth: 'none' }}>
+      <div className="page-head">
+        <div className="ph-l">
+          <h2>Service Zones</h2>
+          <span className="sub">
+            {rows.length} zone{rows.length !== 1 ? 's' : ''} · used by the mobile app to restrict ordering to your coverage
+          </span>
         </div>
-        {rows.length === 0 ? (
-          <div style={{ padding: 24, color: 'var(--muted)', fontSize: 13 }}>No delivery zones defined yet</div>
-        ) : (
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Zone name</th>
-                <th>Points</th>
-                <th>Base fee</th>
-                <th>Daily capacity</th>
-                <th>Preview</th>
-                <th>Active</th>
-                <th className="num"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((z) => {
-                const pts = asPoints(z.polygon);
-                const color = z.color || ZONE_PALETTE[0];
-                return (
-                  <tr key={z.id}>
-                    <td>
-                      <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 4, background: color, verticalAlign: 'middle' }} />
-                    </td>
-                    <td className="t-name">{z.name}</td>
-                    <td>{pts.length} points</td>
-                    <td>{AED(toFee(z.baseFee))}</td>
-                    <td>{z.capacity || '—'}</td>
-                    <td>
-                      <ZoneThumbnail points={pts} color={color} />
-                    </td>
-                    <td>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className={`switch${z.active ? ' on' : ''}`}
-                        onClick={() => toggleActive(z)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleActive(z); }}
-                      />
-                    </td>
-                    <td className="num">
-                      <button className="btn btn-ghost btn-sm" onClick={() => setEditing(z)}>Edit</button>
-                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => remove(z)}>Delete</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <div className="actions">
+          <button className="btn btn-pri" data-zonenew onClick={() => setAdding(true)}>+ New Zone</button>
+        </div>
+      </div>
+      <div className="card">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Zone</th>
+              <th>Points</th>
+              <th>Preview</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={5} style={{ color: 'var(--muted)', fontSize: 13, padding: 16 }}>No zones yet — create one.</td></tr>
+            )}
+            {rows.map((z, i) => {
+              const pts = asPoints(z.polygon);
+              const color = z.color || ZONE_PALETTE[0];
+              return (
+                <tr key={z.id}>
+                  <td>
+                    <span style={{ width: 14, height: 14, borderRadius: 4, background: color, display: 'inline-block', verticalAlign: 'middle' }} />
+                  </td>
+                  <td className="t-name">{z.name}</td>
+                  <td>{pts.length} points</td>
+                  <td><ZoneThumbnail points={pts} color={color} /></td>
+                  <td>
+                    <div className="r" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button className="t-btn ghost" data-zoneview={i} onClick={() => toast.show(`${z.name}: ${pts.length} points · ${AED(toFee(z.baseFee))} base fee${z.active ? '' : ' · inactive'}`)}>View</button>
+                      <button className="t-btn ghost" data-zoneedit={i} onClick={() => setEditing(z)}>Edit</button>
+                      <button className="t-btn ghost" data-zdel={i} onClick={() => remove(z)}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
       {(adding || editing) && (
         <ZoneForm
