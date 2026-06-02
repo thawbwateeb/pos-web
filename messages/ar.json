@@ -568,6 +568,7 @@
   "Finance": {
     "title": "Financial Vision",
     "subtitle": "Static planning data — {company}, {currency}",
+    "sidebarHeading": "Finance",
     "monthlyPlan": "Monthly plan",
     "line": "Expense line",
     "total": "Total",

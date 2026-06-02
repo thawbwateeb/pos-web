@@ -151,70 +151,73 @@ export default function FinanceScreen() {
     });
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────
+  /* Design finance.js:279-286 — outer is settings-grid.fin with a left
+     sidebar (.set-side) containing .sh + .set-nav and a body (.set-body)
+     where the active tab renders. There is NO page-head, no top mtabs;
+     the scenario selector lives inside the Dashboard tab only. */
+  const TAB_ICONS: Record<Tab, React.ReactNode> = {
+    dashboard: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>),
+    actuals: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M4 9h16M9 9v11" /></svg>),
+    unit: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9 9.5a3 3 0 0 1 6 0M9 14.5a3 3 0 0 0 6 0" /></svg>),
+    vision: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>),
+    owners: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><path d="M16 5.5a3 3 0 0 1 0 5.8M21 20c0-2.6-1.5-4.5-3.8-5.2" /></svg>),
+  };
+
   return (
-    <div className="page fin">
-      <div className="page-head">
-        <div className="ph-l">
-          <h2>{t('title')}</h2>
-          <span className="sub">{t('subtitle', { company: SETTINGS.company, currency: SETTINGS.currency })}</span>
-        </div>
-        <div className="seg">
-          {(['worst', 'average', 'dream'] as Scenario[]).map((s) => (
-            <button key={s} className={s === scenario ? `on ${s}` : ''} onClick={() => setScenario(s)}>
-              {t(`scenarios.${s}` as 'scenarios.worst')}
+    <div className="settings-grid fin">
+      <div className="set-side">
+        <div className="sh">{t('sidebarHeading')}</div>
+        <div className="set-nav" id="fin-nav">
+          {(['dashboard', 'actuals', 'unit', 'vision', 'owners'] as Tab[]).map((tt) => (
+            <button key={tt} className={tt === tab ? 'on' : ''} data-tab={tt} onClick={() => setTab(tt)}>
+              {TAB_ICONS[tt]}
+              {t(`tabs.${tt}` as 'tabs.dashboard')}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mtabs" style={{ marginBottom: 14 }}>
-        {(['dashboard', 'actuals', 'unit', 'vision', 'owners'] as Tab[]).map((tt) => (
-          <button key={tt} className={tt === tab ? 'on' : ''} onClick={() => setTab(tt)}>
-            {t(`tabs.${tt}` as 'tabs.dashboard')}
-          </button>
-        ))}
+      <div className="set-body" id="fin-body">
+        {tab === 'dashboard' && (
+          <Dashboard
+            months={months}
+            scenario={scenario}
+            sc={sc}
+            actuals={actuals}
+            contributions={contributions}
+            totalInvested={totalInvested}
+            setScenario={setScenario}
+          />
+        )}
+
+        {tab === 'actuals' && (
+          <Actuals
+            month={month}
+            setMonth={setMonth}
+            actuals={actuals}
+            updateActual={updateActual}
+            updateExpense={updateExpense}
+            onSave={(m) => toast.show(t('actuals.savedMonth', { month: MONTHS[m] }))}
+          />
+        )}
+
+        {tab === 'unit' && (
+          <Unit month={month} setMonth={setMonth} actuals={actuals} />
+        )}
+
+        {tab === 'vision' && <Vision />}
+
+        {tab === 'owners' && (
+          <Owners
+            contributions={contributions}
+            setContributions={setContributions}
+            totalInvested={totalInvested}
+            investedBy={investedBy}
+            onAdded={() => toast.show(t('owners.added'))}
+            onMissingAmount={() => toast.show(t('owners.enterAmount'))}
+          />
+        )}
       </div>
-
-      {tab === 'dashboard' && (
-        <Dashboard
-          months={months}
-          scenario={scenario}
-          sc={sc}
-          actuals={actuals}
-          contributions={contributions}
-          totalInvested={totalInvested}
-          setScenario={setScenario}
-        />
-      )}
-
-      {tab === 'actuals' && (
-        <Actuals
-          month={month}
-          setMonth={setMonth}
-          actuals={actuals}
-          updateActual={updateActual}
-          updateExpense={updateExpense}
-          onSave={(m) => toast.show(t('actuals.savedMonth', { month: MONTHS[m] }))}
-        />
-      )}
-
-      {tab === 'unit' && (
-        <Unit month={month} setMonth={setMonth} actuals={actuals} />
-      )}
-
-      {tab === 'vision' && <Vision />}
-
-      {tab === 'owners' && (
-        <Owners
-          contributions={contributions}
-          setContributions={setContributions}
-          totalInvested={totalInvested}
-          investedBy={investedBy}
-          onAdded={() => toast.show(t('owners.added'))}
-          onMissingAmount={() => toast.show(t('owners.enterAmount'))}
-        />
-      )}
     </div>
   );
 }
@@ -326,7 +329,9 @@ function Dashboard({
       <div className="grid g2">
         <div className="card">
           <h3>{t('dashboard.incomeVsExpense')}</h3>
-          <div className="csub">{t('dashboard.incomeVsExpenseSub', { scenario: t(`scenarios.${scenario}` as 'scenarios.worst') })}</div>
+          {/* Design finance.js:137 — csub is `${state.scenario} scenario`, with
+              state.scenario lowercase ('worst' | 'average' | 'dream'). */}
+          <div className="csub">{t('dashboard.incomeVsExpenseSub', { scenario })}</div>
           <BarPairChart
             labels={months}
             a={{ name: t('dashboard.income'), color: '#2A4858', data: incomeAvg }}
@@ -335,7 +340,7 @@ function Dashboard({
         </div>
         <div className="card">
           <h3>{t('dashboard.ordersCustomers')}</h3>
-          <div className="csub">{t('dashboard.ordersCustomersSub', { scenario: t(`scenarios.${scenario}` as 'scenarios.worst') })}</div>
+          <div className="csub">{t('dashboard.ordersCustomersSub', { scenario })}</div>
           <BarPairChart
             labels={months}
             a={{ name: t('dashboard.orders'), color: '#2A4858', data: sc.orders }}
@@ -870,68 +875,71 @@ function LineChart({
   labels: string[];
   series: { name: string; color: string; data: (number | null)[] }[];
 }) {
-  // Design finance.js:76 — W=760 H=230 P={l:28,r:26,t:22,b:40}.
+  /* Design finance.js:76-93 — exact geometry & styling:
+     W=760, H=230, pad={l:54, r:12, t:14, b:26}.
+     - mn = Math.min(0, ...all) (clamps floor to ≤ 0)
+     - grid stroke = var(--border-2), text font-size 9 fill var(--faint),
+       format = Math.round(v/1000)+'k'
+     - x-labels at y=H-8, font-size 9 fill var(--faint)
+     - zero line (only if mn<0) at y(0) stroke var(--border) width 1.2
+     - path stroke-width 2, stroke-linejoin round, fill none
+     - .legend uses <i> color swatches styled by .fin .legend CSS */
   const W = 760, H = 230;
-  const P = { l: 28, r: 26, t: 22, b: 40 };
-  const allVals = series.flatMap((s) => s.data.filter((v): v is number => v != null));
-  const lo = Math.min(...allVals, 0);
-  const hi = Math.max(...allVals);
-  const rng = (hi - lo) || 1;
-  const xs = labels.length;
-  const xAt = (i: number) => P.l + i * ((W - P.l - P.r) / Math.max(1, xs - 1));
-  const yAt = (v: number) => P.t + (1 - (v - lo) / rng) * (H - P.t - P.b);
-  const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
+  const pad = { l: 54, r: 12, t: 14, b: 26 };
+  const all = series.flatMap((s) => s.data.filter((v): v is number => v != null));
+  const mn = Math.min(0, ...all);
+  const mx = Math.max(...all, 1);
+  const rng = (mx - mn) || 1;
+  const xAt = (i: number) => pad.l + (W - pad.l - pad.r) * (i / Math.max(1, labels.length - 1));
+  const yAt = (v: number) => pad.t + (H - pad.t - pad.b) * (1 - (v - mn) / rng);
 
   return (
     <>
       <svg className="chart" viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-        {/* Gridlines + value labels (design uses var(--border) + N(v) + fs 10 + muted). */}
-        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
-          const y = P.t + p * (H - P.t - P.b);
-          const v = lo + (1 - p) * (hi - lo);
+        {[0, 0.25, 0.5, 0.75, 1].map((tt, i) => {
+          const v = mn + rng * tt;
+          const y = yAt(v);
           return (
             <g key={i}>
-              <line x1={P.l} x2={W - P.r} y1={y} y2={y} stroke="var(--border)" />
-              <text x={P.l - 4} y={y + 4} textAnchor="end" fontSize="10" fill="var(--muted)">
-                {fmt(v)}
+              <line x1={pad.l} x2={W - pad.r} y1={y} y2={y} stroke="var(--border-2)" />
+              <text x={pad.l - 8} y={y + 3} textAnchor="end" fontSize="9" fill="var(--faint)">
+                {Math.round(v / 1000)}k
               </text>
             </g>
           );
         })}
-        {/* Series — paths skip nulls; dots at each point. */}
+        {mn < 0 && (
+          <line x1={pad.l} x2={W - pad.r} y1={yAt(0)} y2={yAt(0)} stroke="var(--border)" strokeWidth={1.2} />
+        )}
         {series.map((s, si) => {
-          const segs: string[][] = [];
-          let cur: string[] = [];
+          let d = '';
+          let started = false;
+          const dots: React.ReactNode[] = [];
           s.data.forEach((v, i) => {
-            if (v == null) {
-              if (cur.length) { segs.push(cur); cur = []; }
-            } else {
-              cur.push(`${cur.length === 0 ? 'M' : 'L'} ${xAt(i)} ${yAt(v)}`);
-            }
+            if (v == null) return;
+            const px = xAt(i);
+            const py = yAt(v);
+            d += (started ? 'L' : 'M') + ' ' + px + ' ' + py + ' ';
+            started = true;
+            dots.push(<circle key={i} cx={px} cy={py} r={2.6} fill={s.color} />);
           });
-          if (cur.length) segs.push(cur);
-          const d = segs.map((seg) => seg.join(' ')).join(' ');
           return (
             <g key={si}>
-              <path d={d} stroke={s.color} strokeWidth={2} fill="none" />
-              {s.data.map((v, i) => v == null ? null : (
-                <circle key={i} cx={xAt(i)} cy={yAt(v)} r="2.6" fill={s.color} />
-              ))}
+              <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" />
+              {dots}
             </g>
           );
         })}
-        {/* X labels (design font-size:10, fill:muted, y=H-12). */}
         {labels.map((m, i) => (
-          <text key={i} x={xAt(i)} y={H - 12} textAnchor="middle" fontSize="10" fill="var(--muted)">
+          <text key={i} x={xAt(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="var(--faint)">
             {m}
           </text>
         ))}
       </svg>
-      {/* Legend: inline-flex spans with a 12×2 line swatch, 6px gap, font-size 12 muted. */}
-      <div style={{ marginTop: 8 }}>
+      <div className="legend">
         {series.map((s) => (
-          <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', marginRight: 14 }}>
-            <span style={{ width: 12, height: 2, background: s.color, borderRadius: 1 }} />
+          <span key={s.name}>
+            <i style={{ background: s.color }} />
             {s.name}
           </span>
         ))}
