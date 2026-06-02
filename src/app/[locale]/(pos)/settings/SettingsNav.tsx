@@ -40,7 +40,7 @@ const GROUPS: { label: string; items: { id: string; href: string; label: string;
     label: 'Finance',
     items: [
       { id: 'tax',         href: '/settings/tax',          label: 'Tax & VAT',     Ico: Icon.percent },
-      { id: 'finance',     href: '/finance',               label: 'Finance',       Ico: Icon.trend },
+      { id: 'finance',     href: '/settings/finance',      label: 'Finance',       Ico: Icon.trend },
     ],
   },
   {
