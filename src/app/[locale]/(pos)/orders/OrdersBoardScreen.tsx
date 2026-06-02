@@ -282,7 +282,10 @@ function OrderCard({
       onDragStart={onDragStart}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button')) return;
-        onOpen();
+        /* Design app.js:548 — clicking a TAGGING card's background opens
+           the Tagging modal; every other status opens the Order Detail. */
+        if (o.status === 'TAGGING') onOpenTagging();
+        else onOpen();
       }}
     >
       <div className="oc-top">
