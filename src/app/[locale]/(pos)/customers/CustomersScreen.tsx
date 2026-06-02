@@ -28,12 +28,12 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
           <h2>{t('directoryTitle')}</h2>
           <span className="sub">{t('directorySub', { count: list.length })}</span>
         </div>
-        {/* Design app.js:664 — only the "+ New Customer" button lives in
-            page-head. No page-level search (topbar global search handles
-            it), no KPI strip, no segment chips. */}
-        <button className="btn btn-pri" onClick={() => setAdding(true)}>
-          <Icon.plus size={16} /> {t('newCustomer')}
-        </button>
+        {/* Design app.js:664 — the button sits inside .actions div. */}
+        <div className="actions">
+          <button className="btn btn-pri" onClick={() => setAdding(true)}>
+            <Icon.plus size={16} /> {t('newCustomer')}
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -43,8 +43,8 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
               <th>{t('table.customer')}</th>
               <th>{t('table.phone')}</th>
               <th>{t('table.area')}</th>
-              <th className="num">{t('table.orders')}</th>
-              <th className="num">{t('table.lifetime')}</th>
+              <th>{t('table.orders')}</th>
+              <th>{t('table.lifetime')}</th>
               <th>{t('table.tags')}</th>
               <th></th>
             </tr>
@@ -52,28 +52,32 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
           <tbody>
             {list.map((c) => (
               <tr key={c.id}>
-                {/* Design app.js:671 — name cell is just .t-name with the
-                    full name. No avatar circle, no external-code subtitle. */}
-                <td><b className="t-name">{c.fullName}</b></td>
+                {/* Design app.js:671 — class lives on the <td>, not on an inner <b>. */}
+                <td className="t-name">{c.fullName}</td>
                 <td className="mono" style={{ fontSize: 12 }}>{c.phone}</td>
                 <td>{c.area ?? <span className="muted">—</span>}</td>
-                <td className="num">{c.totalOrders}</td>
-                <td className="num t-amt">{AED(c.totalSpend)}</td>
+                <td>{c.totalOrders}</td>
+                <td className="t-amt">{AED(c.totalSpend)}</td>
                 <td>
-                  {c.isSubscriber && <span className="pill paid" style={{ marginRight: 4 }}>{t('segments.subscribers')}</span>}
-                  {c.tags?.map((tg) => (
-                    <span key={tg.tag.id} className={`pill ${tg.tag.name.toLowerCase() === 'vip' ? 'paid' : 'muted'}`} style={{ marginRight: 4 }}>
-                      {tg.tag.name}
-                    </span>
-                  ))}
+                  {(c.tags && c.tags.length > 0)
+                    ? c.tags.map((tg) => (
+                        <span
+                          key={tg.tag.id}
+                          className={`pill ${tg.tag.name.toLowerCase() === 'vip' ? 'paid' : 'muted'}`}
+                          style={{ marginRight: 4 }}
+                        >
+                          {tg.tag.name}
+                        </span>
+                      ))
+                    : <span className="muted">—</span>}
                 </td>
-                <td className="num">
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {/* Design app.js:677 — buttons are "Edit" and "New Order".
-                        Mine kept "View" + "New Order" — switching to Edit. */}
+                <td>
+                  {/* Design app.js:677 — wrapper is <div class="r"> with both
+                      buttons as .t-btn.ghost. */}
+                  <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
                     <button className="t-btn ghost" onClick={() => setOpen(c)}>{tCommon('edit')}</button>
                     <button
-                      className="t-btn"
+                      className="t-btn ghost"
                       onClick={() => {
                         document.cookie = `attach_customer=${c.id}; Path=/; SameSite=Lax`;
                         router.push(`/${locale}/order`);
