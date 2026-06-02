@@ -1,5 +1,6 @@
 import { apiServer } from '@/lib/api-server';
-import RacksScreen, { type RackRow, type StoreOption } from './RacksScreen';
+import RacksScreen, { type RackRow } from './RacksScreen';
+import type { StoreOption } from '@/components/StoreSyncControls';
 
 export const dynamic = 'force-dynamic';
 
