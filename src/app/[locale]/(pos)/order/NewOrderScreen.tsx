@@ -299,26 +299,31 @@ export default function NewOrderScreen({
         </div>
 
         <div className="item-grid">
+          {/* Design app.js:373-385 — unavailable = <div class="item-card unavail">
+              (no <button>); available = <button class="item-card"> with the
+              badge FIRST, then .ic-ico (wrapped div), then .ic-name, then
+              .ic-price (<b>X.XX</b><span>AED</span>). */}
           {visibleItems.map((item) => {
             const price = tier ? item.prices[tier.externalKey] : undefined;
             const unavail = price == null;
             const qtyInCart = cart.filter((l) => l.itemId === item.id && (tier ? l.tierId === tier.id : true)).reduce((s, l) => s + l.qty, 0);
-            return (
-              <button key={item.id} className={`item-card${unavail ? ' unavail' : ''}`} disabled={unavail} onClick={() => addToCart(item)}>
-                <GarmentIcon name={item.name} size={28} className="ic-ico" />
-                <div className="ic-name">{item.name}</div>
-                <div className="ic-price">
-                  {unavail ? (
-                    /* Design app.js:387 — unavailable shows literal label, not "—". */
-                    <span className="np">{t('notInTier')}</span>
-                  ) : (
-                    <>
-                      <b>{Number(price).toFixed(price! % 1 ? 2 : 0)}</b>
-                      <span>{currency}</span>
-                    </>
-                  )}
+            if (unavail) {
+              return (
+                <div key={item.id} className="item-card unavail">
+                  <div className="ic-ico"><GarmentIcon name={item.name} size={28} /></div>
+                  <div className="ic-name">{item.name}</div>
+                  <div className="ic-price"><span>{t('notInTier')}</span></div>
                 </div>
-                {qtyInCart > 0 ? <span className="ic-qty">{qtyInCart}</span> : <span className="ic-add"><Icon.plus size={14} /></span>}
+              );
+            }
+            return (
+              <button key={item.id} className="item-card" onClick={() => addToCart(item)}>
+                {qtyInCart > 0
+                  ? <span className="ic-qty">{qtyInCart}</span>
+                  : <span className="ic-add"><Icon.plus size={15} /></span>}
+                <div className="ic-ico"><GarmentIcon name={item.name} size={28} /></div>
+                <div className="ic-name">{item.name}</div>
+                <div className="ic-price"><b>{Number(price).toFixed(2)}</b><span>{currency}</span></div>
               </button>
             );
           })}
@@ -328,21 +333,26 @@ export default function NewOrderScreen({
       {/* CART */}
       <aside className="cart">
         <div className="cart-head">
-          {/* Design app.js:429-434 — .row1 has TWO direct children (.onum + .otype),
-              and .otype-toggle is a SIBLING of .row1, not nested inside. */}
+          {/* Design app.js:429-434 — .row1 contains a <div> (no class) holding
+              .onum + .otype, and a .otype-toggle as sibling. .otype is a
+              <span>. */}
           <div className="row1">
-            <div className="onum">
-              {isEditing ? `#${editing!.number}` : `#${(bootstrap.business as any).nextOrderNumber ?? ''}`}
+            <div>
+              <div className="onum">
+                {isEditing ? `#${editing!.number}` : `#${(bootstrap.business as any).nextOrderNumber ?? ''}`}
+              </div>
+              <span className="otype">
+                {isEditing
+                  ? t('detailingOrder')
+                  : cart.length === 1
+                    ? `1 ${tCommon('item').toLowerCase()}`
+                    : `${cart.length} ${tCommon('items').toLowerCase()}`}
+              </span>
             </div>
-            <div className="otype">
-              {cart.length === 1
-                ? `1 ${tCommon('item').toLowerCase()}`
-                : `${cart.length} ${tCommon('items').toLowerCase()}`}
+            <div className="otype-toggle">
+              <button className={orderType === 'WALK_IN' ? 'on' : ''} onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
+              <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
             </div>
-          </div>
-          <div className="otype-toggle">
-            <button className={orderType === 'WALK_IN' ? 'on' : ''} onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
-            <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
           </div>
 
           <button className={`exp-toggle${expressOn ? ' on' : ''}`} onClick={() => setExpressOn((v) => !v)}>
@@ -350,41 +360,49 @@ export default function NewOrderScreen({
             <span className={`switch${expressOn ? ' on' : ''}`} />
           </button>
 
+          {/* Design app.js:436-440 — .cust-attach has <span class="av/ct/chev">
+              not <div>. .av shows first letter of name when customer, else
+              users icon. .ct contains <b>+span. */}
           <button className="cust-attach" onClick={() => setCustPicker(true)}>
-            <div className="av">{customer ? initials(customer.fullName) : '+'}</div>
-            <div className="ct">
-              {/* Design app.js:438-439 — "Attach customer" / "Walk-in guest" copy. */}
+            <span className="av">{customer ? customer.fullName[0] : <Icon.users size={18} />}</span>
+            <span className="ct">
               <b>{customer ? customer.fullName : t('attachCustomer')}</b>
               <span>{customer ? customer.phone : t('walkInGuest')}</span>
-            </div>
-            <Icon.chevd size={14} className="chev" />
+            </span>
+            <span className="chev"><Icon.chevd size={16} /></span>
           </button>
         </div>
 
         <div className="cart-lines">
           {cart.length === 0 ? (
             <div className="cart-empty">
-              {/* Design app.js:425 — bag icon at 46px, not 42. */}
               <Icon.bag size={46} />
-              <div className="serif">{t('emptyCart')}</div>
+              {/* Design app.js:425 — text "Empty order" + p with the
+                  "Pick a service tier, then tap items to add them." line. */}
+              <span className="serif">{t('emptyCart')}</span>
               <p>{t('emptyCartHint')}</p>
             </div>
           ) : (
-            cart.map((l) => (
-              <div key={l.key} className="cline">
-                <div className="ci">
-                  <div className="nm">{l.name}</div>
-                  <div className="tr">{l.tierName} · {AED(l.unitPrice)}</div>
+            cart.map((l) => {
+              /* Design app.js:421 — .tr shows "{tier.short} · {unit} ea" with
+                 unit two-decimals and NO currency. .lp shows just total
+                 two-decimals, no currency. */
+              const tierShort = tiers.find((tt) => tt.id === l.tierId)?.short ?? l.tierName;
+              return (
+                <div key={l.key} className="cline">
+                  <div className="ci">
+                    <div className="nm">{l.name}</div>
+                    <div className="tr">{tierShort} · {l.unitPrice.toFixed(2)} ea</div>
+                  </div>
+                  <div className="qty">
+                    <button onClick={() => setQty(l.key, l.qty - 1)}>−</button>
+                    <span className="n">{l.qty}</span>
+                    <button onClick={() => setQty(l.key, l.qty + 1)}>+</button>
+                  </div>
+                  <div className="lp">{(l.unitPrice * l.qty).toFixed(2)}</div>
                 </div>
-                <div className="qty">
-                  <button onClick={() => setQty(l.key, l.qty - 1)}>−</button>
-                  {/* Design app.js:422 — .qty .n is a <span>, not a <div>. */}
-                  <span className="n">{l.qty}</span>
-                  <button onClick={() => setQty(l.key, l.qty + 1)}>+</button>
-                </div>
-                <div className="lp">{AED(l.unitPrice * l.qty)}</div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -406,20 +424,23 @@ export default function NewOrderScreen({
             )}
           </div>
 
+          {/* Design app.js:452-458 — .tr is plain text + <b>, no <span>
+              wrapper around the label. .grand has .gl + .gv (cur + amount). */}
           <div className="totals">
-            <div className="tr"><span>{tCommon('subtotal')}</span><b>{AED(subtotal)}</b></div>
+            <div className="tr">{tCommon('subtotal')} <b>{AED(subtotal)}</b></div>
             {discountAmount > 0 && (
-              <div className="tr"><span>{tCommon('discount')} ({appliedPromo?.code})</span><b style={{ color: 'var(--ok)' }}>−{AED(discountAmount)}</b></div>
+              <div className="tr">{tCommon('discount')} ({appliedPromo?.code}) <b style={{ color: 'var(--ok)' }}>−{AED(discountAmount)}</b></div>
             )}
             {expressAmount > 0 && (
-              <div className="tr"><span>{t('expressShort', { pct: expressPct })}</span><b>{AED(expressAmount)}</b></div>
+              <div className="tr">{t('expressShort', { pct: expressPct })} <b>{AED(expressAmount)}</b></div>
             )}
             {taxEnabled && (
-              <div className="tr"><span>{bootstrap.business.tax?.label ?? tCommon('vat')} {taxRate}%</span><b>{AED(tax)}</b></div>
+              <div className="tr">{bootstrap.business.tax?.label ?? tCommon('vat')} ({taxRate}%) <b>{AED(tax)}</b></div>
             )}
             <div className="grand">
               <span className="gl">{tCommon('total')}</span>
-              <span className="gv"><span className="cur">{currency} </span>{total.toFixed(2)}</span>
+              {/* Design app.js:457 — <span class="cur">AED</span> SPACE outside, then total. */}
+              <span className="gv"><span className="cur">{currency}</span> {total.toFixed(2)}</span>
             </div>
           </div>
 
