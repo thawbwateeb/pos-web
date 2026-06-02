@@ -77,44 +77,58 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
     toast.show('Role removed');
   }
 
+  /* Design ops.js:217-248 — renderRoles:
+     - .fin wrapper, NO outer h2/ssub.
+     - .card.flush Users card with .ch h3 'Users' + csub
+       'Create staff accounts, assign a role, and choose which stores each
+       can access' + .btn.btn-pri.btn-sm '+ Add user' id='usr-add'.
+       Row Status uses .pill.ok|mut 'Active'|'Disabled'. Actions: Edit
+       (data-uedit), Enable/Disable (data-utog), Delete (data-udel).
+     - .card.flush Roles & permissions with .ch h3 + csub
+       'Create roles and choose what each can do. Manager always has full
+       access.' + .btn.btn-pri.btn-sm '+ Add role' id='role-add'.
+       Save button .btn.btn-pri id='perm-save' 'Save permissions' in a
+       footer with padding 14px 20px. */
   return (
-    <div className="set-sec" style={{ maxWidth: 1100 }}>
-      <h2>Users & Roles</h2>
-      <p className="ssub">Create staff accounts, assign a role, and choose which stores each can access.</p>
-
-      <div className="set-card">
+    <div className="fin">
+      <div className="card flush" style={{ marginBottom: 16 }}>
         <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div><h3 style={{ margin: 0 }}>Users</h3></div>
-          <button className="btn btn-pri btn-sm" onClick={() => setAdding(true)}>+ Add user</button>
+          <div>
+            <h3 style={{ margin: 0 }}>Users</h3>
+            <div className="csub" style={{ margin: '2px 0 0' }}>
+              Create staff accounts, assign a role, and choose which stores each can access
+            </div>
+          </div>
+          <button className="btn btn-pri btn-sm" id="usr-add" onClick={() => setAdding(true)}>+ Add user</button>
         </div>
         <table className="tbl">
           <thead>
             <tr><th>Name</th><th>Email</th><th>Role</th><th>Stores</th><th>Status</th><th className="num">Actions</th></tr>
           </thead>
           <tbody>
-            {users.map((u) => {
+            {users.map((u, i) => {
               const granted = u.userStores.map((us) => us.storeId);
               const all = stores.length === granted.length;
               return (
                 <tr key={u.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div
-                        style={{
-                          width: 32, height: 32, borderRadius: '50%',
-                          background: 'var(--accent-soft)', color: 'var(--accent)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontWeight: 600, fontSize: 12, flexShrink: 0,
-                        }}
+                      <span
+                        className="odl-av"
+                        style={{ width: 32, height: 32, fontSize: 12 }}
                       >
                         {initials(u.fullName)}
-                      </div>
+                      </span>
                       <b>{u.fullName}</b>
                     </div>
                   </td>
                   <td className="muted">{u.email}</td>
                   <td>
-                    <select className="input" style={{ width: 130, padding: '6px 10px' }} value={u.role.id}
+                    <select
+                      className="inp"
+                      style={{ width: 130, padding: '6px 10px' }}
+                      data-urole={i}
+                      value={u.role.id}
                       onChange={async (e) => {
                         await api(`/users/${u.id}`, { method: 'PATCH', body: { roleId: e.target.value } });
                         reloadAll();
@@ -131,19 +145,20 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
                     </div>
                   </td>
                   <td>
-                    <span
-                      className={`switch${u.active ? ' on' : ''}`}
-                      role="button"
-                      onClick={async () => { await api(`/users/${u.id}`, { method: 'PATCH', body: { active: !u.active } }); reloadAll(); }}
-                    />
+                    <span className={`pill ${u.active ? 'ok' : 'mut'}`}>
+                      {u.active ? 'Active' : 'Disabled'}
+                    </span>
                   </td>
                   <td className="num">
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEditing(u)}>Edit</button>
+                    <button className="btn btn-ghost btn-sm" data-uedit={i} onClick={() => setEditing(u)}>Edit</button>{' '}
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--danger)' }}
-                      onClick={() => setDeletingUser(u)}
+                      data-utog={i}
+                      onClick={async () => { await api(`/users/${u.id}`, { method: 'PATCH', body: { active: !u.active } }); reloadAll(); }}
                     >
+                      {u.active ? 'Disable' : 'Enable'}
+                    </button>{' '}
+                    <button className="btn btn-ghost btn-sm" data-udel={i} onClick={() => setDeletingUser(u)}>
                       Delete
                     </button>
                   </td>
@@ -154,13 +169,15 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
         </table>
       </div>
 
-      <div className="set-card fin">
+      <div className="card flush">
         <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ margin: 0 }}>Roles & permissions</h3>
-            <div className="csub" style={{ marginTop: 2 }}>Create roles and choose what each can do. Manager always has full access.</div>
+            <h3 style={{ margin: 0 }}>Roles &amp; permissions</h3>
+            <div className="csub" style={{ margin: '2px 0 0' }}>
+              Create roles and choose what each can do. Manager always has full access.
+            </div>
           </div>
-          <button className="btn btn-pri btn-sm" onClick={() => setAddingRole(true)}>+ Add role</button>
+          <button className="btn btn-pri btn-sm" id="role-add" onClick={() => setAddingRole(true)}>+ Add role</button>
         </div>
         <table className="tbl perm-tbl">
           <thead>
@@ -171,7 +188,7 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
                   <span className="perm-col">
                     {r.name}
                     {!r.isSystemManager && (
-                      <button className="perm-del" onClick={() => setDeletingRole(r)} title="Delete role">×</button>
+                      <button className="perm-del" data-roledel={r.name} onClick={() => setDeletingRole(r)} title="Delete role">×</button>
                     )}
                   </span>
                 </th>
@@ -188,16 +205,17 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
                     <td key={r.id} className="num">
                       <button
                         className={`perm${allowed ? ' on' : ''}`}
+                        data-perm={`${r.name}.${a.key.toLowerCase()}`}
                         disabled={r.isSystemManager}
                         onClick={() => togglePerm(r, a.key, !allowed)}
                         aria-label={allowed ? 'Allowed' : 'Denied'}
                       >
                         {allowed ? (
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M4 12l5 5L20 6" />
                           </svg>
                         ) : (
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 6l12 12M18 6L6 18" />
                           </svg>
                         )}
@@ -209,6 +227,11 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
             ))}
           </tbody>
         </table>
+        <div style={{ padding: '14px 20px' }}>
+          <button className="btn btn-pri" id="perm-save" onClick={() => toast.show('Permissions saved')}>
+            Save permissions
+          </button>
+        </div>
       </div>
 
       {(adding || editing) && (
