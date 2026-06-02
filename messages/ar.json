@@ -625,22 +625,30 @@
       "delete": "Delete"
     },
     "kpis": {
-      "cashInBank": "Cash in bank",
-      "cashInBankSub": "{capital} contributed so far",
-      "capitalInvested": "Capital invested",
+      "cashInBank": "Cash in bank (latest)",
+      "cashInBankSub": "Capital {capital} + cumulative profit",
+      "capitalInvested": "Total capital invested",
       "contributionsCount": "{count} contributions",
-      "planCashEoy": "Plan cash EOY",
-      "averageScenario": "average scenario",
-      "monthlyBurn": "Monthly burn",
-      "monthlyBurnSub": "average plan run-rate"
+      "planCashEoy": "Plan cash, end of year",
+      "averageScenario": "Average scenario",
+      "monthlyBurn": "Monthly burn (fixed)",
+      "monthlyBurnSub": "May fixed expenses"
     },
     "dashboard": {
-      "cumulativeBank": "Cumulative bank balance",
-      "cumulativeBankSub": "plan vs actual",
-      "planAvg": "Plan (average)",
+      "cumulativeBank": "Cumulative company bank account",
+      "cumulativeBankSub": "Fixed view — plan vs actual. Not affected by the scenario selector.",
+      "planAvg": "Plan (avg)",
       "actual": "Actual",
-      "scenarioProjections": "Year-end projections",
-      "scenarioProjectionsSub": "income vs expenses by scenario"
+      "scenarioProjections": "Scenario projections",
+      "scenarioProjectionsSub": "Only the two charts below react to the selected scenario.",
+      "incomeVsExpense": "Monthly income vs expenses",
+      "incomeVsExpenseSub": "{scenario} scenario",
+      "income": "Income",
+      "expenses": "Expenses",
+      "ordersCustomers": "Orders & customers vs plan",
+      "ordersCustomersSub": "{scenario} scenario",
+      "orders": "Orders",
+      "customers": "Customers"
     },
     "actuals": {
       "realIncome": "Real income",

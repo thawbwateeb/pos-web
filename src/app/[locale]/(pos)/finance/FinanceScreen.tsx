@@ -870,65 +870,69 @@ function LineChart({
   labels: string[];
   series: { name: string; color: string; data: (number | null)[] }[];
 }) {
-  const W = 760,
-    H = 230,
-    pad = { l: 54, r: 12, t: 14, b: 26 };
-  const all = series.flatMap((s) => s.data.filter((v): v is number => v != null));
-  const mn = Math.min(0, ...all);
-  const mx = Math.max(...all, 1);
-  const rng = mx - mn || 1;
-  const x = (i: number) => pad.l + ((W - pad.l - pad.r) * i) / Math.max(1, labels.length - 1);
-  const y = (v: number) => pad.t + (H - pad.t - pad.b) * (1 - (v - mn) / rng);
-  const showZero = mn < 0;
+  // Design finance.js:76 — W=760 H=230 P={l:28,r:26,t:22,b:40}.
+  const W = 760, H = 230;
+  const P = { l: 28, r: 26, t: 22, b: 40 };
+  const allVals = series.flatMap((s) => s.data.filter((v): v is number => v != null));
+  const lo = Math.min(...allVals, 0);
+  const hi = Math.max(...allVals);
+  const rng = (hi - lo) || 1;
+  const xs = labels.length;
+  const xAt = (i: number) => P.l + i * ((W - P.l - P.r) / Math.max(1, xs - 1));
+  const yAt = (v: number) => P.t + (1 - (v - lo) / rng) * (H - P.t - P.b);
+  const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
   return (
     <>
-      <svg className="chart" viewBox={`0 0 ${W} ${H}`}>
+      <svg className="chart" viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+        {/* Gridlines + value labels (design uses var(--border) + N(v) + fs 10 + muted). */}
         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
-          const v = mn + rng * p;
+          const y = P.t + p * (H - P.t - P.b);
+          const v = lo + (1 - p) * (hi - lo);
           return (
             <g key={i}>
-              <line x1={pad.l} y1={y(v)} x2={W - pad.r} y2={y(v)} stroke="var(--border-2)" />
-              <text x={pad.l - 8} y={y(v) + 3} textAnchor="end" fontSize="9" fill="var(--faint)">
-                {Math.round(v / 1000)}k
+              <line x1={P.l} x2={W - P.r} y1={y} y2={y} stroke="var(--border)" />
+              <text x={P.l - 4} y={y + 4} textAnchor="end" fontSize="10" fill="var(--muted)">
+                {fmt(v)}
               </text>
             </g>
           );
         })}
-        {showZero && (
-          <line x1={pad.l} y1={y(0)} x2={W - pad.r} y2={y(0)} stroke="var(--border)" strokeWidth="1.2" />
-        )}
-        {labels.map((m, i) => (
-          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="var(--faint)">
-            {m}
-          </text>
-        ))}
+        {/* Series — paths skip nulls; dots at each point. */}
         {series.map((s, si) => {
-          let d = '';
-          let started = false;
-          const points: { x: number; y: number }[] = [];
+          const segs: string[][] = [];
+          let cur: string[] = [];
           s.data.forEach((v, i) => {
-            if (v == null) return;
-            const px = x(i),
-              py = y(v);
-            d += `${started ? 'L' : 'M'} ${px} ${py} `;
-            started = true;
-            points.push({ x: px, y: py });
+            if (v == null) {
+              if (cur.length) { segs.push(cur); cur = []; }
+            } else {
+              cur.push(`${cur.length === 0 ? 'M' : 'L'} ${xAt(i)} ${yAt(v)}`);
+            }
           });
+          if (cur.length) segs.push(cur);
+          const d = segs.map((seg) => seg.join(' ')).join(' ');
           return (
             <g key={si}>
-              <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" />
-              {points.map((p, i) => (
-                <circle key={i} cx={p.x} cy={p.y} r="2.6" fill={s.color} />
+              <path d={d} stroke={s.color} strokeWidth={2} fill="none" />
+              {s.data.map((v, i) => v == null ? null : (
+                <circle key={i} cx={xAt(i)} cy={yAt(v)} r="2.6" fill={s.color} />
               ))}
             </g>
           );
         })}
+        {/* X labels (design font-size:10, fill:muted, y=H-12). */}
+        {labels.map((m, i) => (
+          <text key={i} x={xAt(i)} y={H - 12} textAnchor="middle" fontSize="10" fill="var(--muted)">
+            {m}
+          </text>
+        ))}
       </svg>
-      <div className="legend">
+      {/* Legend: inline-flex spans with a 12×2 line swatch, 6px gap, font-size 12 muted. */}
+      <div style={{ marginTop: 8 }}>
         {series.map((s) => (
-          <span key={s.name}>
-            <i style={{ background: s.color }} /> {s.name}
+          <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)', marginRight: 14 }}>
+            <span style={{ width: 12, height: 2, background: s.color, borderRadius: 1 }} />
+            {s.name}
           </span>
         ))}
       </div>
