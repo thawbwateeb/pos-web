@@ -10,16 +10,49 @@ export interface ClientApiOptions {
 }
 
 /**
- * Browser-side API client. Sends the access_token cookie automatically
- * via credentials:'include'. Throws on non-2xx with the parsed body in
- * `err.detail` so callers can surface validation messages.
+ * If multiple in-flight requests race a 401, we don't want each one to
+ * POST /auth/refresh in parallel — they'd burn refresh-token rotations
+ * against each other. This promise is set by the first 401 handler and
+ * awaited by all subsequent ones until refresh resolves.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const r = await fetch(apiBase() + '/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      return r.ok;
+    } catch {
+      return false;
+    } finally {
+      // Clear in next tick so concurrent callers still get this run's result.
+      setTimeout(() => { refreshInFlight = null; }, 0);
+    }
+  })();
+  return refreshInFlight;
+}
+
+/**
+ * Browser-side API client. Sends auth cookies automatically via
+ * `credentials:'include'`. If a request comes back 401, attempts a single
+ * /auth/refresh call (de-duplicated across concurrent callers) and retries
+ * the original request once. Throws on non-2xx with the parsed body in
+ * `err.detail`.
+ *
+ * Refresh path: the API sets `refresh_token` at path '/' (was '/auth' —
+ * caused a bug where the Next.js middleware never saw the cookie and
+ * bounced users to /login every 15 minutes when the access token expired).
  */
 export async function api<T>(path: string, opts: ClientApiOptions = {}): Promise<T> {
   const cookieStoreId = typeof document !== 'undefined'
     ? document.cookie.split('; ').find((c) => c.startsWith('active_store_id='))?.split('=')[1]
     : undefined;
   const storeId = opts.storeId ?? cookieStoreId;
-  const res = await fetch(apiBase() + path, {
+  const init: RequestInit = {
     method: opts.method ?? 'GET',
     credentials: 'include',
     headers: {
@@ -28,7 +61,19 @@ export async function api<T>(path: string, opts: ClientApiOptions = {}): Promise
     },
     body: opts.body != null ? JSON.stringify(opts.body) : undefined,
     signal: opts.signal,
-  });
+  };
+  let res = await fetch(apiBase() + path, init);
+
+  // Try a transparent refresh + retry on 401 so a stale access token
+  // doesn't surface as a logout to the user. Skip the retry for the
+  // /auth/* endpoints themselves to avoid infinite loops.
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    const ok = await tryRefresh();
+    if (ok) {
+      res = await fetch(apiBase() + path, init);
+    }
+  }
+
   if (!res.ok) {
     let detail: any;
     try { detail = await res.json(); } catch { detail = await res.text(); }

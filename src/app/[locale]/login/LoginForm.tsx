@@ -14,7 +14,7 @@ export default function LoginForm({ next }: { next: string }) {
   const locale = params.locale ?? 'en';
   const t = useTranslations('Login');
 
-  const [email, setEmail] = useState('staff@thawbwateeb.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessSlug, setBusinessSlug] = useState<string | undefined>();
   const [businessChoices, setBusinessChoices] = useState<BusinessOption[]>([]);
