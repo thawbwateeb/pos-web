@@ -710,17 +710,27 @@ function OrderDetailModal({
   );
 }
 
-/* Design app.js:1050-1101 — openTagging modal.
-   Per-garment tagging state is local-only (no API): each order line
-   becomes a row, identified by a generated tag id `C\${number}-\${idx}`.
-   Each row is in one of three states:
-   - linked: ✓ icon, .tgr.done class, Undo button
-   - fresh:  printer icon, .tgr.new class, Print & attach button
-   - has:    search icon, .tgr.has class, Scan barcode button
-   The scanbar accepts barcode input — pressing Enter links a matching
-   tag. When all garments are linked, the footer CTA flips to
-   'Done · Move to Cleaning →' which advances the order's status. */
-interface TagRow { idx: number; id: string; name: string; linked: boolean; fresh: boolean }
+/* Tagging modal — backed by the real GarmentTag API.
+   Slots = one row per (orderItem × qty unit). Each slot is either:
+   - tagged: GarmentTag row exists. Show "Linked · {tagCode}" + Unlink.
+   - untagged: no row yet. Show "Print & attach" button. Scanning a code
+     in the top scanbar binds it to the next untagged slot.
+   We deliberately don't try to predict whether a garment is fresh or
+   already has a tag — the staff knows, and they either click Print or
+   scan. The server records what actually happened (PRINTED / SCANNED). */
+interface Slot {
+  orderItemId: string;
+  qtyIndex: number;
+  name: string;
+}
+interface ApiGarmentTag {
+  id: string;
+  orderId: string;
+  orderItemId: string;
+  qtyIndex: number;
+  tagCode: string;
+  source: 'PRINTED' | 'SCANNED';
+}
 
 function TaggingModal({
   orderId,
@@ -734,59 +744,107 @@ function TaggingModal({
   onOpenDetail: () => void;
 }) {
   const [order, setOrder] = useState<any | null>(null);
-  const [tags, setTags] = useState<TagRow[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [tagsByKey, setTagsByKey] = useState<Record<string, ApiGarmentTag>>({});
   const [scan, setScan] = useState('');
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const toast = useToast();
 
+  const slotKey = (s: { orderItemId: string; qtyIndex: number }) => `${s.orderItemId}__${s.qtyIndex}`;
+
+  // Load order + existing tag rows in parallel. Slots come from order.items
+  // (1 per qty unit); the tag map keys off (orderItemId, qtyIndex).
   useEffect(() => {
-    api<any>(`/orders/${orderId}`).then((o) => {
+    let alive = true;
+    Promise.all([
+      api<any>(`/orders/${orderId}`),
+      api<ApiGarmentTag[]>(`/orders/${orderId}/tags`),
+    ]).then(([o, tagRows]) => {
+      if (!alive) return;
       setOrder(o);
-      // One tag row per line × qty (a garment per unit). Half are flagged
-      // 'fresh' (new, needs print) as a stable rotation of indices —
-      // matches design's idx%2 pattern from ensureTags.
-      const rows: TagRow[] = [];
-      let cursor = 0;
-      for (const l of (o.items ?? [])) {
+      const flat: Slot[] = [];
+      // Sort items by id so the slot ordering matches the server's PRINTED
+      // tag-code minting (which sorts the same way).
+      const sortedItems = [...(o.items ?? [])].sort((a: any, b: any) => (a.id < b.id ? -1 : 1));
+      for (const l of sortedItems) {
         const qty = Math.max(1, Number(l.qty) || 1);
         for (let i = 0; i < qty; i++) {
-          rows.push({
-            idx: cursor,
-            id: `C${o.number}-${String(cursor + 1).padStart(2, '0')}`,
+          flat.push({
+            orderItemId: l.id,
+            qtyIndex: i,
             name: l.nameSnapshot ?? l.name ?? 'Garment',
-            linked: false,
-            fresh: cursor % 2 === 0,
           });
-          cursor++;
         }
       }
-      setTags(rows);
-    });
+      setSlots(flat);
+      const map: Record<string, ApiGarmentTag> = {};
+      for (const tg of tagRows) map[slotKey(tg)] = tg;
+      setTagsByKey(map);
+    }).catch(() => { if (alive) toast.show(t('failedToUpdate')); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-  const linked = tags.filter((tg) => tg.linked).length;
-  const total = tags.length;
-  const allDone = total > 0 && linked === total;
+  const linkedCount = Object.keys(tagsByKey).length;
+  const total = slots.length;
+  const allDone = total > 0 && linkedCount === total;
 
-  function link(idx: number) {
-    setTags((cur) => cur.map((tg) => tg.idx === idx ? { ...tg, linked: true, fresh: false } : tg));
-  }
-  function unlink(idx: number) {
-    setTags((cur) => cur.map((tg) => tg.idx === idx ? { ...tg, linked: false } : tg));
-  }
-  function onScanEnter(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key !== 'Enter') return;
-    const v = scan.trim().toUpperCase();
-    setScan('');
-    if (!v) return;
-    const match = tags.find((tg) => tg.id.toUpperCase() === v && !tg.linked);
-    if (match) {
-      link(match.idx);
-      return;
+  async function printAndAttach(slot: Slot) {
+    const key = slotKey(slot);
+    setBusyKey(key);
+    try {
+      const row = await api<ApiGarmentTag>(`/orders/${orderId}/tags`, {
+        method: 'POST',
+        body: { orderItemId: slot.orderItemId, qtyIndex: slot.qtyIndex, source: 'PRINTED' },
+      });
+      setTagsByKey((m) => ({ ...m, [key]: row }));
+      toast.show(t('tagPrinted'));
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('failedToUpdate'));
+    } finally {
+      setBusyKey(null);
     }
-    const dup = tags.find((tg) => tg.id.toUpperCase() === v && tg.linked);
-    toast.show(dup ? t('tagAlreadyLinked', { id: v }) : t('tagNoMatch', { id: v }));
+  }
+
+  async function unlink(row: ApiGarmentTag) {
+    const key = slotKey(row);
+    setBusyKey(key);
+    try {
+      await api(`/orders/${orderId}/tags/${row.id}`, { method: 'DELETE' });
+      setTagsByKey((m) => {
+        const { [key]: _drop, ...rest } = m;
+        return rest;
+      });
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('failedToUpdate'));
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  // Scan → bind the supplied code to the first untagged slot (top-to-bottom).
+  async function onScanEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return;
+    const code = scan.trim().toUpperCase();
+    setScan('');
+    if (!code) return;
+    const next = slots.find((s) => !tagsByKey[slotKey(s)]);
+    if (!next) { toast.show(t('tagAllLinkedAlready')); return; }
+    const key = slotKey(next);
+    setBusyKey(key);
+    try {
+      const row = await api<ApiGarmentTag>(`/orders/${orderId}/tags`, {
+        method: 'POST',
+        body: { orderItemId: next.orderItemId, qtyIndex: next.qtyIndex, source: 'SCANNED', tagCode: code },
+      });
+      setTagsByKey((m) => ({ ...m, [key]: row }));
+    } catch (err: any) {
+      toast.show(err?.detail?.message || t('failedToUpdate'));
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   if (!order) {
@@ -818,7 +876,7 @@ function TaggingModal({
               </div>
             </div>
             <div className={`tg-prog ${allDone ? 'done' : ''}`}>
-              <b>{linked}/{total}</b>
+              <b>{linkedCount}/{total}</b>
               <span>{t('tagged')}</span>
             </div>
           </div>
@@ -827,7 +885,7 @@ function TaggingModal({
             <span className="tg-scan-ic"><Icon.search size={16} /></span>
             <input
               id="tg-scan-in"
-              placeholder={t('scanPlaceholder', { sample: tags[0]?.id ?? 'C1042-01' })}
+              placeholder={t('scanPlaceholder', { sample: `${order.number}-01` })}
               autoComplete="off"
               value={scan}
               onChange={(e) => setScan(e.target.value)}
@@ -838,48 +896,38 @@ function TaggingModal({
           </div>
 
           <div className="tg-list">
-            {tags.map((tg) => {
-              const cls = tg.linked ? 'done' : tg.fresh ? 'new' : 'has';
+            {slots.map((s) => {
+              const key = slotKey(s);
+              const tag = tagsByKey[key];
+              const busy = busyKey === key;
               return (
-                <div className={`tgr ${cls}`} key={tg.idx} data-tgr={tg.idx}>
+                <div className={`tgr ${tag ? 'done' : 'new'}`} key={key}>
                   <div className="tgr-ic">
-                    {tg.linked ? '✓' : tg.fresh ? <Icon.print size={16} /> : <Icon.search size={16} />}
+                    {tag ? '✓' : <Icon.print size={16} />}
                   </div>
                   <div className="tgr-main">
-                    <div className="tgr-name">{tg.name}</div>
+                    <div className="tgr-name">{s.name}</div>
                     <div className="tgr-sub">
-                      {tg.linked
-                        ? t('tagLinked', { id: tg.id })
-                        : tg.fresh
-                          ? t('tagNew')
-                          : t('tagExisting', { id: tg.id })}
+                      {tag ? t('tagLinked', { id: tag.tagCode }) : t('tagAwaiting')}
                     </div>
                   </div>
-                  {tg.linked ? (
-                    <button className="tgr-act undo" data-unlink={tg.idx} onClick={() => unlink(tg.idx)}>
+                  {tag ? (
+                    <button className="tgr-act undo" onClick={() => unlink(tag)} disabled={busy}>
                       {t('tagUndo')}
-                    </button>
-                  ) : tg.fresh ? (
-                    <button
-                      className="tgr-act print"
-                      data-print={tg.idx}
-                      onClick={() => { toast.show(t('tagPrinted')); link(tg.idx); }}
-                    >
-                      {t('tagPrintAttach')}
                     </button>
                   ) : (
                     <button
-                      className="tgr-act scan"
-                      data-scan={tg.idx}
-                      onClick={() => link(tg.idx)}
+                      className={`tgr-act print${busy ? ' btn-loading' : ''}`}
+                      onClick={() => printAndAttach(s)}
+                      disabled={busy}
                     >
-                      {t('tagScan')}
+                      {t('tagPrintAttach')}
                     </button>
                   )}
                 </div>
               );
             })}
-            {tags.length === 0 && (
+            {slots.length === 0 && (
               <div className="muted" style={{ padding: '14px 0', fontSize: 13, textAlign: 'center' }}>
                 {t('tagNoGarments')}
               </div>
@@ -902,7 +950,7 @@ function TaggingModal({
             style={{ flex: 2 }}
             onClick={() => { if (allDone) onAdvance(); }}
           >
-            {allDone ? t('tagDoneAdvance') : t('tagAllRemaining', { count: total - linked })}
+            {allDone ? t('tagDoneAdvance') : t('tagAllRemaining', { count: total - linkedCount })}
           </button>
         </div>
       </div>
