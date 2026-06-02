@@ -318,9 +318,16 @@ function Dashboard({
           </div>
         </div>
         <div className="seg">
+          {/* Design finance.js:134 — button label is the raw lowercase scenario
+              key ('worst'/'average'/'dream'); active class is 'on \${s}'. */}
           {(['worst', 'average', 'dream'] as Scenario[]).map((s) => (
-            <button key={s} className={s === scenario ? `on ${s}` : ''} onClick={() => setScenario(s)}>
-              {t(`scenarios.${s}` as 'scenarios.worst')}
+            <button
+              key={s}
+              className={s === scenario ? `on ${s}` : ''}
+              data-sc={s}
+              onClick={() => setScenario(s)}
+            >
+              {s}
             </button>
           ))}
         </div>
