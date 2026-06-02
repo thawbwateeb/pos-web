@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
 import { AED, dueLabel } from '@/lib/format';
@@ -26,6 +26,9 @@ export default function OrdersBoardScreen({
   const [tagId, setTagId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<OrderStatus | null>(null);
   const [reloading, setReloading] = useState(false);
+  const router = useRouter();
+  const boardParams = useParams<{ locale: string }>();
+  const boardLocale = boardParams.locale ?? 'en';
 
   // Sync server-fetched `initial` into local state whenever the parent
   // server component re-runs (store switch via router.refresh, locale
@@ -95,23 +98,6 @@ export default function OrdersBoardScreen({
     return i > 0 ? (COLUMNS[i - 1].key as OrderStatus) : undefined;
   }
 
-  // Returns an error message string when the requested move violates a
-  // business rule (e.g. no items can't enter Tagging, untagged orders
-  // can't enter Cleaning). Returns null when the move is allowed.
-  // The TaggingModal bypasses this guard via doMove() — it is itself the
-  // tagging-complete gate.
-  function guardMove(o: Order, to: OrderStatus): string | null {
-    const itemCount = o._count?.items ?? 0;
-    if (to === 'TAGGING' && itemCount === 0) return t('cantTagWithoutItems');
-    // Reaching CLEANING from anywhere before TAGGING is complete is
-    // blocked. From TAGGING via the regular advance arrow is also blocked
-    // — the modal's "Done · Move to Cleaning" is the only allowed path.
-    if (to === 'CLEANING' && (o.status === 'RECEIVED' || o.status === 'TAGGING')) {
-      return t('mustTagAllItems');
-    }
-    return null;
-  }
-
   // Apply the move optimistically: shift the card to its new column
   // immediately, then PATCH the API. On failure, revert and toast. This
   // makes drag-and-drop and the advance/back buttons feel instant.
@@ -131,10 +117,33 @@ export default function OrdersBoardScreen({
     }
   }
 
+  // Move forward through the pipeline. Instead of blocking when an order
+  // isn't ready, redirect the user to the screen that lets them satisfy
+  // the precondition:
+  //   - to TAGGING with 0 items → open the order editor to pick items
+  //   - to CLEANING from RECEIVED/TAGGING → open the Tagging modal
+  // Once the user finishes that flow the status transition will run.
   async function moveTo(o: Order, to: OrderStatus | undefined) {
     if (!to || to === o.status) return;
-    const blocker = guardMove(o, to);
-    if (blocker) { toast.show(blocker); return; }
+
+    const itemCount = o._count?.items ?? 0;
+    if (to === 'TAGGING' && itemCount === 0) {
+      toast.show(t('cantTagWithoutItems'));
+      router.push(`/${boardLocale}/order?edit=${o.id}`);
+      return;
+    }
+    if (to === 'CLEANING' && (o.status === 'RECEIVED' || o.status === 'TAGGING')) {
+      toast.show(t('mustTagAllItems'));
+      // If the order is still RECEIVED, advance it to TAGGING first so the
+      // tagging modal can render against the correct status, then open
+      // the modal. (TaggingModal is the only legitimate path into CLEANING.)
+      if (o.status === 'RECEIVED') {
+        await doMove(o, 'TAGGING');
+      }
+      setTagId(o.id);
+      return;
+    }
+
     await doMove(o, to);
   }
 
