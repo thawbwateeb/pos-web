@@ -17,6 +17,9 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
   const [list, setList] = useState(initial);
   const [open, setOpen] = useState<Customer | null>(null);
   const [adding, setAdding] = useState(false);
+
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setList(initial); }, [initial]);
   const t = useTranslations('Customers');
   const tCommon = useTranslations('Common');
   const toast = useToast();

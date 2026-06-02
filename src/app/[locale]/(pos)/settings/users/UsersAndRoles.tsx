@@ -31,6 +31,10 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
   const toast = useToast();
 
+  // Re-sync from the server props on store switch / router.refresh.
+  useEffect(() => { setUsers(initialUsers); }, [initialUsers]);
+  useEffect(() => { setRoles(initialRoles); }, [initialRoles]);
+
   function reloadAll() {
     Promise.all([api<UserRow[]>('/users'), api<Role[]>('/roles')]).then(([u, r]) => { setUsers(u); setRoles(r); });
   }

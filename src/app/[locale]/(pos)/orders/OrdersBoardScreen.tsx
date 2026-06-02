@@ -25,6 +25,13 @@ export default function OrdersBoardScreen({
   const [openId, setOpenId] = useState<string | null>(null);
   const [tagId, setTagId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<OrderStatus | null>(null);
+  const [reloading, setReloading] = useState(false);
+
+  // Sync server-fetched `initial` into local state whenever the parent
+  // server component re-runs (store switch via router.refresh, locale
+  // change, etc.). Without this, `useState(initial)` keeps the very
+  // first snapshot and the board never reflects the new store.
+  useEffect(() => { setBoard(initial); }, [initial]);
   const t = useTranslations('OrdersBoard');
   const tStatus = useTranslations('OrderStatus');
   const tType = useTranslations('Order');
@@ -38,8 +45,13 @@ export default function OrdersBoardScreen({
   );
 
   async function refresh() {
-    const b = await api<OrdersBoard>('/orders/board');
-    setBoard(b);
+    setReloading(true);
+    try {
+      const b = await api<OrdersBoard>('/orders/board');
+      setBoard(b);
+    } finally {
+      setReloading(false);
+    }
   }
 
   useEffect(() => {
@@ -83,15 +95,47 @@ export default function OrdersBoardScreen({
     return i > 0 ? (COLUMNS[i - 1].key as OrderStatus) : undefined;
   }
 
-  async function moveTo(o: Order, to: OrderStatus | undefined) {
-    if (!to || to === o.status) return;
+  // Returns an error message string when the requested move violates a
+  // business rule (e.g. no items can't enter Tagging, untagged orders
+  // can't enter Cleaning). Returns null when the move is allowed.
+  // The TaggingModal bypasses this guard via doMove() — it is itself the
+  // tagging-complete gate.
+  function guardMove(o: Order, to: OrderStatus): string | null {
+    const itemCount = o._count?.items ?? 0;
+    if (to === 'TAGGING' && itemCount === 0) return t('cantTagWithoutItems');
+    // Reaching CLEANING from anywhere before TAGGING is complete is
+    // blocked. From TAGGING via the regular advance arrow is also blocked
+    // — the modal's "Done · Move to Cleaning" is the only allowed path.
+    if (to === 'CLEANING' && (o.status === 'RECEIVED' || o.status === 'TAGGING')) {
+      return t('mustTagAllItems');
+    }
+    return null;
+  }
+
+  // Apply the move optimistically: shift the card to its new column
+  // immediately, then PATCH the API. On failure, revert and toast. This
+  // makes drag-and-drop and the advance/back buttons feel instant.
+  async function doMove(o: Order, to: OrderStatus) {
+    const snapshot = board;
+    const fromCol = (board[o.status] ?? []).filter((x) => x.id !== o.id);
+    const moved: Order = { ...o, status: to };
+    const toCol = [...(board[to] ?? []), moved];
+    setBoard({ ...board, [o.status]: fromCol, [to]: toCol });
     try {
       await api(`/orders/${o.id}/status`, { method: 'PATCH', body: { status: to } });
       toast.show(t('movedTo', { number: o.number, status: tStatus(to as any) }));
       refresh();
     } catch (e: any) {
+      setBoard(snapshot);
       toast.show(e?.detail?.message || t('failedToUpdate'));
     }
+  }
+
+  async function moveTo(o: Order, to: OrderStatus | undefined) {
+    if (!to || to === o.status) return;
+    const blocker = guardMove(o, to);
+    if (blocker) { toast.show(blocker); return; }
+    await doMove(o, to);
   }
 
   async function togglePaid(o: Order) {
@@ -150,16 +194,29 @@ export default function OrdersBoardScreen({
             {t('activeShortDrag', { count: allActive })}
           </span>
         </div>
-        <div className="seg">
-          <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>
-            {tCommon('all')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => refresh()}
+            disabled={reloading}
+            title={tCommon('refresh')}
+            aria-label={tCommon('refresh')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Icon.refresh size={16} />
+            {reloading ? tCommon('loading') : tCommon('refresh')}
           </button>
-          <button className={filter === 'WALK_IN' ? 'on' : ''} onClick={() => setFilter('WALK_IN')}>
-            {tType('walkIn')}
-          </button>
-          <button className={filter === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setFilter('PICKUP_DELIVERY')}>
-            {tType('pickupDelivery')}
-          </button>
+          <div className="seg">
+            <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>
+              {tCommon('all')}
+            </button>
+            <button className={filter === 'WALK_IN' ? 'on' : ''} onClick={() => setFilter('WALK_IN')}>
+              {tType('walkIn')}
+            </button>
+            <button className={filter === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setFilter('PICKUP_DELIVERY')}>
+              {tType('pickupDelivery')}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -228,7 +285,12 @@ export default function OrdersBoardScreen({
           onClose={() => setTagId(null)}
           onAdvance={async () => {
             const o = Object.values(board).flat().find((x) => x.id === tagId);
-            if (o) await moveTo(o, next(o.status));
+            // doMove() skips the "must tag all items" guard — completing
+            // the modal IS the proof the order is tagged.
+            if (o) {
+              const to = next(o.status);
+              if (to) await doMove(o, to);
+            }
             setTagId(null);
           }}
           onOpenDetail={() => { const id = tagId; setTagId(null); setOpenId(id); }}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { Icon } from '@/components/Icons';
@@ -20,6 +20,12 @@ export default function PaymentsScreen({
   const [payments, setPayments] = useState(initialPayments);
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<Filter>('all');
+
+  // Re-sync from the server props on store switch / router.refresh —
+  // without this, useState(initial) keeps the first snapshot and the
+  // Payments screen never reflects the new active store.
+  useEffect(() => { setPayments(initialPayments); }, [initialPayments]);
+  useEffect(() => { setOrders(initialOrders); }, [initialOrders]);
   const t = useTranslations('Payments');
   const tCommon = useTranslations('Common');
   const tMethod = useTranslations('PaymentMethod');

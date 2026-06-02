@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import StoreSyncControls from '@/components/StoreSyncControls';
@@ -35,6 +35,9 @@ export default function RacksScreen({ initial }: { initial: RackRow[] }) {
   const [racks, setRacks] = useState<RackRow[]>(initial);
   const [code, setCode] = useState<string>('');
   const toast = useToast();
+
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setRacks(initial); }, [initial]);
 
   const filtered = useMemo(() => racks.filter((r) => r.storeId === activeStoreId), [racks, activeStoreId]);
 

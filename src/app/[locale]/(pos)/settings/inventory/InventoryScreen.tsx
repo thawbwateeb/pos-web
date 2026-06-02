@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED, AED0 } from '@/lib/format';
@@ -39,6 +39,9 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
   const t = useTranslations('Settings.inventory');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setItems(initial); }, [initial]);
 
   async function reload() {
     setItems(await api<Item[]>('/inventory'));

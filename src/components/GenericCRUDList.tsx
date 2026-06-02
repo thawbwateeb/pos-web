@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from './Toast';
 
@@ -22,6 +22,9 @@ export default function GenericCRUDList({
   const [editing, setEditing] = useState<any | null>(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setRows(initial); }, [initial]);
 
   async function reload() { setRows(await api<any[]>(endpoint)); }
 

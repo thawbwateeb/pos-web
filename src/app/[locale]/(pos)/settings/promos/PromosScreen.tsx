@@ -41,6 +41,9 @@ export default function PromosScreen({ initial }: { initial: Promo[] }) {
   const [adding, setAdding] = useState(false);
   const toast = useToast();
 
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setRows(initial); }, [initial]);
+
   async function reload() { setRows(await api<Promo[]>('/promos')); }
 
   /* Design app.js:1396-1410 — Promo Codes table:

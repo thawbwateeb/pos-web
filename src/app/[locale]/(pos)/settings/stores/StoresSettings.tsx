@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
@@ -35,6 +35,9 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Store | null>(null);
   const toast = useToast();
+
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setStores(initial); }, [initial]);
 
   async function reload() {
     setStores(await api<Store[]>('/stores'));

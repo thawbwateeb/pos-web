@@ -43,6 +43,9 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
   const [adding, setAdding] = useState(false);
   const toast = useToast();
 
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setRows(initial); }, [initial]);
+
   async function reload() {
     setRows(await api<Zone[]>('/delivery-zones'));
   }

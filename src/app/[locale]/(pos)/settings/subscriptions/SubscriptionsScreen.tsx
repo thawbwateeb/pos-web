@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
@@ -37,6 +37,9 @@ export default function SubscriptionsScreen({ initial }: { initial: Plan[] }) {
   const [editing, setEditing] = useState<Plan | null>(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+
+  // Re-sync from the server prop on store switch / router.refresh.
+  useEffect(() => { setRows(initial); }, [initial]);
 
   async function reload() {
     setRows(await api<Plan[]>('/subscriptions/plans'));

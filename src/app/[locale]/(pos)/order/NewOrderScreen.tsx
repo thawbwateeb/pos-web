@@ -217,8 +217,17 @@ export default function NewOrderScreen({
           items: cart.map((l) => ({ itemId: l.itemId, tierId: l.tierId, qty: l.qty })),
         },
       });
-      await api('/payments', { method: 'POST', body: { orderId: order.id, method: pay.method, amount: Number(order.total) } });
-      toast.show(t('orderCharged', { number: order.number, amount: AED(order.total) }));
+      // ON_DELIVERY = cash-on-delivery (or postpaid). The order is queued
+      // unpaid and the driver collects payment when the order is handed
+      // over — at which point a Payment row is created from the Delivery
+      // screen. Recording a Payment here would falsely mark the order
+      // paid before the customer has actually paid.
+      if (pay.method === 'ON_DELIVERY') {
+        toast.show(t('orderQueuedCOD', { number: order.number, amount: AED(order.total) }));
+      } else {
+        await api('/payments', { method: 'POST', body: { orderId: order.id, method: pay.method, amount: Number(order.total) } });
+        toast.show(t('orderCharged', { number: order.number, amount: AED(order.total) }));
+      }
       resetCart();
       setPay(null);
       router.push(`/${locale}/orders`);
