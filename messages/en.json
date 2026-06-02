@@ -393,6 +393,7 @@
     "searchPlaceholder": "Search conversations",
     "noConversations": "No conversations yet",
     "empty": "Pick a conversation to start replying. The bot ({botName}) is {state}.",
+    "emptyHint": "Select a chat to start messaging your customers.",
     "stateOn": "on",
     "stateOff": "off",
     "botActive": "Bot active",

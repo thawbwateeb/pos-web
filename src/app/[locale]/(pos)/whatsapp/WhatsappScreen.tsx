@@ -310,23 +310,13 @@ export default function WhatsappScreen({
                 <span>{t('businessSub')}</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                className="wa-side-ico"
-                title={t('settings')}
-                onClick={() => setSettingsOpen(true)}
-                style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 6 }}
-              >
-                <Icon.gear size={18} />
-              </button>
-              <button
-                className="wa-side-ico"
-                title={t('newChat')}
-                onClick={() => setNewChatOpen(true)}
-                style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 6 }}
-              >
-                <Icon.plus size={18} />
-              </button>
+            {/* Design whatsapp.js:79 — single .wa-side-ico div for "New chat",
+                no settings gear in sidebar (settings lives in Settings nav). */}
+            <div className="wa-side-ico" role="button" title={t('newChat')} onClick={() => setNewChatOpen(true)}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v8M8 12h8" />
+              </svg>
             </div>
           </div>
           <div className="wa-search">
@@ -365,9 +355,8 @@ export default function WhatsappScreen({
                       <span className="wa-row-prev">{prev}</span>
                       {c.unread > 0 && <span className="wa-unread">{c.unread}</span>}
                       {c.botPaused && c.unread === 0 && (
-                        <span className="wa-paused-dot" title={t('botPaused')}>
-                          <Icon.clock size={12} />
-                        </span>
+                        /* Design whatsapp.js:87 — uses ⏸ emoji, not an icon. */
+                        <span className="wa-paused-dot" title={t('botPaused')}>⏸</span>
                       )}
                     </div>
                   </div>
@@ -385,18 +374,15 @@ export default function WhatsappScreen({
         {/* MAIN THREAD */}
         <section className="wa-main">
           {!thread ? (
+            /* Design whatsapp.js:95 — empty state uses h2 "WhatsApp Business"
+               and p "Select a chat to start messaging your customers." */
             <div className="wa-empty">
               <div className="wa-empty-in">
                 <div className="wa-empty-logo">
-                  <Icon.whatsapp size={56} />
+                  <Icon.whatsapp size={60} />
                 </div>
                 <h2>{t('title')}</h2>
-                <p>
-                  {t('empty', {
-                    botName: currentSettings?.botName ?? 'assistant',
-                    state: currentSettings?.botEnabled ? t('stateOn') : t('stateOff'),
-                  })}
-                </p>
+                <p>{t('emptyHint')}</p>
               </div>
             </div>
           ) : (
@@ -410,29 +396,58 @@ export default function WhatsappScreen({
                     {thread.area ? ` · ${thread.area}` : ''}
                   </div>
                 </div>
-                <button
+                {/* Design whatsapp.js:110 — wa-bot-toggle is a <div>, not button.
+                    Icon is a robot SVG: when on shows two-eye robot,
+                    when off shows cross-eyed robot. */}
+                <div
                   className={`wa-bot-toggle ${thread.botPaused ? 'off' : 'on'}`}
+                  role="button"
                   onClick={toggleBot}
                   title={thread.botPaused ? t('botResume') : t('botPause')}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  {thread.botPaused ? <Icon.clock size={16} /> : <Icon.check size={16} />}
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="7" width="16" height="11" rx="3" />
+                    {thread.botPaused ? (
+                      <>
+                        <path d="M9 11v3M15 11v3" />
+                      </>
+                    ) : (
+                      <>
+                        <circle cx="9" cy="12.5" r="1.4" />
+                        <circle cx="15" cy="12.5" r="1.4" />
+                        <path d="M12 4v3" />
+                      </>
+                    )}
+                  </svg>
                   <span>
                     {thread.botPaused
                       ? t('botPausedTimer', { mins: minutesUntil(thread.pausedUntil) })
                       : t('botActive')}
                   </span>
-                </button>
-                <button
+                </div>
+                {/* Design whatsapp.js:114 — search button before menu button,
+                    both wa-head-ico <div>s with SVG icons. */}
+                <div className="wa-head-ico" role="button" title={t('searchPlaceholder')}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21l-4.3-4.3" />
+                  </svg>
+                </div>
+                <div
                   className="wa-head-ico"
+                  role="button"
                   title={t('menu')}
                   onClick={() => setMenuOpen((v) => !v)}
                   style={{ position: 'relative' }}
                 >
-                  ⋯
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="5" r="1.6" />
+                    <circle cx="12" cy="12" r="1.6" />
+                    <circle cx="12" cy="19" r="1.6" />
+                  </svg>
                   {menuOpen && (
+                    /* Design whatsapp.js:117-120 menu order: info / unread / clear / order */
                     <div className="wa-menu" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={markUnread}>{t('menuOptions.unread')}</button>
                       <button
                         onClick={() => {
                           setMenuOpen(false);
@@ -441,11 +456,12 @@ export default function WhatsappScreen({
                       >
                         {t('menuOptions.info')}
                       </button>
-                      <button onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
+                      <button onClick={markUnread}>{t('menuOptions.unread')}</button>
                       <button onClick={clearChat}>{t('menuOptions.clear')}</button>
+                      <button onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
                     </div>
                   )}
-                </button>
+                </div>
               </div>
 
               <div className="wa-thread" ref={threadRef}>
@@ -536,37 +552,32 @@ export default function WhatsappScreen({
                 </div>
               )}
 
+              {/* Design whatsapp.js:127-133 — composer uses SVG icons, not emojis,
+                  in the wa-comp-ico / wa-send buttons. */}
               <div className="wa-composer">
-                <button
-                  className="wa-comp-ico"
-                  onClick={() => setEmojiOpen((v) => !v)}
-                  title={t('emoji')}
-                >
-                  😊
+                <button className="wa-comp-ico" onClick={() => setEmojiOpen((v) => !v)} title={t('emoji')}>
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M9 10h.01M15 10h.01M8.5 14a4 4 0 0 0 7 0" />
+                  </svg>
                 </button>
-                <button
-                  className="wa-comp-ico wa-attach"
-                  onClick={openFilePicker}
-                  title={t('attach')}
-                  aria-label={t('uploadImage')}
-                >
-                  📎
+                <button className="wa-comp-ico wa-attach" onClick={openFilePicker} title={t('attach')} aria-label={t('uploadImage')}>
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 17.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8" />
+                  </svg>
                 </button>
+                <input ref={fileInputRef} type="file" accept="image/*,application/pdf" hidden onChange={onFileChosen} />
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,application/pdf"
-                  hidden
-                  onChange={onFileChosen}
-                />
-                <input
+                  id="wa-input"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
                   placeholder={t('typeMessage')}
                 />
-                <button className="wa-send" onClick={send}>
-                  ➤
+                <button className="wa-send" onClick={send} title={t('typeMessage')}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12l16-8-6 16-3-6-7-2z" />
+                  </svg>
                 </button>
               </div>
             </>
