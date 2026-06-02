@@ -189,15 +189,18 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
           {NAV.filter((n) => !n.perm || u.role.isSystemManager || !!u.role.permissions[n.perm]).map(({ id, tKey, Icon: NavIcon }) => {
             const isOn = active === id;
             const badge = (badges as any)[id];
+            /* Design app.js:262-265 — each nav button carries data-nav="${id}"
+               and the inline SVG is rendered at 21×21 (svg(n.icon, 21)). */
             return (
               <Link
                 key={id}
                 href={`/${locale}/${id}`}
                 prefetch
                 className={isOn ? 'active' : ''}
+                data-nav={id}
                 style={{ textDecoration: 'none' }}
               >
-                <NavIcon />
+                <NavIcon size={21} />
                 <span className="nlbl">{t(tKey)}</span>
                 {badge ? <span className="badge">{badge}</span> : null}
               </Link>
@@ -289,13 +292,15 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             <span className="t">{now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}</span>
             <span className="d">{now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
-          {/* Design app.js:293-296 — .nm and .av are <span>; no title. */}
+          {/* Design app.js:293-296 — .av holds ROLES[state.role].init, the
+              role's single-letter initial (M/C/D), NOT the user's full-name
+              initials. Two-letter initials were a previous divergence. */}
           <button className="rolechip" id="rolechip" onClick={() => setUserMenuOpen(true)}>
             <span className="nm">
               <b>{u.role.name}</b>
               <span>{activeStore?.name ?? '—'}</span>
             </span>
-            <span className="av">{initials(u.fullName)}</span>
+            <span className="av">{(u.role.name?.[0] ?? '?').toUpperCase()}</span>
           </button>
         </header>
         <div className="screen">{children}</div>
