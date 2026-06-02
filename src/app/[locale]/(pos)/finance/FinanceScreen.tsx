@@ -796,7 +796,7 @@ function Owners({
           <div className="csub">{t('owners.addSub')}</div>
           <div className="field" style={{ marginBottom: 12 }}>
             <label>{t('owners.owner')}</label>
-            <select className="inp" value={owner} onChange={(e) => setOwner(e.target.value)}>
+            <select className="inp" id="c-owner" value={owner} onChange={(e) => setOwner(e.target.value)}>
               {OWNERS.map((o) => (
                 <option key={o} value={o}>
                   {o}
@@ -807,12 +807,13 @@ function Owners({
           <div className="grid g2" style={{ gap: 12, marginBottom: 12 }}>
             <div className="field">
               <label>{t('owners.date')}</label>
-              <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <input className="inp" id="c-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div className="field">
               <label>{t('owners.amountAed')}</label>
               <input
                 className="inp"
+                id="c-amt"
                 type="number"
                 placeholder="0.00"
                 value={amount}
@@ -824,12 +825,13 @@ function Owners({
             <label>{t('owners.noteOptional')}</label>
             <input
               className="inp"
+              id="c-note"
               placeholder={t('owners.notePlaceholder')}
               value={noteInp}
               onChange={(e) => setNoteInp(e.target.value)}
             />
           </div>
-          <button className="btn btn-pri" onClick={handleAdd}>
+          <button className="btn btn-pri" id="c-add" onClick={handleAdd}>
             {t('owners.addBtn')}
           </button>
         </div>
@@ -857,7 +859,7 @@ function Owners({
                   <td className="num tnum">{AED(c.amount)}</td>
                   <td className="muted">{c.note || '—'}</td>
                   <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(i)}>
+                    <button className="btn btn-ghost btn-sm" data-del={i} onClick={() => handleDelete(i)}>
                       {t('owners.delete')}
                     </button>
                   </td>
