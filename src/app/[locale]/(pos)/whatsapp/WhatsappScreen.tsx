@@ -320,7 +320,13 @@ export default function WhatsappScreen({
           </div>
           <div className="wa-search">
             <div className="wa-search-box">
-              <Icon.search size={16} />
+              {/* Design whatsapp.js:81 — search icon rendered via ic(…,16)
+                  which uses stroke-width 1.8 (NOT the global Icon.search
+                  stroke 1.6). Inlined SVG keeps the stroke exactly. */}
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
               <input
                 id="wa-q"
                 placeholder={t('searchPlaceholder')}
@@ -564,7 +570,8 @@ export default function WhatsappScreen({
                     <path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 17.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8" />
                   </svg>
                 </button>
-                <input ref={fileInputRef} id="wa-file" type="file" accept="image/*,application/pdf" hidden onChange={onFileChosen} />
+                {/* Design whatsapp.js:130 — file input carries `multiple`. */}
+                <input ref={fileInputRef} id="wa-file" type="file" accept="image/*,application/pdf" multiple hidden onChange={onFileChosen} />
                 <input
                   id="wa-input"
                   value={draft}
