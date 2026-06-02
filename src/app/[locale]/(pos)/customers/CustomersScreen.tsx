@@ -28,9 +28,9 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
           <h2>{t('directoryTitle')}</h2>
           <span className="sub">{t('directorySub', { count: list.length })}</span>
         </div>
-        {/* Design app.js:664 — the button sits inside .actions div. */}
+        {/* Design app.js:664 — .actions wrapper + data-newcust attribute. */}
         <div className="actions">
-          <button className="btn btn-pri" onClick={() => setAdding(true)}>
+          <button className="btn btn-pri" data-newcust onClick={() => setAdding(true)}>
             <Icon.plus size={16} /> {t('newCustomer')}
           </button>
         </div>
@@ -72,12 +72,13 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
                     : <span className="muted">—</span>}
                 </td>
                 <td>
-                  {/* Design app.js:677 — wrapper is <div class="r"> with both
-                      buttons as .t-btn.ghost. */}
+                  {/* Design app.js:677 — wrapper .r, both buttons .t-btn.ghost,
+                      data-editcust on Edit, data-newfor on New Order. */}
                   <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                    <button className="t-btn ghost" onClick={() => setOpen(c)}>{tCommon('edit')}</button>
+                    <button className="t-btn ghost" data-editcust={c.id} onClick={() => setOpen(c)}>{tCommon('edit')}</button>
                     <button
                       className="t-btn ghost"
+                      data-newfor={c.id}
                       onClick={() => {
                         document.cookie = `attach_customer=${c.id}; Path=/; SameSite=Lax`;
                         router.push(`/${locale}/order`);
