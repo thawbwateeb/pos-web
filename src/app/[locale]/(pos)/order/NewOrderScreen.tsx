@@ -269,40 +269,54 @@ export default function NewOrderScreen({
 
   return (
     <div className="order-grid">
-      {/* PICKER */}
+      {/* PICKER — design app.js:338-345. */}
       <div className="picker">
         <div className="tier-tabs">
           {tiers.map((tt) => (
             <button
               key={tt.id}
               className={`tier-tab${tierKey === tt.externalKey ? ' active' : ''}`}
+              data-tier={tt.id}
               onClick={() => setTierKey(tt.externalKey)}
             >
-              {/* Design app.js:328 renders just <span class="tt">{name}</span> —
-                  no .ts sub-label, no wrapper div. Keep it flat. */}
               <span className="tt">{tt.name}</span>
             </button>
           ))}
         </div>
 
         <div className="cat-bar">
-          <button className={`cat${cat === 'all' ? ' active' : ''}`} onClick={() => setCat('all')}>{tCommon('all')}</button>
+          {/* Design app.js:333 — "All" is active only when cat='all' AND no search. */}
+          <button
+            className={`cat${cat === 'all' && !search ? ' active' : ''}`}
+            data-cat="all"
+            onClick={() => { setCat('all'); setSearch(''); }}
+          >
+            {tCommon('all')}
+          </button>
           {catalogue.categories.map((c) => (
-            <button key={c.id} className={`cat${cat === c.externalKey ? ' active' : ''}`} onClick={() => setCat(c.externalKey)}>
+            <button
+              key={c.id}
+              className={`cat${cat === c.externalKey && !search ? ' active' : ''}`}
+              data-cat={c.id}
+              onClick={() => { setCat(c.externalKey); setSearch(''); }}
+            >
               {c.title}
             </button>
           ))}
           <div className="pk-search">
             <Icon.search size={15} />
-            <input placeholder={t('findItem')} value={search} onChange={(e) => setSearch(e.target.value)} />
+            {/* Design app.js:343 — placeholder is "Search item…" + id="pk-search". */}
+            <input
+              id="pk-search"
+              placeholder={t('searchItem')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
 
-        <div className="item-grid">
-          {/* Design app.js:373-385 — unavailable = <div class="item-card unavail">
-              (no <button>); available = <button class="item-card"> with the
-              badge FIRST, then .ic-ico (wrapped div), then .ic-name, then
-              .ic-price (<b>X.XX</b><span>AED</span>). */}
+        {/* Design app.js:345 — id="item-grid". */}
+        <div className="item-grid" id="item-grid">
           {visibleItems.map((item) => {
             const price = tier ? item.prices[tier.externalKey] : undefined;
             const unavail = price == null;
@@ -317,7 +331,7 @@ export default function NewOrderScreen({
               );
             }
             return (
-              <button key={item.id} className="item-card" onClick={() => addToCart(item)}>
+              <button key={item.id} className="item-card" data-sku={item.sku} onClick={() => addToCart(item)}>
                 {qtyInCart > 0
                   ? <span className="ic-qty">{qtyInCart}</span>
                   : <span className="ic-add"><Icon.plus size={15} /></span>}
@@ -330,12 +344,9 @@ export default function NewOrderScreen({
         </div>
       </div>
 
-      {/* CART */}
-      <aside className="cart">
+      {/* CART — design app.js:347 + 427. */}
+      <aside className="cart" id="cart">
         <div className="cart-head">
-          {/* Design app.js:429-434 — .row1 contains a <div> (no class) holding
-              .onum + .otype, and a .otype-toggle as sibling. .otype is a
-              <span>. */}
           <div className="row1">
             <div>
               <div className="onum">
@@ -350,26 +361,29 @@ export default function NewOrderScreen({
               </span>
             </div>
             <div className="otype-toggle">
-              <button className={orderType === 'WALK_IN' ? 'on' : ''} onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
-              <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
+              <button className={orderType === 'WALK_IN' ? 'on' : ''} data-otype="Walk-in" onClick={() => setOrderType('WALK_IN')}>{t('walkIn')}</button>
+              <button className={orderType === 'PICKUP_DELIVERY' ? 'on' : ''} data-otype="Pickup & Delivery" onClick={() => setOrderType('PICKUP_DELIVERY')}>{t('pickupDelivery')}</button>
             </div>
           </div>
 
-          <button className={`exp-toggle${expressOn ? ' on' : ''}`} onClick={() => setExpressOn((v) => !v)}>
+          <button className={`exp-toggle${expressOn ? ' on' : ''}`} id="exp-toggle" onClick={() => setExpressOn((v) => !v)}>
             <span>{t('expressLabel', { pct: expressPct })}</span>
             <span className={`switch${expressOn ? ' on' : ''}`} />
           </button>
 
-          {/* Design app.js:436-440 — .cust-attach has <span class="av/ct/chev">
-              not <div>. .av shows first letter of name when customer, else
-              users icon. .ct contains <b>+span. */}
-          <button className="cust-attach" onClick={() => setCustPicker(true)}>
+          {/* Design app.js:436-440 — .cust-attach spans + RIGHT chevron
+              (path "M9 6l6 6-6 6"), NOT Icon.chevd's down chevron. */}
+          <button className="cust-attach" id="cust-attach" onClick={() => setCustPicker(true)}>
             <span className="av">{customer ? customer.fullName[0] : <Icon.users size={18} />}</span>
             <span className="ct">
               <b>{customer ? customer.fullName : t('attachCustomer')}</b>
               <span>{customer ? customer.phone : t('walkInGuest')}</span>
             </span>
-            <span className="chev"><Icon.chevd size={16} /></span>
+            <span className="chev">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -415,10 +429,10 @@ export default function NewOrderScreen({
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ok)' }}>{appliedPromo.code}</span>
                   <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{t('applied')}</span>
                 </div>
-                <button onClick={() => setAppliedPromo(null)} style={{ width: 24, height: 24, borderRadius: '50%', background: '#fff', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>×</button>
+                <button id="rm-promo" onClick={() => setAppliedPromo(null)} style={{ width: 24, height: 24, borderRadius: '50%', background: '#fff', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>×</button>
               </div>
             ) : (
-              <button onClick={() => setPromoPicker(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10, border: '1px dashed var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, background: 'var(--surface-2)' }}>
+              <button id="add-promo" onClick={() => setPromoPicker(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10, border: '1px dashed var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, background: 'var(--surface-2)' }}>
                 <Icon.ticket size={16} /> {t('addPromo')}
               </button>
             )}
@@ -444,17 +458,18 @@ export default function NewOrderScreen({
             </div>
           </div>
 
+          {/* Design app.js:459-463 — ids print-btn, hold-btn, charge-btn. */}
           <div className="cart-actions">
-            <button className="btn btn-hold" title={t('printReceipt')} onClick={printReceipt}>
+            <button className="btn btn-hold" id="print-btn" title={t('printReceipt')} onClick={printReceipt}>
               <Icon.print size={16} />
             </button>
-            <button className="btn btn-hold" onClick={requestCancel}>{tCommon('cancel')}</button>
+            <button className="btn btn-hold" id="hold-btn" onClick={requestCancel}>{tCommon('cancel')}</button>
             {isEditing ? (
-              <button className={`btn btn-charge${busy ? ' btn-loading' : ''}`} disabled={cart.length === 0 || busy} onClick={save}>
+              <button className={`btn btn-charge${busy ? ' btn-loading' : ''}`} id="charge-btn" disabled={cart.length === 0 || busy} onClick={save}>
                 {t('saveOrder')}
               </button>
             ) : (
-              <button className="btn btn-charge" disabled={cart.length === 0} onClick={() => setPay({ method: null })}>
+              <button className="btn btn-charge" id="charge-btn" disabled={cart.length === 0} onClick={() => setPay({ method: null })}>
                 {t('charge')} {AED(total)}
               </button>
             )}
