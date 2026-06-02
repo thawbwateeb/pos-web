@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
-import StoreSyncControls, { type StoreOption } from '@/components/StoreSyncControls';
+import StoreSyncControls from '@/components/StoreSyncControls';
+import { useActiveStoreId } from '@/components/BootstrapContext';
 
 /* Design app.js:1347 (HW[]) + 1411-1417 (hardware body):
    - .set-sec h2 'Hardware' + .ssub 'Connected devices · choose brand,
@@ -16,10 +17,9 @@ import StoreSyncControls, { type StoreOption } from '@/components/StoreSyncContr
        + .t-btn.ghost 'Test' (data-test=\${name})
        + switch (data-tog='hardware.\${k}')
 
-   Extension: storage is per-store via the existing /hardware/:storeId
-   API. A StoreSyncControls bar at the top lets the user pick the active
-   store and POST /hardware/:storeId/sync to copy the current config to
-   every other store in the business. */
+   Active store comes from the global topbar picker
+   (BootstrapContext / active_store_id cookie). The page loads + saves
+   that store's StoreHardware row directly. */
 
 interface HwDevice { key: 'printer' | 'terminal' | 'drawer' | 'labels'; name: string; defaultBrand: string }
 const DEVICES: HwDevice[] = [
@@ -54,8 +54,8 @@ function fromApi(json: any): HwShape {
   return out;
 }
 
-export default function HardwareForm({ stores }: { stores: StoreOption[] }) {
-  const [storeId, setStoreId] = useState<string>(stores[0]?.id ?? '');
+export default function HardwareForm() {
+  const storeId = useActiveStoreId();
   const [hw, setHw] = useState<HwShape>(DEFAULT_HW);
   const [loaded, setLoaded] = useState(false);
   const toast = useToast();
@@ -75,7 +75,6 @@ export default function HardwareForm({ stores }: { stores: StoreOption[] }) {
   function toggle(key: HwDevice['key']) {
     setHw((prev) => {
       const next: HwShape = { ...prev, [key]: { ...prev[key], connected: !prev[key].connected } };
-      // Fire-and-forget save so toggling is immediate.
       if (storeId) {
         api(`/hardware/${storeId}`, { method: 'PUT', body: next }).catch(() => toast.show('Failed to save'));
       }
@@ -88,17 +87,12 @@ export default function HardwareForm({ stores }: { stores: StoreOption[] }) {
       <h2>Hardware</h2>
       <div className="ssub">Connected devices · choose brand, configure receipt &amp; printing</div>
 
-      {stores.length > 0 && (
-        <div className="set-card" style={{ marginBottom: 14 }}>
-          <StoreSyncControls
-            stores={stores}
-            storeId={storeId}
-            onStoreChange={setStoreId}
-            syncEndpoint={`/hardware/${storeId}/sync`}
-            syncLabel="Copy these settings to all other stores"
-          />
-        </div>
-      )}
+      <div className="set-card" style={{ marginBottom: 14 }}>
+        <StoreSyncControls
+          syncEndpoint={`/hardware/${storeId}/sync`}
+          syncLabel="Copy these settings to all other stores"
+        />
+      </div>
 
       {!loaded ? (
         <div className="muted" style={{ padding: 20, fontSize: 13 }}>Loading…</div>
