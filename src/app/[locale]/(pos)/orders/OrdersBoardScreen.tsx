@@ -23,6 +23,7 @@ export default function OrdersBoardScreen({
   const [board, setBoard] = useState<OrdersBoard>(initial);
   const [filter, setFilter] = useState<Filter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [tagId, setTagId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<OrderStatus | null>(null);
   const t = useTranslations('OrdersBoard');
   const tStatus = useTranslations('OrderStatus');
@@ -197,6 +198,7 @@ export default function OrdersBoardScreen({
                       order={o}
                       position={rankOf[o.id] ?? 0}
                       onOpen={() => setOpenId(o.id)}
+                      onOpenTagging={() => setTagId(o.id)}
                       onAdvance={() => moveTo(o, next(o.status))}
                       onRetreat={() => moveTo(o, prev(o.status))}
                       onTogglePaid={() => togglePaid(o)}
@@ -220,6 +222,18 @@ export default function OrdersBoardScreen({
           onChanged={() => refresh()}
         />
       )}
+      {tagId && (
+        <TaggingModal
+          orderId={tagId}
+          onClose={() => setTagId(null)}
+          onAdvance={async () => {
+            const o = Object.values(board).flat().find((x) => x.id === tagId);
+            if (o) await moveTo(o, next(o.status));
+            setTagId(null);
+          }}
+          onOpenDetail={() => { const id = tagId; setTagId(null); setOpenId(id); }}
+        />
+      )}
     </div>
   );
 }
@@ -228,6 +242,7 @@ function OrderCard({
   order: o,
   position,
   onOpen,
+  onOpenTagging,
   onAdvance,
   onRetreat,
   onTogglePaid,
@@ -239,6 +254,7 @@ function OrderCard({
   order: Order;
   position: number;
   onOpen: () => void;
+  onOpenTagging: () => void;
   onAdvance: () => void;
   onRetreat: () => void;
   onTogglePaid: () => void;
@@ -314,7 +330,7 @@ function OrderCard({
         </button>
       )}
       {o.status === 'TAGGING' && (
-        <button className="oc-edit tag-cta" data-tagopen={o.id} onClick={onOpen}>
+        <button className="oc-edit tag-cta" data-tagopen={o.id} onClick={onOpenTagging}>
           {t('openTagging')} →
         </button>
       )}
@@ -615,6 +631,206 @@ function OrderDetailModal({
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* Design app.js:1050-1101 — openTagging modal.
+   Per-garment tagging state is local-only (no API): each order line
+   becomes a row, identified by a generated tag id `C\${number}-\${idx}`.
+   Each row is in one of three states:
+   - linked: ✓ icon, .tgr.done class, Undo button
+   - fresh:  printer icon, .tgr.new class, Print & attach button
+   - has:    search icon, .tgr.has class, Scan barcode button
+   The scanbar accepts barcode input — pressing Enter links a matching
+   tag. When all garments are linked, the footer CTA flips to
+   'Done · Move to Cleaning →' which advances the order's status. */
+interface TagRow { idx: number; id: string; name: string; linked: boolean; fresh: boolean }
+
+function TaggingModal({
+  orderId,
+  onClose,
+  onAdvance,
+  onOpenDetail,
+}: {
+  orderId: string;
+  onClose: () => void;
+  onAdvance: () => void | Promise<void>;
+  onOpenDetail: () => void;
+}) {
+  const [order, setOrder] = useState<any | null>(null);
+  const [tags, setTags] = useState<TagRow[]>([]);
+  const [scan, setScan] = useState('');
+  const t = useTranslations('OrdersBoard');
+  const tCommon = useTranslations('Common');
+  const toast = useToast();
+
+  useEffect(() => {
+    api<any>(`/orders/${orderId}`).then((o) => {
+      setOrder(o);
+      // One tag row per line × qty (a garment per unit). Half are flagged
+      // 'fresh' (new, needs print) as a stable rotation of indices —
+      // matches design's idx%2 pattern from ensureTags.
+      const rows: TagRow[] = [];
+      let cursor = 0;
+      for (const l of (o.items ?? [])) {
+        const qty = Math.max(1, Number(l.qty) || 1);
+        for (let i = 0; i < qty; i++) {
+          rows.push({
+            idx: cursor,
+            id: `C${o.number}-${String(cursor + 1).padStart(2, '0')}`,
+            name: l.nameSnapshot ?? l.name ?? 'Garment',
+            linked: false,
+            fresh: cursor % 2 === 0,
+          });
+          cursor++;
+        }
+      }
+      setTags(rows);
+    });
+  }, [orderId]);
+
+  const linked = tags.filter((tg) => tg.linked).length;
+  const total = tags.length;
+  const allDone = total > 0 && linked === total;
+
+  function link(idx: number) {
+    setTags((cur) => cur.map((tg) => tg.idx === idx ? { ...tg, linked: true, fresh: false } : tg));
+  }
+  function unlink(idx: number) {
+    setTags((cur) => cur.map((tg) => tg.idx === idx ? { ...tg, linked: false } : tg));
+  }
+  function onScanEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return;
+    const v = scan.trim().toUpperCase();
+    setScan('');
+    if (!v) return;
+    const match = tags.find((tg) => tg.id.toUpperCase() === v && !tg.linked);
+    if (match) {
+      link(match.idx);
+      return;
+    }
+    const dup = tags.find((tg) => tg.id.toUpperCase() === v && tg.linked);
+    toast.show(dup ? t('tagAlreadyLinked', { id: v }) : t('tagNoMatch', { id: v }));
+  }
+
+  if (!order) {
+    return (
+      <div className="modal-scrim show" onClick={onClose}>
+        <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-body muted">{tCommon('loading')}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="modal-scrim show" onClick={onClose}>
+      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>{t('tagGarments', { number: order.number })}</h3>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="tg-top">
+            <div className="tg-cust">
+              <div className="odl-av">
+                {(order.customer?.fullName ?? 'G').split(' ').map((s: string) => s[0]).slice(0, 2).join('')}
+              </div>
+              <div>
+                <b>{order.customer?.fullName ?? t('guest')}</b>
+                <span>{total} {tCommon('items').toLowerCase()} · {order.type === 'WALK_IN' ? 'Walk-in' : 'Pickup & Delivery'}</span>
+              </div>
+            </div>
+            <div className={`tg-prog ${allDone ? 'done' : ''}`}>
+              <b>{linked}/{total}</b>
+              <span>{t('tagged')}</span>
+            </div>
+          </div>
+
+          <div className="tg-scanbar">
+            <span className="tg-scan-ic"><Icon.search size={16} /></span>
+            <input
+              id="tg-scan-in"
+              placeholder={t('scanPlaceholder', { sample: tags[0]?.id ?? 'C1042-01' })}
+              autoComplete="off"
+              value={scan}
+              onChange={(e) => setScan(e.target.value)}
+              onKeyDown={onScanEnter}
+              autoFocus
+            />
+            <span className="tg-hint">{t('scannerReady')}</span>
+          </div>
+
+          <div className="tg-list">
+            {tags.map((tg) => {
+              const cls = tg.linked ? 'done' : tg.fresh ? 'new' : 'has';
+              return (
+                <div className={`tgr ${cls}`} key={tg.idx} data-tgr={tg.idx}>
+                  <div className="tgr-ic">
+                    {tg.linked ? '✓' : tg.fresh ? <Icon.print size={16} /> : <Icon.search size={16} />}
+                  </div>
+                  <div className="tgr-main">
+                    <div className="tgr-name">{tg.name}</div>
+                    <div className="tgr-sub">
+                      {tg.linked
+                        ? t('tagLinked', { id: tg.id })
+                        : tg.fresh
+                          ? t('tagNew')
+                          : t('tagExisting', { id: tg.id })}
+                    </div>
+                  </div>
+                  {tg.linked ? (
+                    <button className="tgr-act undo" data-unlink={tg.idx} onClick={() => unlink(tg.idx)}>
+                      {t('tagUndo')}
+                    </button>
+                  ) : tg.fresh ? (
+                    <button
+                      className="tgr-act print"
+                      data-print={tg.idx}
+                      onClick={() => { toast.show(t('tagPrinted')); link(tg.idx); }}
+                    >
+                      {t('tagPrintAttach')}
+                    </button>
+                  ) : (
+                    <button
+                      className="tgr-act scan"
+                      data-scan={tg.idx}
+                      onClick={() => link(tg.idx)}
+                    >
+                      {t('tagScan')}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {tags.length === 0 && (
+              <div className="muted" style={{ padding: '14px 0', fontSize: 13, textAlign: 'center' }}>
+                {t('tagNoGarments')}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button
+            className="btn btn-ghost"
+            data-od-detail
+            style={{ flex: 1 }}
+            onClick={onOpenDetail}
+          >
+            {t('orderDetails')}
+          </button>
+          <button
+            className={`btn ${allDone ? 'btn-pri' : 'btn-disabled'}`}
+            id="tg-done"
+            disabled={!allDone}
+            style={{ flex: 2 }}
+            onClick={() => { if (allDone) onAdvance(); }}
+          >
+            {allDone ? t('tagDoneAdvance') : t('tagAllRemaining', { count: total - linked })}
+          </button>
+        </div>
       </div>
     </div>
   );
