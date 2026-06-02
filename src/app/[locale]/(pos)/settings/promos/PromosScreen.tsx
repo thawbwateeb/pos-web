@@ -43,32 +43,105 @@ export default function PromosScreen({ initial }: { initial: Promo[] }) {
 
   async function reload() { setRows(await api<Promo[]>('/promos')); }
 
+  /* Design app.js:1396-1410 — Promo Codes table:
+     - .set-sec max-width:none > .page-head h2 'Promo Codes' + sub
+       '\${active} active · \${total} total' + .actions '+ New Promo' (data-addpromo)
+     - .card > table.tbl with 8 cols: Code / Discount / Limits / Channel /
+       Auto / Uses / Status / (action)
+     - Code: .t-id + 11px muted desc below
+     - Discount: .t-amt (% or AED)
+     - Limits: '\${n} / customer' or '∞ / customer', plus ' · \${maxUses} total'
+     - Channel: All channels | App / Web | POS only
+     - Auto: .pill.paid 'Auto' or .pill.muted 'Manual'
+     - Status: .pill.paid 'Active' or .pill.muted 'Paused'
+     - Action: .r flex/gap:10 with Edit btn + switch (data-promo) */
+  const active = rows.filter((p) => p.active).length;
+  const channelLabel = (c: PromoChannel) =>
+    c === 'POS' ? 'POS only' : c === 'ONLINE' ? 'App / Web' : 'All channels';
+
   return (
-    <div className="set-sec" style={{ maxWidth: 980 }}>
-      <h2>Promotions</h2>
-      <p className="ssub">Codes customers can apply to orders. Auto-apply or POS-only options below.</p>
-      <div className="set-card">
-        <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>All promotions</h3>
-          <button className="btn btn-pri btn-sm" onClick={() => setAdding(true)}>+ New promo</button>
+    <div className="set-sec" style={{ maxWidth: 'none' }}>
+      <div className="page-head">
+        <div className="ph-l">
+          <h2>Promo Codes</h2>
+          <span className="sub">{active} active · {rows.length} total</span>
         </div>
+        <div className="actions">
+          <button className="btn btn-pri" data-addpromo onClick={() => setAdding(true)}>+ New Promo</button>
+        </div>
+      </div>
+      <div className="card">
         <table className="tbl">
-          <thead><tr><th>Code</th><th>Description</th><th>Value</th><th>Channel</th><th>Uses</th><th>Active</th><th className="num"></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Discount</th>
+              <th>Limits</th>
+              <th>Channel</th>
+              <th>Auto</th>
+              <th>Uses</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="t-id">{r.code}</td>
-                <td>{r.description ?? '—'}</td>
-                <td>{r.kind === 'PERCENT' ? `${r.value}%` : AED(Number(r.value))}</td>
-                <td>{r.channel}</td>
-                <td>{r.uses}{r.maxUses ? ` / ${r.maxUses}` : ''}</td>
-                <td><span className={`switch${r.active ? ' on' : ''}`} onClick={async () => { await api(`/promos/${r.id}`, { method: 'PATCH', body: { active: !r.active } }); reload(); }} /></td>
-                <td className="num">
-                  <button className="btn btn-ghost btn-sm" onClick={() => setEditing(r)}>Edit</button>
-                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={async () => { if (confirm('Delete?')) { await api(`/promos/${r.id}`, { method: 'DELETE' }); reload(); } }}>Delete</button>
+            {rows.map((r, i) => {
+              const limits = `${r.maxPerCust ? r.maxPerCust : '∞'} / customer${r.maxUses ? ` · ${r.maxUses} total` : ''}`;
+              const specificCount = r.audienceCustomers?.length ?? 0;
+              return (
+                <tr key={r.id}>
+                  <td className="t-id">
+                    {r.code}
+                    {r.description && (
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400, marginTop: 2 }}>
+                        {r.description}
+                      </div>
+                    )}
+                  </td>
+                  <td className="t-amt">{r.kind === 'PERCENT' ? `${r.value}%` : AED(Number(r.value))}</td>
+                  <td style={{ fontSize: 12 }}>
+                    {limits}
+                    {r.audience === 'SPECIFIC' && (
+                      <>
+                        <br />
+                        <span style={{ color: 'var(--warn)', fontWeight: 600 }}>
+                          {specificCount ? `${specificCount} customers` : 'Selected customers'}
+                        </span>
+                      </>
+                    )}
+                  </td>
+                  <td style={{ fontSize: 12 }}>{channelLabel(r.channel)}</td>
+                  <td>
+                    <span className={`pill ${r.auto ? 'paid' : 'muted'}`}>
+                      {r.auto ? 'Auto' : 'Manual'}
+                    </span>
+                  </td>
+                  <td>{r.uses}</td>
+                  <td>
+                    <span className={`pill ${r.active ? 'paid' : 'muted'}`}>
+                      {r.active ? 'Active' : 'Paused'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end' }}>
+                      <button className="t-btn ghost" data-editpromo={i} onClick={() => setEditing(r)}>Edit</button>
+                      <span
+                        className={`switch${r.active ? ' on' : ''}`}
+                        data-promo={i}
+                        onClick={async () => { await api(`/promos/${r.id}`, { method: 'PATCH', body: { active: !r.active } }); reload(); }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--muted)' }}>
+                  No promo codes yet. Create one to get started.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
