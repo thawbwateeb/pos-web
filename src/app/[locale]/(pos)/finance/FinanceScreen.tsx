@@ -413,9 +413,10 @@ function Actuals({
 
   return (
     <>
+      {/* Design finance.js:152 — month buttons carry data-m='\${i}'. */}
       <div className="mtabs">
         {MONTHS.map((mo, i) => (
-          <button key={mo} className={i === month ? 'on' : ''} onClick={() => setMonth(i)}>
+          <button key={mo} className={i === month ? 'on' : ''} data-m={i} onClick={() => setMonth(i)}>
             {mo}
           </button>
         ))}
