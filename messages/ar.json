@@ -302,6 +302,7 @@
     "title": "Payments & Invoicing",
     "subtitle": "Take payment, mark paid, issue invoices",
     "walkIn": "Walk-in",
+    "guest": "Guest",
     "paid": "Paid",
     "unpaid": "Unpaid",
     "refunded": "Refunded so far: {amount}",
@@ -324,13 +325,15 @@
     "noPayments": "No payments yet",
     "kpis": {
       "collectedToday": "Collected Today",
+      "collectedTrendPct": "▲ 12%",
+      "collectedTrendSub": "vs yesterday",
       "outstanding": "Outstanding",
+      "unpaid": "{count} unpaid orders",
       "cardDigital": "Card / Digital",
-      "cardDigitalSub": "of recent volume",
+      "cardDigitalSub": "of today's volume",
       "avgOrder": "Avg. Order",
       "avgOrderSub": "across {count} orders",
-      "transactions": "{count, plural, =0 {no transactions} one {1 transaction} other {# transactions}}",
-      "unpaid": "{count, plural, =0 {none unpaid} one {1 unpaid order} other {# unpaid orders}}"
+      "transactions": "{count, plural, =0 {no transactions} one {1 transaction} other {# transactions}}"
     },
     "table": {
       "order": "Order",

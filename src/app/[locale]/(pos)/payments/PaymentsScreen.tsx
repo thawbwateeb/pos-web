@@ -80,12 +80,17 @@ export default function PaymentsScreen({
         </div>
       </div>
 
+      {/* Design app.js:625-630 — KPI row .stat-row with 4 .stat cards:
+          - Collected Today (.sico cash@34) + AED total + .sd '<b class="up">▲ 12%</b> vs yesterday' literal
+          - Outstanding (.sico clock@34) + AED outstanding + '${n} unpaid orders'
+          - Card / Digital (no .sico) + N% + 'of today's volume'
+          - Avg. Order (no .sico) + AED avg + 'across N orders' */}
       <div className="stat-row">
         <div className="stat">
           <div className="sico"><Icon.cash size={34} /></div>
           <div className="sk">{t('kpis.collectedToday')}</div>
           <div className="sv"><span className="cur">AED</span> {Math.round(collectedToday)}</div>
-          <div className="sd">{t('kpis.transactions', { count: payments.length })}</div>
+          <div className="sd"><b className="up">{t('kpis.collectedTrendPct')}</b> {t('kpis.collectedTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sico"><Icon.clock size={34} /></div>
@@ -141,7 +146,8 @@ export default function PaymentsScreen({
               return (
                 <tr key={o.id}>
                   <td className="t-id">#{o.number}</td>
-                  <td className="t-name">{o.customer?.fullName ?? t('walkIn')}</td>
+                  {/* Design app.js:641 — `${c?c.name:'Guest'}` (NOT 'Walk-in'). */}
+                  <td className="t-name">{o.customer?.fullName ?? t('guest')}</td>
                   <td>{o._count?.items ?? 0}</td>
                   <td>{methodLabel ?? <span className="muted">—</span>}</td>
                   <td className="t-amt">{AED(o.total)}</td>
