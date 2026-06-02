@@ -4,17 +4,28 @@ import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
-type ReferralPayout = 'ON_SIGNUP' | 'ON_FIRST_ORDER' | 'ON_COMPLETION';
-type ReferralRewardType = 'CREDIT' | 'POINTS';
+/* Design app.js:1504-1512 — Referral Program section.
+   - .set-sec margin-top:22 > h2 'Referral Program' + .ssub 'Reward customers
+     who invite friends'
+   - .set-card with 5 .set-row entries:
+     - Enable referrals (with sub) + switch data-tog='referral.enabled'
+     - Referrer reward (AED) + sub 'Credit the existing customer earns' +
+       input id='ref-rr'
+     - Friend reward (AED) + sub 'Discount the new customer gets' +
+       input id='ref-fr'
+     - Minimum order to qualify (AED) + input id='ref-min'
+     - Last row border:none: Pay referrer + sub 'When the reward is credited'
+       + select id='ref-payout' with 3 payout values
+   - Save button 'Save Referral Settings' (id='ref-save') */
+
+type ReferralPayout = 'on_completion' | 'on_signup' | 'on_payment';
 
 interface ReferralSettings {
   enabled?: boolean;
   referrerReward?: number | string;
   friendReward?: number | string;
-  rewardType?: ReferralRewardType;
   minOrder?: number | string;
-  payout?: ReferralPayout;
-  messageTemplate?: string | null;
+  payout?: ReferralPayout | string;
 }
 
 interface FormState {
@@ -22,8 +33,14 @@ interface FormState {
   referrerReward: number;
   friendReward: number;
   minOrder: number;
-  messageTemplate: string;
+  payout: ReferralPayout;
 }
+
+const PAYOUT_OPTIONS: { value: ReferralPayout; label: string }[] = [
+  { value: 'on_completion', label: "On friend's first completed order" },
+  { value: 'on_signup',     label: 'On friend sign-up' },
+  { value: 'on_payment',    label: "On friend's first payment" },
+];
 
 function toNumber(v: number | string | undefined, fallback: number): number {
   if (v === undefined || v === null) return fallback;
@@ -38,7 +55,7 @@ export default function ReferralForm({ initial }: { initial: Record<string, unkn
     referrerReward: toNumber(src.referrerReward, 0),
     friendReward: toNumber(src.friendReward, 0),
     minOrder: toNumber(src.minOrder, 0),
-    messageTemplate: src.messageTemplate ?? '',
+    payout: (PAYOUT_OPTIONS.some((p) => p.value === src.payout) ? src.payout : 'on_completion') as ReferralPayout,
   });
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -53,7 +70,7 @@ export default function ReferralForm({ initial }: { initial: Record<string, unkn
           referrerReward: f.referrerReward,
           friendReward: f.friendReward,
           minOrder: f.minOrder,
-          messageTemplate: f.messageTemplate || null,
+          payout: f.payout,
         },
       });
       toast.show('Referral settings saved');
@@ -64,40 +81,93 @@ export default function ReferralForm({ initial }: { initial: Record<string, unkn
 
   return (
     <div className="set-sec" style={{ marginTop: 22 }}>
-      <h2>Referral program</h2>
-      <p className="ssub">Reward customers who invite friends to your store.</p>
+      <h2>Referral Program</h2>
+      <div className="ssub">Reward customers who invite friends</div>
       <div className="set-card">
         <div className="set-row">
-          <div className="l"><b>Enable referrals</b><span>Customers get a shareable invite code</span></div>
-          <div className="r"><span className={`switch${f.enabled ? ' on' : ''}`} onClick={() => setF({ ...f, enabled: !f.enabled })} /></div>
-        </div>
-        <div className="set-row">
-          <div className="l"><b>Reward for referrer (points)</b></div>
-          <div className="r"><input className="input sm" type="number" value={f.referrerReward} onChange={(e) => setF({ ...f, referrerReward: +e.target.value })} /></div>
-        </div>
-        <div className="set-row">
-          <div className="l"><b>Reward for new customer (points)</b></div>
-          <div className="r"><input className="input sm" type="number" value={f.friendReward} onChange={(e) => setF({ ...f, friendReward: +e.target.value })} /></div>
-        </div>
-        <div className="set-row">
-          <div className="l"><b>Minimum first order (AED)</b></div>
-          <div className="r"><input className="input sm" type="number" value={f.minOrder} onChange={(e) => setF({ ...f, minOrder: +e.target.value })} /></div>
-        </div>
-        <div className="set-row" style={{ border: 'none', alignItems: 'flex-start' }}>
-          <div className="l"><b>Referral message template</b><span>Use {'{name}'} and {'{code}'} as placeholders</span></div>
-          <div className="r" style={{ width: '100%' }}>
-            <textarea
-              className="input"
-              rows={3}
-              style={{ width: '100%' }}
-              value={f.messageTemplate}
-              onChange={(e) => setF({ ...f, messageTemplate: e.target.value })}
-              placeholder="Hey {name}, here's my referral code {code} — try it out!"
+          <div className="l">
+            <b>Enable referrals</b>
+            <span>Customers get a shareable invite code</span>
+          </div>
+          <div className="r">
+            <span
+              className={`switch${f.enabled ? ' on' : ''}`}
+              data-tog="referral.enabled"
+              onClick={() => setF({ ...f, enabled: !f.enabled })}
             />
           </div>
         </div>
+        <div className="set-row">
+          <div className="l">
+            <b>Referrer reward (AED)</b>
+            <span>Credit the existing customer earns</span>
+          </div>
+          <div className="r">
+            <input
+              className="input sm"
+              id="ref-rr"
+              type="number"
+              value={f.referrerReward}
+              onChange={(e) => setF({ ...f, referrerReward: +e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="set-row">
+          <div className="l">
+            <b>Friend reward (AED)</b>
+            <span>Discount the new customer gets</span>
+          </div>
+          <div className="r">
+            <input
+              className="input sm"
+              id="ref-fr"
+              type="number"
+              value={f.friendReward}
+              onChange={(e) => setF({ ...f, friendReward: +e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="set-row">
+          <div className="l"><b>Minimum order to qualify (AED)</b></div>
+          <div className="r">
+            <input
+              className="input sm"
+              id="ref-min"
+              type="number"
+              value={f.minOrder}
+              onChange={(e) => setF({ ...f, minOrder: +e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="set-row" style={{ border: 'none' }}>
+          <div className="l">
+            <b>Pay referrer</b>
+            <span>When the reward is credited</span>
+          </div>
+          <div className="r">
+            <select
+              className="input"
+              id="ref-payout"
+              value={f.payout}
+              onChange={(e) => setF({ ...f, payout: e.target.value as ReferralPayout })}
+            >
+              {PAYOUT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
-      <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} onClick={save}>Save</button>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+          id="ref-save"
+          onClick={save}
+          disabled={busy}
+        >
+          Save Referral Settings
+        </button>
+      </div>
     </div>
   );
 }
