@@ -439,6 +439,7 @@
   },
   "Reports": {
     "title": "Daily Summary",
+    "branch": "Mangrove Plaza branch",
     "exportCsv": "Export CSV",
     "exported": "Report exported as CSV",
     "printZ": "Print Z-Report",
@@ -448,8 +449,9 @@
       "Yesterday": "Yesterday",
       "Week": "Last 7 days",
       "Month": "This month",
-      "Custom": "Custom range"
+      "Custom": "Custom…"
     },
+    "customRangeLabel": "Custom range",
     "customRange": {
       "apply": "Apply"
     },
@@ -458,14 +460,14 @@
       "sales": "Sales",
       "products": "Products & Channels",
       "financials": "Financials",
-      "cashDrawer": "Cash drawer"
+      "programs": "Programs & Cash"
     },
     "hourly": {
-      "title": "Sales by hour",
-      "sub": "AED collected per hour for the selected range"
+      "title": "Sales by Hour",
+      "sub": "Revenue across the trading day"
     },
     "cashUp": {
-      "button": "Cash up",
+      "button": "Cash Up",
       "title": "Close shift · cash up",
       "expected": "Expected drawer",
       "counted": "Counted",
@@ -476,66 +478,91 @@
       "failed": "Could not close shift"
     },
     "cashDrawer": {
-      "title": "Cash drawer reconciliation",
-      "sub": "What the drawer should contain right now",
+      "title": "Cash Drawer Reconciliation",
+      "sub": "Expected vs counted at close",
+      "openingFloat": "Opening float",
       "cashSales": "Cash sales",
-      "cardDigital": "Card / digital",
-      "account": "On account",
-      "expected": "Expected drawer",
-      "hint": "Cash up at end of shift to log the variance."
+      "cardDigital": "Card / Digital",
+      "account": "Account / Subscription",
+      "expected": "Expected in drawer"
     },
     "kpis": {
       "gross": "Gross Sales",
-      "grossSub": "for {range}",
+      "grossSub": "▲ 12% vs avg Friday",
       "orders": "Orders",
-      "ordersSub": "{count, plural, =0 {no orders} one {1 order} other {# orders}}",
-      "collected": "Collected",
-      "collectedSub": "received cash + card",
+      "ordersSub": "{walk} walk-in · {deliv} pickup & delivery",
+      "items": "Items Processed",
+      "itemsSub": "avg {avg} / order",
       "avg": "Avg. Order Value",
-      "avgSub": "per paid order",
+      "avgSub": "{count} paid orders",
+      "express": "Express Orders",
+      "expressSub": "same-day service",
       "outstanding": "Outstanding",
-      "outstandingSub": "awaiting payment",
-      "cardShare": "Card / Digital",
-      "cardShareSub": "of paid volume",
-      "cashShare": "Cash",
-      "cashShareSub": "of paid volume",
-      "refundRate": "Refunds",
-      "refundRateSub": "of paid volume",
-      "refunds": "Refunds",
-      "refundsSub": "issued in range"
+      "outstandingSub": "{count} unpaid orders",
+      "newCustomers": "New Customers",
+      "newCustomersSub": "▲ 3 vs yesterday",
+      "turnaround": "Avg. Turnaround",
+      "turnaroundSub": "within 24h target"
     },
     "paymentMix": {
       "title": "Payment Mix",
-      "sub": "By method"
+      "sub": "Today by method",
+      "cash": "Cash",
+      "cardDigital": "Card / Digital",
+      "account": "Account"
     },
-    "statusMix": {
-      "title": "Workflow",
-      "sub": "Orders by status"
+    "serviceMix": {
+      "title": "Service Mix",
+      "sub": "Orders by service type",
+      "dryClean": "Dry Clean",
+      "wash": "Wash",
+      "press": "Press"
     },
     "topItems": {
       "title": "Top Items",
-      "sub": "Most processed this range",
+      "sub": "Most processed today",
       "item": "Item",
       "qty": "Qty",
       "revenue": "Revenue",
       "empty": "No orders in this range yet"
     },
+    "orderType": {
+      "title": "Order Type",
+      "sub": "Channel split",
+      "walkIn": "Walk-in",
+      "delivery": "Pickup & Delivery",
+      "ordersUnit": "orders"
+    },
+    "topAreas": {
+      "title": "Top Areas",
+      "sub": "Pickup & delivery zones"
+    },
     "financialSummary": {
       "title": "Financial Summary",
       "sub": "Gross to net",
       "gross": "Gross sales",
-      "collected": "Collected",
-      "outstanding": "Outstanding",
-      "net": "Net revenue",
-      "refunds": "Refunds"
+      "discounts": "Discounts given",
+      "refunds": "Refunds",
+      "vat": "VAT collected",
+      "net": "Net revenue"
     },
     "profitMargin": {
       "title": "Profit & Margin",
-      "sub": "After product cost (assumed 38%)",
+      "sub": "After product cost",
       "profit": "Profit",
       "margin": "Margin",
       "cost": "Cost",
       "revenue": "Revenue"
+    },
+    "programs": {
+      "title": "Programs Activity",
+      "sub": "Gift cards · loyalty · subscriptions",
+      "gcSold": "Gift cards sold",
+      "gcRedeemed": "Gift cards redeemed",
+      "loyaltyIssued": "Loyalty points issued",
+      "loyaltyRedeemed": "Loyalty points redeemed",
+      "subscribers": "Active subscribers",
+      "mrr": "Recurring revenue (MRR)"
     }
   },
   "Finance": {

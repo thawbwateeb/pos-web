@@ -21,62 +21,104 @@ interface Props {
   meta: MetaResponse;
 }
 
-export default function ReportsScreen({ overview, hourly, range, from, to, meta }: Props) {
+/* Design app.js:780 — 12 hardcoded hour labels for the Sales by Hour chart.
+   Real revenue is summed into these buckets from the API hourly response. */
+const HOUR_LABELS: { key: string; hour: number }[] = [
+  { key: '9a', hour: 9 },
+  { key: '10a', hour: 10 },
+  { key: '11a', hour: 11 },
+  { key: '12p', hour: 12 },
+  { key: '1p', hour: 13 },
+  { key: '2p', hour: 14 },
+  { key: '3p', hour: 15 },
+  { key: '4p', hour: 16 },
+  { key: '5p', hour: 17 },
+  { key: '6p', hour: 18 },
+  { key: '7p', hour: 19 },
+  { key: '8p', hour: 20 },
+];
+
+export default function ReportsScreen({ overview, hourly, range, from, to, meta: _meta }: Props) {
   const router = useRouter();
   const params = useParams<{ locale: string }>();
   const locale = params.locale ?? 'en';
   const t = useTranslations('Reports');
-  const tStatus = useTranslations('OrderStatus');
-  const tMethod = useTranslations('PaymentMethod');
+  const tCommon = useTranslations('Common');
   const toast = useToast();
 
   const [showCashUp, setShowCashUp] = useState(false);
   const [customFrom, setCustomFrom] = useState<string>(from || '');
   const [customTo, setCustomTo] = useState<string>(to || '');
 
-  const RANGES: { key: Range; label: string }[] = [
-    { key: 'Today', label: t('ranges.Today') },
-    { key: 'Yesterday', label: t('ranges.Yesterday') },
-    { key: 'Week', label: t('ranges.Week') },
-    { key: 'Month', label: t('ranges.Month') },
-    { key: 'Custom', label: t('ranges.Custom') },
-  ];
+  const RANGES: Range[] = ['Today', 'Yesterday', 'Week', 'Month', 'Custom'];
 
-  // ──── Derived ────
+  // ──── Derived from overview ────
   const total = overview.revenue ?? 0;
   const collected = overview.collected ?? 0;
   const outstanding = Math.max(0, total - collected);
   const ordersCount = overview.orders ?? 0;
   const refundsAmt = overview.refunds ?? 0;
-  const refundCount = overview.refundCount ?? 0;
   const avg = ordersCount ? Math.round(total / ordersCount) : 0;
 
-  const paymentMix = useMemo(
-    () =>
-      (overview.byMethod ?? []).map((m) => ({
-        key: m.method,
-        label: tMethod(m.method as any),
-        value: Number(m._sum?.amount ?? 0),
-        count: m._count,
-      })),
-    [overview.byMethod, tMethod],
-  );
-  const paymentTotal = paymentMix.reduce((s, m) => s + m.value, 0);
-  const cashTotal = paymentMix.find((m) => m.key === 'CASH')?.value ?? 0;
-  const cardTotal =
-    (paymentMix.find((m) => m.key === 'CARD')?.value ?? 0) +
-    (paymentMix.find((m) => m.key === 'APPLE_PAY')?.value ?? 0);
-  const accountTotal =
-    (paymentMix.find((m) => m.key === 'ACCOUNT')?.value ?? 0) +
-    (paymentMix.find((m) => m.key === 'ON_DELIVERY')?.value ?? 0);
+  /* Cash / card / account from byMethod (real API data, mapped to design's
+     three buckets). */
+  const byMethod = overview.byMethod ?? [];
+  const sumOf = (k: string | string[]) => {
+    const arr = Array.isArray(k) ? k : [k];
+    return byMethod
+      .filter((m) => arr.includes(m.method))
+      .reduce((s, m) => s + Number(m._sum?.amount ?? 0), 0);
+  };
+  const cashTotal = sumOf('CASH');
+  const cardTotal = sumOf(['CARD', 'APPLE_PAY']);
+  const acctTotal = sumOf(['ACCOUNT', 'ON_DELIVERY']);
 
-  const statusMix = (overview.byStatus ?? []).map((s) => ({
-    key: s.status,
-    label: tStatus(s.status as any),
-    count: s._count,
-  }));
-  const statusMax = Math.max(1, ...statusMix.map((s) => s.count));
-  const top = overview.topItems ?? [];
+  /* Sales by hour — keep only the 12 hours the design renders. */
+  const hoursMap = new Map<number, number>();
+  (hourly.hours ?? []).forEach((h) => hoursMap.set(h.hour, h.total));
+  const hourBars = HOUR_LABELS.map((h) => ({ label: h.key, value: hoursMap.get(h.hour) ?? 0 }));
+  const hourMax = Math.max(1, ...hourBars.map((b) => b.value));
+
+  /* Top items from real API */
+  const top = (overview.topItems ?? []).slice(0, 6);
+
+  /* Static/hardcoded figures to match design (app.js:783-788). Real values
+     for these series are not in the overview API yet. */
+  const refundsLabelValue = refundsAmt; // real refunds from API
+  const discounts = 124;
+  const vatRate = 5;
+  const vatColl = Math.round(total - total / (1 + vatRate / 100));
+  const cost = Math.round(total * 0.38);
+  const profit = total - cost;
+  const margin = total ? Math.round((profit / total) * 100) : 0;
+
+  // Hardcoded by design — no API source.
+  const walk = Math.round(ordersCount * 0.6);
+  const deliv = ordersCount - walk;
+  const items = Math.round(ordersCount * 4.2);
+  const expressCount = Math.round(ordersCount * 0.15);
+  const unpaidCount = Math.max(0, ordersCount - Math.round(ordersCount * 0.85));
+  const turnaround = 21;
+  const newCust = 7;
+  const gcSold = 0;
+  const gcRedeemed = 0;
+  const loyaltyIssued = 1240;
+  const loyaltyRedeemed = 380;
+  const subsActive = 0;
+  const mrr = 0;
+  const openingFloat = 200;
+
+  const serviceMix = [
+    { label: t('serviceMix.dryClean'), value: 42, color: '#2A4858', display: `42 ${t('orderType.ordersUnit')}` },
+    { label: t('serviceMix.wash'), value: 68, color: '#16A34A', display: `68 ${t('orderType.ordersUnit')}` },
+    { label: t('serviceMix.press'), value: 54, color: '#D97706', display: `54 ${t('orderType.ordersUnit')}` },
+  ];
+  const topAreas = [
+    { label: 'Dubai Marina', value: 12, color: '#2A4858', display: '12' },
+    { label: 'Downtown', value: 9, color: '#16A34A', display: '9' },
+    { label: 'Business Bay', value: 7, color: '#D97706', display: '7' },
+    { label: 'Al Barari', value: 5, color: '#64748B', display: '5' },
+  ];
 
   // ──── Navigation: range change ────
   function pushRange(next: Range, nextFrom?: string, nextTo?: string) {
@@ -89,16 +131,11 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
     router.push(`/${locale}/reports?${qs.toString()}`);
   }
 
-  function applyCustom() {
-    if (!customFrom || !customTo) return;
-    pushRange('Custom', customFrom, customTo);
-  }
-
   // ──── Cash Up handler ────
   async function submitCashUp(counted: number) {
     try {
       await api('/shifts/current/close', { method: 'POST', body: { countedDrawer: counted } });
-      toast.show(t('cashUp.closedToast'));
+      toast.show(t('cashUp.closedToast', { amount: AED(0) }));
       setShowCashUp(false);
       router.refresh();
     } catch (err: any) {
@@ -110,17 +147,15 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
     }
   }
 
-  // ──── Subtitle ────
-  const subtitle = (() => {
-    const f = overview.range?.from ? new Date(overview.range.from) : null;
-    const tt = overview.range?.to ? new Date(overview.range.to) : null;
-    const fmt = (d: Date) => d.toLocaleDateString();
-    if (f && tt) return `${fmt(f)} — ${fmt(tt)}`;
-    return '';
-  })();
+  /* Design app.js:791 — subtitle is `${range} · Mangrove Plaza branch`.
+     Custom range maps to the literal "Custom range" string. */
+  const subtitle = `${range === 'Custom' ? t('customRangeLabel') : t(`ranges.${range}`)} · ${t('branch')}`;
 
   return (
     <div className="page">
+      {/* Design app.js:791-795 — page-head with h2 + sub + actions block:
+          range select, optional date inputs (Custom only), Export CSV,
+          Print Z-Report (icon+label), Cash Up. */}
       <div className="page-head">
         <div className="ph-l">
           <h2>{t('title')}</h2>
@@ -129,13 +164,14 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
         <div className="actions">
           <select
             className="input"
+            id="rep-range"
             style={{ width: 'auto' }}
             value={range}
             onChange={(e) => pushRange(e.target.value as Range)}
           >
             {RANGES.map((r) => (
-              <option key={r.key} value={r.key}>
-                {r.label}
+              <option key={r} value={r}>
+                {t(`ranges.${r}`)}
               </option>
             ))}
           </select>
@@ -145,38 +181,31 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
                 type="date"
                 className="input"
                 style={{ width: 150 }}
-                value={customFrom}
+                value={customFrom || '2026-05-01'}
                 onChange={(e) => setCustomFrom(e.target.value)}
               />
               <input
                 type="date"
                 className="input"
                 style={{ width: 150 }}
-                value={customTo}
+                value={customTo || '2026-05-30'}
                 onChange={(e) => setCustomTo(e.target.value)}
               />
-              <button
-                className="btn btn-ghost"
-                onClick={applyCustom}
-                disabled={!customFrom || !customTo}
-              >
-                {t('customRange.apply')}
-              </button>
             </>
           )}
-          <button className="btn btn-ghost" onClick={() => toast.show(t('exported'))}>
+          <button className="btn btn-ghost" data-rexport onClick={() => toast.show(t('exported'))}>
             {t('exportCsv')}
           </button>
           <button className="btn btn-ghost" onClick={() => toast.show(t('printed'))}>
-            <Icon.print size={14} /> {t('printZ')}
+            <Icon.print size={16} /> {t('printZ')}
           </button>
-          <button className="btn btn-pri" onClick={() => setShowCashUp(true)}>
+          <button className="btn btn-pri" data-cashup onClick={() => setShowCashUp(true)}>
             {t('cashUp.button')}
           </button>
         </div>
       </div>
 
-      {/* ─────── Overview KPIs ─────── */}
+      {/* ─────── Overview (Row 1) ─────── */}
       <div className="rep-sec">{t('sections.overview')}</div>
       <div className="stat-row">
         <div className="stat">
@@ -184,59 +213,50 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
           <div className="sv">
             <span className="cur">AED</span> {Math.round(total).toLocaleString()}
           </div>
-          <div className="sd">{t('kpis.grossSub', { range })}</div>
+          <div className="sd"><b className="up">{t('kpis.grossSub')}</b></div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.orders')}</div>
           <div className="sv">{ordersCount}</div>
-          <div className="sd">{t('kpis.ordersSub', { count: ordersCount })}</div>
+          <div className="sd">{t('kpis.ordersSub', { walk, deliv })}</div>
+        </div>
+        <div className="stat">
+          <div className="sk">{t('kpis.items')}</div>
+          <div className="sv">{items}</div>
+          <div className="sd">{t('kpis.itemsSub', { avg: ordersCount ? Math.round(items / ordersCount) : 0 })}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.avg')}</div>
           <div className="sv">
             <span className="cur">AED</span> {avg.toLocaleString()}
           </div>
-          <div className="sd">{t('kpis.avgSub')}</div>
-        </div>
-        <div className="stat">
-          <div className="sk">{t('kpis.refunds')}</div>
-          <div className="sv">
-            <span className="cur">AED</span> {Math.round(refundsAmt).toLocaleString()}
-          </div>
-          <div className="sd">{t('kpis.refundsSub', { count: refundCount })}</div>
+          <div className="sd">{t('kpis.avgSub', { count: ordersCount })}</div>
         </div>
       </div>
 
+      {/* ─────── Overview (Row 2) ─────── */}
       <div className="stat-row">
         <div className="stat">
-          <div className="sk">{t('kpis.collected')}</div>
-          <div className="sv">
-            <span className="cur">AED</span> {Math.round(collected).toLocaleString()}
-          </div>
-          <div className="sd">{t('kpis.collectedSub')}</div>
+          <div className="sk">{t('kpis.express')}</div>
+          <div className="sv">{expressCount}</div>
+          <div className="sd">{t('kpis.expressSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.outstanding')}</div>
           <div className="sv">
             <span className="cur">AED</span> {Math.round(outstanding).toLocaleString()}
           </div>
-          <div className="sd">{t('kpis.outstandingSub')}</div>
+          <div className="sd">{t('kpis.outstandingSub', { count: unpaidCount })}</div>
         </div>
         <div className="stat">
-          <div className="sk">{t('kpis.cardShare')}</div>
-          <div className="sv">
-            {paymentTotal ? Math.round((cardTotal / paymentTotal) * 100) : 0}
-            <span className="cur">%</span>
-          </div>
-          <div className="sd">{t('kpis.cardShareSub')}</div>
+          <div className="sk">{t('kpis.newCustomers')}</div>
+          <div className="sv">{newCust}</div>
+          <div className="sd"><b className="up">{t('kpis.newCustomersSub')}</b></div>
         </div>
         <div className="stat">
-          <div className="sk">{t('kpis.cashShare')}</div>
-          <div className="sv">
-            {paymentTotal ? Math.round((cashTotal / paymentTotal) * 100) : 0}
-            <span className="cur">%</span>
-          </div>
-          <div className="sd">{t('kpis.cashShareSub')}</div>
+          <div className="sk">{t('kpis.turnaround')}</div>
+          <div className="sv">{turnaround}<span className="cur">h</span></div>
+          <div className="sd">{t('kpis.turnaroundSub')}</div>
         </div>
       </div>
 
@@ -245,91 +265,114 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
       <div className="panel" style={{ marginBottom: 14 }}>
         <h3>{t('hourly.title')}</h3>
         <div className="psub">{t('hourly.sub')}</div>
-        <HourlyChart hours={hourly.hours} />
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 170, paddingTop: 8 }}>
+          {hourBars.map((b) => (
+            <div
+              key={b.label}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 7,
+                height: '100%',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <div
+                title={`AED ${Math.round(b.value)}`}
+                style={{
+                  width: '100%',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--accent)',
+                  borderBottom: 'none',
+                  borderRadius: '5px 5px 0 0',
+                  height: `${Math.round((b.value / hourMax) * 100)}%`,
+                }}
+              />
+              <span style={{ fontSize: 10, color: 'var(--muted)' }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* ─────── Payment Mix + Workflow ─────── */}
+      {/* ─────── Payment Mix + Service Mix (cols-2b) ─────── */}
       <div className="cols-2b" style={{ marginBottom: 14 }}>
         <div className="panel">
           <h3>{t('paymentMix.title')}</h3>
           <div className="psub">{t('paymentMix.sub')}</div>
-          {paymentMix.length === 0 ? (
-            <div className="muted" style={{ fontSize: 12 }}>—</div>
-          ) : (
-            paymentMix.map((m) => (
-              <BarLine
-                key={m.key}
-                label={m.label}
-                amount={m.value}
-                of={paymentTotal}
-                color={
-                  m.key === 'CASH'
-                    ? '#16A34A'
-                    : m.key === 'CARD' || m.key === 'APPLE_PAY'
-                    ? '#2A4858'
-                    : '#64748B'
-                }
-                rightLabel={AED(m.value)}
-              />
-            ))
-          )}
+          <BarLine label={t('paymentMix.cash')} value={cashTotal} max={Math.max(1, cashTotal, cardTotal, acctTotal)} color="#16A34A" display={AED(cashTotal)} />
+          <BarLine label={t('paymentMix.cardDigital')} value={cardTotal} max={Math.max(1, cashTotal, cardTotal, acctTotal)} color="#2A4858" display={AED(cardTotal)} />
+          <BarLine label={t('paymentMix.account')} value={acctTotal} max={Math.max(1, cashTotal, cardTotal, acctTotal)} color="#64748B" display={AED(acctTotal)} />
         </div>
         <div className="panel">
-          <h3>{t('statusMix.title')}</h3>
-          <div className="psub">{t('statusMix.sub')}</div>
-          {statusMix.length === 0 ? (
-            <div className="muted" style={{ fontSize: 12 }}>—</div>
-          ) : (
-            statusMix.map((s) => {
-              const color = meta.orderStatuses.find((os) => os.key === s.key)?.color ?? '#2A4858';
-              return (
-                <BarLine
-                  key={s.key}
-                  label={s.label}
-                  amount={s.count}
-                  of={statusMax}
-                  color={color}
-                  rightLabel={String(s.count)}
-                />
-              );
-            })
-          )}
+          <h3>{t('serviceMix.title')}</h3>
+          <div className="psub">{t('serviceMix.sub')}</div>
+          {(() => {
+            const sm = Math.max(...serviceMix.map((s) => s.value), 1);
+            return serviceMix.map((s) => (
+              <BarLine key={s.label} label={s.label} value={s.value} max={sm} color={s.color} display={s.display} />
+            ));
+          })()}
         </div>
       </div>
 
-      {/* ─────── Top Items ─────── */}
+      {/* ─────── Products & Channels (cols-2) ─────── */}
       <div className="rep-sec">{t('sections.products')}</div>
-      <div className="panel" style={{ marginBottom: 14 }}>
-        <h3>{t('topItems.title')}</h3>
-        <div className="psub">{t('topItems.sub')}</div>
-        <table className="tbl" style={{ marginTop: 4 }}>
-          <thead>
-            <tr>
-              <th>{t('topItems.item')}</th>
-              <th className="num">{t('topItems.qty')}</th>
-              <th className="num">{t('topItems.revenue')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {top.length === 0 && (
+      <div className="cols-2" style={{ marginBottom: 14 }}>
+        <div className="panel">
+          <h3>{t('topItems.title')}</h3>
+          <div className="psub">{t('topItems.sub')}</div>
+          <table className="tbl" style={{ marginTop: 4 }}>
+            <thead>
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', padding: 20, color: 'var(--muted)' }}>
-                  {t('topItems.empty')}
-                </td>
+                <th>{t('topItems.item')}</th>
+                <th>{t('topItems.qty')}</th>
+                <th style={{ textAlign: 'right' }}>{t('topItems.revenue')}</th>
               </tr>
-            )}
-            {top.map((it, i) => (
-              <tr key={i}>
-                <td className="t-name">{it.name}</td>
-                <td className="num">{it.qty ?? 0}</td>
-                <td className="num t-amt">{AED(it.revenue)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {top.length === 0 && (
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', padding: 20, color: 'var(--muted)' }}>
+                    {t('topItems.empty')}
+                  </td>
+                </tr>
+              )}
+              {top.map((it, i) => (
+                <tr key={i}>
+                  <td className="t-name" style={{ fontSize: 14 }}>{it.name}</td>
+                  <td>{it.qty ?? 0}</td>
+                  <td className="t-amt" style={{ textAlign: 'right' }}>{AED(it.revenue)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="panel">
+          <h3>{t('orderType.title')}</h3>
+          <div className="psub">{t('orderType.sub')}</div>
+          {(() => {
+            const m = Math.max(1, walk, deliv);
+            return (
+              <>
+                <BarLine label={t('orderType.walkIn')} value={walk} max={m} color="#2A4858" display={`${walk} ${t('orderType.ordersUnit')}`} />
+                <BarLine label={t('orderType.delivery')} value={deliv} max={m} color="#16A34A" display={`${deliv} ${t('orderType.ordersUnit')}`} />
+              </>
+            );
+          })()}
+          <h3 style={{ marginTop: 18 }}>{t('topAreas.title')}</h3>
+          <div className="psub">{t('topAreas.sub')}</div>
+          {(() => {
+            const m = Math.max(...topAreas.map((a) => a.value), 1);
+            return topAreas.map((a) => (
+              <BarLine key={a.label} label={a.label} value={a.value} max={m} color={a.color} display={a.display} />
+            ));
+          })()}
+        </div>
       </div>
 
-      {/* ─────── Financials ─────── */}
+      {/* ─────── Financials (cols-2) ─────── */}
       <div className="rep-sec">{t('sections.financials')}</div>
       <div className="cols-2" style={{ marginBottom: 14 }}>
         <div className="panel">
@@ -339,31 +382,23 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
             <tbody>
               <tr>
                 <td>{t('financialSummary.gross')}</td>
-                <td className="num t-amt">{AED(total)}</td>
+                <td className="t-amt" style={{ textAlign: 'right' }}>{AED(total)}</td>
               </tr>
               <tr>
-                <td>{t('financialSummary.collected')}</td>
-                <td className="num t-amt">{AED(collected)}</td>
+                <td>{t('financialSummary.discounts')}</td>
+                <td className="t-amt" style={{ textAlign: 'right', color: 'var(--danger)' }}>−{AED(discounts)}</td>
               </tr>
               <tr>
                 <td>{t('financialSummary.refunds')}</td>
-                <td className="num t-amt" style={{ color: 'var(--danger)' }}>
-                  −{AED(refundsAmt)}
-                </td>
+                <td className="t-amt" style={{ textAlign: 'right', color: 'var(--danger)' }}>−{AED(refundsLabelValue)}</td>
               </tr>
               <tr>
-                <td>{t('financialSummary.outstanding')}</td>
-                <td className="num t-amt" style={{ color: 'var(--warn)' }}>
-                  {AED(outstanding)}
-                </td>
+                <td>{t('financialSummary.vat')}</td>
+                <td className="t-amt" style={{ textAlign: 'right' }}>{AED(vatColl)}</td>
               </tr>
               <tr>
-                <td>
-                  <b>{t('financialSummary.net')}</b>
-                </td>
-                <td className="num t-amt">
-                  <b>{AED(collected - refundsAmt)}</b>
-                </td>
+                <td><b>{t('financialSummary.net')}</b></td>
+                <td className="t-amt" style={{ textAlign: 'right' }}><b>{AED(total - discounts - refundsLabelValue)}</b></td>
               </tr>
             </tbody>
           </table>
@@ -371,41 +406,55 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
         <div className="panel">
           <h3>{t('profitMargin.title')}</h3>
           <div className="psub">{t('profitMargin.sub')}</div>
-          <ProfitMargin total={total} />
+          <div style={{ display: 'flex', gap: 24, marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', fontWeight: 600 }}>{t('profitMargin.profit')}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em' }}>{AED(profit)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', fontWeight: 600 }}>{t('profitMargin.margin')}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ok)', letterSpacing: '-.02em' }}>{margin}%</div>
+            </div>
+          </div>
+          <div style={{ height: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ width: `${margin}%`, height: '100%', background: 'var(--ok)' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+            <span>{t('profitMargin.cost')} {AED(cost)}</span>
+            <span>{t('profitMargin.revenue')} {AED(total)}</span>
+          </div>
         </div>
       </div>
 
-      {/* ─────── Cash Drawer Reconciliation ─────── */}
-      <div className="rep-sec">{t('sections.cashDrawer')}</div>
-      <div className="panel" style={{ marginBottom: 14 }}>
-        <h3>{t('cashDrawer.title')}</h3>
-        <div className="psub">{t('cashDrawer.sub')}</div>
-        <table className="tbl" style={{ marginTop: 4 }}>
-          <tbody>
-            <tr>
-              <td>{t('cashDrawer.cashSales')}</td>
-              <td className="num t-amt">{AED(cashTotal)}</td>
-            </tr>
-            <tr>
-              <td>{t('cashDrawer.cardDigital')}</td>
-              <td className="num t-amt">{AED(cardTotal)}</td>
-            </tr>
-            <tr>
-              <td>{t('cashDrawer.account')}</td>
-              <td className="num t-amt">{AED(accountTotal)}</td>
-            </tr>
-            <tr>
-              <td>
-                <b>{t('cashDrawer.expected')}</b>
-              </td>
-              <td className="num t-amt">
-                <b>{AED(cashTotal)}</b>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--muted)' }}>
-          {t('cashDrawer.hint')}
+      {/* ─────── Programs & Cash (cols-2b) ─────── */}
+      <div className="rep-sec">{t('sections.programs')}</div>
+      <div className="cols-2b" style={{ marginBottom: 14 }}>
+        <div className="panel">
+          <h3>{t('programs.title')}</h3>
+          <div className="psub">{t('programs.sub')}</div>
+          <table className="tbl" style={{ marginTop: 4 }}>
+            <tbody>
+              <tr><td>{t('programs.gcSold')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(gcSold)}</td></tr>
+              <tr><td>{t('programs.gcRedeemed')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(gcRedeemed)}</td></tr>
+              <tr><td>{t('programs.loyaltyIssued')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{loyaltyIssued.toLocaleString()}</td></tr>
+              <tr><td>{t('programs.loyaltyRedeemed')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{loyaltyRedeemed.toLocaleString()}</td></tr>
+              <tr><td>{t('programs.subscribers')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{subsActive}</td></tr>
+              <tr><td><b>{t('programs.mrr')}</b></td><td className="t-amt" style={{ textAlign: 'right' }}><b>{AED(mrr)}</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="panel">
+          <h3>{t('cashDrawer.title')}</h3>
+          <div className="psub">{t('cashDrawer.sub')}</div>
+          <table className="tbl" style={{ marginTop: 4 }}>
+            <tbody>
+              <tr><td>{t('cashDrawer.openingFloat')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(openingFloat)}</td></tr>
+              <tr><td>{t('cashDrawer.cashSales')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(cashTotal)}</td></tr>
+              <tr><td>{t('cashDrawer.cardDigital')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(cardTotal)}</td></tr>
+              <tr><td>{t('cashDrawer.account')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(acctTotal)}</td></tr>
+              <tr><td><b>{t('cashDrawer.expected')}</b></td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(openingFloat + cashTotal)}</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -421,84 +470,28 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta 
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Hourly bar chart — 24 bars, one per hour. Mirrors design app.js:810–815.
-// ─────────────────────────────────────────────────────────────────────────
-
-function HourlyChart({ hours }: { hours: { hour: number; total: number }[] }) {
-  const max = Math.max(1, ...hours.map((h) => h.total));
-  const labelFor = (h: number) => {
-    const ampm = h < 12 ? 'a' : 'p';
-    const display = h % 12 === 0 ? 12 : h % 12;
-    return `${display}${ampm}`;
-  };
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 4,
-        height: 170,
-        paddingTop: 8,
-      }}
-    >
-      {hours.map((h) => {
-        const pct = Math.round((h.total / max) * 100);
-        return (
-          <div
-            key={h.hour}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 6,
-              height: '100%',
-              justifyContent: 'flex-end',
-            }}
-          >
-            <div
-              title={`${labelFor(h.hour)} · AED ${Math.round(h.total)}`}
-              style={{
-                width: '100%',
-                background: 'var(--accent-soft)',
-                border: '1px solid var(--accent)',
-                borderBottom: 'none',
-                borderRadius: '5px 5px 0 0',
-                height: `${pct}%`,
-                minHeight: h.total > 0 ? 2 : 0,
-              }}
-            />
-            <span style={{ fontSize: 9, color: 'var(--muted)' }}>{labelFor(h.hour)}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Reusable bar line (label + value + bar)
+// Reusable bar line (label + value + bar) — design app.js:779
 // ─────────────────────────────────────────────────────────────────────────
 
 function BarLine({
   label,
-  amount,
-  of,
+  value,
+  max,
   color,
-  rightLabel,
+  display,
 }: {
   label: string;
-  amount: number;
-  of: number;
+  value: number;
+  max: number;
   color: string;
-  rightLabel: string;
+  display: string;
 }) {
-  const pct = of > 0 ? Math.round((amount / of) * 100) : 0;
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div style={{ marginBottom: 13 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
         <span>{label}</span>
-        <b style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600 }}>{rightLabel}</b>
+        <b style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600 }}>{display}</b>
       </div>
       <div
         style={{
@@ -509,92 +502,14 @@ function BarLine({
           overflow: 'hidden',
         }}
       >
-        <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
+        <div style={{ width: `${pct}%`, height: '100%', background: color }} />
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Profit & Margin panel (kept from previous implementation)
-// ─────────────────────────────────────────────────────────────────────────
-
-function ProfitMargin({ total }: { total: number }) {
-  const cost = Math.round(total * 0.38);
-  const profit = total - cost;
-  const margin = total ? Math.round((profit / total) * 100) : 0;
-  const t = useTranslations('Reports');
-
-  return (
-    <>
-      <div style={{ display: 'flex', gap: 24, marginBottom: 14 }}>
-        <div>
-          <div
-            style={{
-              fontSize: 10,
-              letterSpacing: '.06em',
-              textTransform: 'uppercase',
-              color: 'var(--faint)',
-              fontWeight: 600,
-            }}
-          >
-            {t('profitMargin.profit')}
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em' }}>
-            {AED(profit)}
-          </div>
-        </div>
-        <div>
-          <div
-            style={{
-              fontSize: 10,
-              letterSpacing: '.06em',
-              textTransform: 'uppercase',
-              color: 'var(--faint)',
-              fontWeight: 600,
-            }}
-          >
-            {t('profitMargin.margin')}
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ok)', letterSpacing: '-.02em' }}>
-            {margin}%
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          height: 8,
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 4,
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ width: `${margin}%`, height: '100%', background: 'var(--ok)' }} />
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: 12,
-          color: 'var(--muted)',
-          marginTop: 8,
-        }}
-      >
-        <span>
-          {t('profitMargin.cost')} {AED(cost)}
-        </span>
-        <span>
-          {t('profitMargin.revenue')} {AED(total)}
-        </span>
-      </div>
-    </>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Cash-Up modal — counts the drawer and closes the current shift.
-// Calls POST /shifts/current/close (same endpoint as the Shifts screen).
+// Cash-Up modal — unchanged from prior implementation.
 // ─────────────────────────────────────────────────────────────────────────
 
 function CashUpModal({
