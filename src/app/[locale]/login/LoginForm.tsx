@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
-import { LOGO_LG, Icon } from '@/components/Icons';
+import { LOGO_PATH } from '@/components/Icons';
 
 interface BusinessOption { slug: string; name: string }
 
@@ -51,8 +51,12 @@ export default function LoginForm({ next }: { next: string }) {
     <div id="login-overlay">
       <div className="lg-bg" />
       <div className="lg-card" id="lg-card">
+        {/* Design login.js:4 — LOGO svg has NO width/height attrs (CSS .lg-logo svg
+            sets 28×18 in pos.css:591). */}
         <div className="lg-brand">
-          <span className="lg-logo">{LOGO_LG}</span>
+          <span className="lg-logo">
+            <svg viewBox="112 272 800 480" fill="currentColor">{LOGO_PATH}</svg>
+          </span>
           <div className="lg-name">
             {t('brand')}<span>{t('tagline')}</span>
           </div>
@@ -90,8 +94,13 @@ export default function LoginForm({ next }: { next: string }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              {/* Design login.js:19 — eye SVG inline, no width/height (CSS sets 19×19),
+                  stroke-width=1.8 (NOT 1.6 like the generic Icon set). */}
               <button type="button" id="lg-eye" title={t('showPassword')} onClick={() => setShowPw((v) => !v)}>
-                <Icon.eye />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
               </button>
             </div>
           </label>
@@ -120,12 +129,22 @@ export default function LoginForm({ next }: { next: string }) {
             </button>
           </div>
 
-          {err && <div className={`lg-err ${err.kind === 'info' ? 'info' : ''}`}>{err.text}</div>}
+          {/* Design login.js:24 — .lg-err is always present in DOM; the `hidden`
+              attribute toggles visibility so the surrounding margin stays. */}
+          <div className={`lg-err ${err?.kind === 'info' ? 'info' : ''}`} id="lg-err" hidden={!err}>
+            {err?.text ?? ''}
+          </div>
 
-          <button className={`lg-submit${busy ? ' btn-loading' : ''}`} type="submit" disabled={busy}>
+          {/* Design login.js:25 — arrow SVG inline, no width/height (CSS sets
+              18×18 in pos.css:623), stroke-width=2 (NOT 1.6 like generic Icons). */}
+          <button className={`lg-submit${busy ? ' btn-loading' : ''}`} id="lg-go" type="submit" disabled={busy}>
             {busy ? <span className="lg-spin" /> : null}
             {busy ? t('signingIn') : t('signIn')}
-            {!busy && <Icon.arrowRight />}
+            {!busy && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            )}
           </button>
           <div className="lg-foot">
             <span>{t('roleHint')}</span>
