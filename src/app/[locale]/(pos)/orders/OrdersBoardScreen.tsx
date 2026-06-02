@@ -170,9 +170,11 @@ export default function OrdersBoardScreen({
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           const isDropTarget = dropTarget === statusKey;
           return (
+            // Design app.js:525 — <div class="col" data-col="${st.id}">
             <div
               className={`col${isDropTarget ? ' drop-target' : ''}`}
               key={col.key}
+              data-col={col.key}
               onDragOver={(e) => onColDragOver(e, statusKey)}
               onDragLeave={() => onColDragLeave(statusKey)}
               onDrop={(e) => onColDrop(e, statusKey)}
@@ -184,7 +186,8 @@ export default function OrdersBoardScreen({
               </div>
               <div className="col-body">
                 {orders.length === 0 ? (
-                  <div className="muted" style={{ fontSize: 12, padding: 14, textAlign: 'center' }}>
+                  /* Design app.js:527 — bare <div style="..."> with no .muted class. */
+                  <div style={{ fontSize: 12, padding: 14, color: 'var(--muted)', textAlign: 'center' }}>
                     —
                   </div>
                 ) : (
@@ -246,36 +249,41 @@ function OrderCard({
 }) {
   const t = useTranslations('OrdersBoard');
   const tType = useTranslations('Order');
+  const tCommon = useTranslations('Common');
 
   const isExpress = o.expressOn;
   const itemCount = o._count?.items ?? 0;
   const due = dueLabel(o.dueAt, { today: t('today'), tomorrow: t('tomorrow'), yesterday: t('yesterday') });
 
+  /* Design app.js:578-593 — every interactive element carries a data-*
+     hook used by the JS event delegation. We keep the equivalents so
+     the DOM mirrors the design. */
   return (
     <div
       className="ocard"
       draggable
+      data-oid={o.id}
       onDragStart={onDragStart}
       onClick={(e) => {
-        // Ignore clicks that originate from a button inside the card.
         if ((e.target as HTMLElement).closest('button')) return;
         onOpen();
       }}
     >
       <div className="oc-top">
-        <button className="oc-id" onClick={onOpen}>
+        <button className="oc-id" data-detail={o.id} onClick={onOpen}>
           <span className="oc-pos">{position}</span>#{o.number}
         </button>
         <span className={`oc-type${isExpress ? ' express' : ''}`}>
           {isExpress ? t('express') : (o.type === 'WALK_IN' ? tType('walkIn') : tType('pickupDelivery'))}
         </span>
-        <button className="oc-manage" title="Manage" onClick={onOpen}>⋯</button>
+        <button className="oc-manage" data-manage={o.id} onClick={onOpen}>⋯</button>
       </div>
 
       <div className="oc-cust">{o.customer?.fullName ?? t('guest')}</div>
 
+      {/* Design app.js:581 — `${o.items+' items'}` literal (no plural rule). */}
       <div className="oc-meta">
-        <span>{itemCount > 0 ? t('items', { count: itemCount }) : t('awaiting')}</span>
+        <span>{itemCount > 0 ? `${itemCount} ${tCommon('items').toLowerCase()}` : t('awaiting')}</span>
         <span>·</span>
         <span>{due}</span>
       </div>
@@ -293,6 +301,7 @@ function OrderCard({
         <span className="oc-total">{AED(o.total)}</span>
         <button
           className={`oc-pay ${o.paid ? 'paid' : 'unpaid'}`}
+          data-pay={o.id}
           onClick={onTogglePaid}
         >
           {o.paid ? t('paid') : t('unpaid')}
@@ -300,26 +309,28 @@ function OrderCard({
       </div>
 
       {o.status === 'RECEIVED' && (
-        <button className="oc-edit" onClick={onOpen}>
+        <button className="oc-edit" data-edit={o.id} onClick={onOpen}>
           {t('detailEdit')}
         </button>
       )}
       {o.status === 'TAGGING' && (
-        <button className="oc-edit tag-cta" onClick={onOpen}>
+        <button className="oc-edit tag-cta" data-tagopen={o.id} onClick={onOpen}>
           {t('openTagging')} →
         </button>
       )}
 
+      {/* Design app.js:589-592 — full status label (e.g. "Move to Out
+          for Delivery →"); the previous code truncated at first space. */}
       <div className="oc-move">
         {canRetreat && (
-          <button className="back" onClick={onRetreat}>←</button>
+          <button className="back" data-bak={o.id} onClick={onRetreat}>←</button>
         )}
         {canAdvance ? (
-          <button onClick={onAdvance}>
-            {t('moveTo', { status: nextLabel?.split(' ')[0] ?? '' })} →
+          <button data-adv={o.id} onClick={onAdvance}>
+            {t('moveTo', { status: nextLabel ?? '' })} →
           </button>
         ) : (
-          <button disabled style={{ opacity: 0.5 }}>{t('done')}</button>
+          <button data-adv={o.id} disabled style={{ opacity: 0.5 }}>{t('done')}</button>
         )}
       </div>
     </div>
