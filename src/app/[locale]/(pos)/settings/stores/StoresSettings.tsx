@@ -4,19 +4,43 @@ import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
-export default function StoresSettings({ initial, activeStoreId }: { initial: any[]; activeStoreId: string }) {
-  const [stores, setStores] = useState(initial);
-  const [editing, setEditing] = useState<any | null>(null);
-  const [viewing, setViewing] = useState<any | null>(null);
+/* Design app.js:1599-1612 — Stores:
+   - .set-sec h2 'Stores' + ssub 'Manage every branch — switch the active
+     store from the top bar' (set-sec closes here).
+   - .set-card padding:0 overflow:hidden:
+     - Custom header: flex space-between padding:14-16 with bottom border —
+       <b 14px>${n} stores</b> + .btn.btn-pri '+ Add Store' (id='store-add')
+       padding:9-14.
+     - table.tbl thead 6 cols: Store / Area / Phone / Hours / Status / (action).
+     - Row: .t-name name + optional .pill.paid 'Active' (margin-left:4) /
+       area / .mono 12px phone / hours / .pill.paid|muted Open|Closed /
+       text-align:right white-space:nowrap with .t-btn 'Edit' (data-storeedit) +
+       .t-btn 'View' (data-storeview) + .t-btn 'Delete' (data-storedel, danger). */
+
+interface Store {
+  id: string;
+  name: string;
+  area?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  trn?: string | null;
+  hours?: string | null;
+  active: boolean;
+}
+
+export default function StoresSettings({ initial, activeStoreId }: { initial: Store[]; activeStoreId: string }) {
+  const [stores, setStores] = useState<Store[]>(initial);
+  const [editing, setEditing] = useState<Store | null>(null);
+  const [viewing, setViewing] = useState<Store | null>(null);
   const [adding, setAdding] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Store | null>(null);
   const toast = useToast();
 
   async function reload() {
-    setStores(await api<any[]>('/stores'));
+    setStores(await api<Store[]>('/stores'));
   }
 
-  async function doDelete(store: any) {
+  async function doDelete(store: Store) {
     await api(`/stores/${store.id}`, { method: 'DELETE' });
     setConfirmDelete(null);
     reload();
@@ -24,41 +48,66 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: an
   }
 
   return (
-    <div className="set-sec">
-      <h2>Stores</h2>
-      <p className="ssub">Branches your business operates. Staff sign into one or more of these.</p>
-      <div className="set-card">
-        <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>All stores</h3>
-          <button className="btn btn-pri btn-sm" onClick={() => setAdding(true)}>+ Add store</button>
+    <>
+      <div className="set-sec">
+        <h2>Stores</h2>
+        <div className="ssub">Manage every branch — switch the active store from the top bar</div>
+      </div>
+
+      <div className="set-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '14px 16px',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <b style={{ fontSize: 14 }}>{stores.length} stores</b>
+          <button
+            className="btn btn-pri"
+            id="store-add"
+            style={{ padding: '9px 14px' }}
+            onClick={() => setAdding(true)}
+          >
+            + Add Store
+          </button>
         </div>
         <table className="tbl">
-          <thead><tr><th>Name</th><th>Area</th><th>Phone</th><th>TRN</th><th>Status</th><th className="num">Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Store</th>
+              <th>Area</th>
+              <th>Phone</th>
+              <th>Hours</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
-            {stores.map((s) => (
+            {stores.map((s, i) => (
               <tr key={s.id}>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{s.name}</span>
-                    {s.id === activeStoreId && (
-                      <span className="pill paid" style={{ fontSize: 10 }}>Active</span>
-                    )}
-                  </div>
+                <td className="t-name">
+                  {s.name}
+                  {s.id === activeStoreId && (
+                    <span className="pill paid" style={{ marginLeft: 4 }}>Active</span>
+                  )}
                 </td>
                 <td>{s.area ?? '—'}</td>
-                <td>{s.phone ?? '—'}</td>
-                <td>{s.trn ?? '—'}</td>
+                <td className="mono" style={{ fontSize: 12 }}>{s.phone ?? '—'}</td>
+                <td>{s.hours ?? '—'}</td>
                 <td>
-                  <span
-                    className={`switch${s.active ? ' on' : ''}`}
-                    onClick={async () => { await api(`/stores/${s.id}`, { method: 'PATCH', body: { active: !s.active } }); reload(); }}
-                  />
+                  <span className={`pill ${s.active ? 'paid' : 'muted'}`}>
+                    {s.active ? 'Open' : 'Closed'}
+                  </span>
                 </td>
-                <td className="num">
-                  <button className="btn btn-ghost btn-sm" onClick={() => setViewing(s)}>View</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setEditing(s)}>Edit</button>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button className="t-btn" data-storeedit={i} onClick={() => setEditing(s)}>Edit</button>{' '}
+                  <button className="t-btn" data-storeview={i} onClick={() => setViewing(s)}>View</button>{' '}
                   <button
-                    className="btn btn-ghost btn-sm"
+                    className="t-btn"
+                    data-storedel={i}
                     style={{ color: 'var(--danger)' }}
                     onClick={() => setConfirmDelete(s)}
                   >
@@ -67,9 +116,17 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: an
                 </td>
               </tr>
             ))}
+            {stores.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ color: 'var(--muted)', fontSize: 13, padding: 16 }}>
+                  No stores yet — add one.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
       {(adding || editing) && (
         <StoreForm
           initial={editing}
@@ -97,18 +154,18 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: an
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
-function StoreViewModal({ store, isActive, onClose }: { store: any; isActive: boolean; onClose: () => void }) {
+function StoreViewModal({ store, isActive, onClose }: { store: Store; isActive: boolean; onClose: () => void }) {
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>
             {store.name}
-            {isActive && <span className="pill paid" style={{ marginLeft: 8, fontSize: 10 }}>Active</span>}
+            {isActive && <span className="pill paid" style={{ marginLeft: 8 }}>Active</span>}
           </h3>
           <button className="x" onClick={onClose}>×</button>
         </div>
@@ -123,7 +180,7 @@ function StoreViewModal({ store, isActive, onClose }: { store: any; isActive: bo
           <div style={{ padding: '12px 16px', display: 'grid', gap: 6, fontSize: 13 }}>
             <div><span style={{ color: 'var(--muted)' }}>Address: </span>{store.address ?? '—'}</div>
             <div><span style={{ color: 'var(--muted)' }}>Hours: </span>{store.hours ?? '—'}</div>
-            <div><span style={{ color: 'var(--muted)' }}>Status: </span>{store.active ? 'Active (accepting orders)' : 'Inactive (not accepting orders)'}</div>
+            <div><span style={{ color: 'var(--muted)' }}>Status: </span>{store.active ? 'Open' : 'Closed'}</div>
           </div>
         </div>
         <div className="modal-foot">
@@ -134,8 +191,15 @@ function StoreViewModal({ store, isActive, onClose }: { store: any; isActive: bo
   );
 }
 
-function StoreForm({ initial, onClose, onSaved }: { initial: any | null; onClose: () => void; onSaved: () => void }) {
-  const [f, setF] = useState({ name: initial?.name ?? '', area: initial?.area ?? '', address: initial?.address ?? '', phone: initial?.phone ?? '', trn: initial?.trn ?? '', hours: initial?.hours ?? '' });
+function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClose: () => void; onSaved: () => void }) {
+  const [f, setF] = useState({
+    name: initial?.name ?? '',
+    area: initial?.area ?? '',
+    address: initial?.address ?? '',
+    phone: initial?.phone ?? '',
+    trn: initial?.trn ?? '',
+    hours: initial?.hours ?? '',
+  });
   const isEdit = !!initial;
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -144,7 +208,7 @@ function StoreForm({ initial, onClose, onSaved }: { initial: any | null; onClose
     if (!f.name) return toast.show('Name required');
     setBusy(true);
     try {
-      if (isEdit) await api(`/stores/${initial.id}`, { method: 'PATCH', body: f });
+      if (isEdit && initial) await api(`/stores/${initial.id}`, { method: 'PATCH', body: f });
       else await api('/stores', { method: 'POST', body: f });
       onSaved();
       toast.show('Saved');
@@ -164,7 +228,7 @@ function StoreForm({ initial, onClose, onSaved }: { initial: any | null; onClose
           <div className="field"><label>Address</label><input className="input" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /></div>
           <div className="field-2">
             <div className="field"><label>TRN</label><input className="input" value={f.trn} onChange={(e) => setF({ ...f, trn: e.target.value })} /></div>
-            <div className="field"><label>Hours</label><input className="input" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></div>
+            <div className="field"><label>Hours</label><input className="input" placeholder="e.g. 8:00 AM – 10:00 PM" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></div>
           </div>
         </div>
         <div className="modal-foot">
