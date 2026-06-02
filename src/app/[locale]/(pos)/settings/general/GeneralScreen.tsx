@@ -4,6 +4,17 @@ import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
+/* Design app.js:1614-1623 — General:
+   - .set-sec h2 'General' + .ssub 'Store details, tax & currency'
+   - .set-card with five fields in this exact order:
+     - 'Store name' input
+     - 'Currency' <select> with 10 design-listed options
+     - 'Express surcharge (%)' input id='gen-express' value=\${expressPct}
+     - 'Branch address' input
+     - .field-2 'Contact phone' input + 'Receipt footer' input
+   - flex/gap:10 buttons: .btn.btn-pri 'Save Changes' (data-save) +
+     .btn.btn-ghost 'Cancel' */
+
 export interface BusinessRecord {
   id: string;
   slug: string;
@@ -27,141 +38,148 @@ export interface BrandingRecord {
   appAccent?: string;
   appBg?: string;
   logoFileKey?: string | null;
+  expressSurcharge?: number;
+  branchAddress?: string;
 }
 
-interface FormState {
-  businessName: string;
-  brandName: string;
-  tagline: string;
-  countryCode: string;
-  timezone: string;
-  currency: string;
-  receiptFooter: string;
-}
-
-const TIMEZONES = [
-  'Asia/Dubai',
-  'Asia/Muscat',
-  'Asia/Qatar',
-  'Asia/Riyadh',
-  'Asia/Bahrain',
-  'Asia/Kuwait',
-  'Europe/London',
-  'UTC',
+const CURRENCIES: { code: string; label: string }[] = [
+  { code: 'AED', label: 'AED — UAE Dirham' },
+  { code: 'SAR', label: 'SAR — Saudi Riyal' },
+  { code: 'QAR', label: 'QAR — Qatari Riyal' },
+  { code: 'KWD', label: 'KWD — Kuwaiti Dinar' },
+  { code: 'BHD', label: 'BHD — Bahraini Dinar' },
+  { code: 'OMR', label: 'OMR — Omani Rial' },
+  { code: 'USD', label: 'USD — US Dollar' },
+  { code: 'EUR', label: 'EUR — Euro' },
+  { code: 'GBP', label: 'GBP — British Pound' },
+  { code: 'INR', label: 'INR — Indian Rupee' },
 ];
 
 export default function GeneralScreen({ business, branding }: { business: BusinessRecord; branding: BrandingRecord | null }) {
-  const [f, setF] = useState<FormState>({
-    businessName: business.name ?? '',
-    brandName: branding?.brandName ?? '',
-    tagline: branding?.tagline ?? '',
-    countryCode: business.countryCode ?? 'AE',
-    timezone: business.timezone ?? 'Asia/Dubai',
-    currency: branding?.currency ?? 'AED',
-    receiptFooter: branding?.receiptFooter ?? '',
-  });
+  const [storeName, setStoreName] = useState<string>(business.name ?? '');
+  const [currency, setCurrency] = useState<string>(branding?.currency ?? 'AED');
+  const [expressPct, setExpressPct] = useState<number>(branding?.expressSurcharge ?? 30);
+  const [branchAddress, setBranchAddress] = useState<string>(branding?.branchAddress ?? 'Shop 4, Mangrove Plaza, Majan — Dubai');
+  const [contactPhone, setContactPhone] = useState<string>(business.contactPhone ?? '+971 56 830 6804');
+  const [receiptFooter, setReceiptFooter] = useState<string>(branding?.receiptFooter ?? 'Thank you — see you soon');
   const [busy, setBusy] = useState(false);
   const toast = useToast();
 
   async function save() {
-    if (!f.businessName.trim()) return toast.show('Business name required');
+    if (!storeName.trim()) return toast.show('Store name required');
     setBusy(true);
     try {
       await Promise.all([
         api('/business', {
           method: 'PATCH',
-          body: {
-            name: f.businessName.trim(),
-            countryCode: f.countryCode.trim().toUpperCase() || 'AE',
-            timezone: f.timezone.trim() || 'Asia/Dubai',
-          },
+          body: { name: storeName.trim(), contactPhone },
         }),
         api('/branding', {
           method: 'PATCH',
           body: {
-            brandName: f.brandName.trim(),
-            tagline: f.tagline,
-            currency: f.currency.trim() || 'AED',
-            receiptFooter: f.receiptFooter,
+            currency: currency.trim() || 'AED',
+            receiptFooter,
+            expressSurcharge: expressPct,
+            branchAddress,
           },
         }),
       ]);
       toast.show('Settings saved');
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function cancel() {
+    setStoreName(business.name ?? '');
+    setCurrency(branding?.currency ?? 'AED');
+    setExpressPct(branding?.expressSurcharge ?? 30);
+    setBranchAddress(branding?.branchAddress ?? 'Shop 4, Mangrove Plaza, Majan — Dubai');
+    setContactPhone(business.contactPhone ?? '+971 56 830 6804');
+    setReceiptFooter(branding?.receiptFooter ?? 'Thank you — see you soon');
   }
 
   return (
     <div className="set-sec">
       <h2>General</h2>
-      <p className="ssub">Business name, currency, address, receipt footer.</p>
+      <div className="ssub">Store details, tax &amp; currency</div>
 
       <div className="set-card">
         <div className="field">
-          <label>Business name</label>
-          <input className="input" value={f.businessName} onChange={(e) => setF({ ...f, businessName: e.target.value })} />
-        </div>
-        <div className="field-2">
-          <div className="field">
-            <label>Brand name</label>
-            <input className="input" value={f.brandName} onChange={(e) => setF({ ...f, brandName: e.target.value })} />
-          </div>
-          <div className="field">
-            <label>Tagline</label>
-            <input className="input" value={f.tagline} onChange={(e) => setF({ ...f, tagline: e.target.value })} />
-          </div>
-        </div>
-        <div className="field-2">
-          <div className="field">
-            <label>Country code</label>
-            <input
-              className="input"
-              value={f.countryCode}
-              maxLength={2}
-              placeholder="AE"
-              onChange={(e) => setF({ ...f, countryCode: e.target.value.toUpperCase() })}
-              style={{ width: 100, fontFamily: 'JetBrains Mono, monospace' }}
-            />
-          </div>
-          <div className="field">
-            <label>Timezone</label>
-            <select
-              className="input"
-              value={f.timezone}
-              onChange={(e) => setF({ ...f, timezone: e.target.value })}
-            >
-              {TIMEZONES.includes(f.timezone) ? null : <option value={f.timezone}>{f.timezone}</option>}
-              {TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>{tz}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="field-2">
-          <div className="field">
-            <label>Currency</label>
-            <input
-              className="input"
-              value={f.currency}
-              maxLength={3}
-              onChange={(e) => setF({ ...f, currency: e.target.value.toUpperCase() })}
-              style={{ width: 100, fontFamily: 'JetBrains Mono, monospace' }}
-            />
-          </div>
-          <div className="field" />
+          <label>Store name</label>
+          <input
+            className="input"
+            value={storeName}
+            onChange={(e) => setStoreName(e.target.value)}
+          />
         </div>
         <div className="field">
-          <label>Receipt footer</label>
-          <textarea
+          <label>Currency</label>
+          <select
             className="input"
-            rows={3}
-            value={f.receiptFooter}
-            placeholder="Thank you — see you soon"
-            onChange={(e) => setF({ ...f, receiptFooter: e.target.value })}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+            {CURRENCIES.every((c) => c.code !== currency) && (
+              <option value={currency}>{currency}</option>
+            )}
+          </select>
+        </div>
+        <div className="field">
+          <label>Express surcharge (%)</label>
+          <input
+            className="input"
+            id="gen-express"
+            type="number"
+            min={0}
+            value={expressPct}
+            onChange={(e) => setExpressPct(+e.target.value || 0)}
           />
+        </div>
+        <div className="field">
+          <label>Branch address</label>
+          <input
+            className="input"
+            value={branchAddress}
+            onChange={(e) => setBranchAddress(e.target.value)}
+          />
+        </div>
+        <div className="field-2">
+          <div className="field">
+            <label>Contact phone</label>
+            <input
+              className="input"
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Receipt footer</label>
+            <input
+              className="input"
+              value={receiptFooter}
+              onChange={(e) => setReceiptFooter(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
-      <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} onClick={save}>Save changes</button>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+          data-save
+          onClick={save}
+          disabled={busy}
+        >
+          Save Changes
+        </button>
+        <button className="btn btn-ghost" onClick={cancel} disabled={busy}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
