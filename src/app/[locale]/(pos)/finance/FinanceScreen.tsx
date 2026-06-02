@@ -371,6 +371,8 @@ function Actuals({
   const t = useTranslations('Finance');
   const a = actuals[month];
 
+  /* Design finance.js:148-150 — inputRow card with data-a attribute on the
+     input matching the actuals field key. No explicit width on the input. */
   const inputCard = (label: string, key: keyof Omit<MonthActual, 'exp'>, hint: string) => (
     <div className="card" style={{ padding: 16 }}>
       <div
@@ -387,8 +389,9 @@ function Actuals({
       </div>
       <input
         className="inp"
-        style={{ marginTop: 8, fontSize: 20, fontWeight: 700, border: 'none', padding: 0, width: '100%' }}
+        style={{ marginTop: 8, fontSize: 20, fontWeight: 700, border: 'none', padding: 0 }}
         type="number"
+        data-a={key}
         value={a[key]}
         onChange={(e) => updateActual(month, key, +e.target.value || 0)}
       />
@@ -449,6 +452,7 @@ function Actuals({
                         className="inp r tnum"
                         style={{ width: 120, marginLeft: 'auto' }}
                         type="number"
+                        data-exp={l}
                         value={a.exp[l]}
                         onChange={(e) => updateExpense(month, l, +e.target.value || 0)}
                       />
@@ -474,7 +478,7 @@ function Actuals({
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <button className="btn btn-pri" onClick={() => onSave(month)}>
+        <button className="btn btn-pri" id="save-act" onClick={() => onSave(month)}>
           {t('actuals.saveMonth', { month: MONTHS[month] })}
         </button>
       </div>
