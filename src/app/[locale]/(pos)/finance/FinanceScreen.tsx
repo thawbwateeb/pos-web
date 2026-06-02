@@ -674,7 +674,8 @@ function ScenarioTable({ scenario }: { scenario: Scenario }) {
     <div className="card flush" style={{ marginBottom: 16 }}>
       <div className="ch" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <h3 style={{ margin: 0 }}>{t('vision.scenario')}</h3>
-        <span className={`pill ${col}`}>{t(`scenarios.${scenario}` as 'scenarios.worst')}</span>
+        {/* Design finance.js:229 — pill text is the raw lowercase scenario key. */}
+        <span className={`pill ${col}`}>{scenario}</span>
       </div>
       <div className="scroll-x">
         <table className="tbl">

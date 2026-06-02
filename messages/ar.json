@@ -725,10 +725,10 @@
       "cacWarning": "Based on total customers, not new customers — treat as an upper bound. Excluded from cost / order above."
     },
     "vision": {
-      "note": "Three scenarios — what worst / average / dream years look like at this plan.",
-      "plannedExpenses": "Planned expenses",
+      "note": "The yearly vision — read-only. Profit = scenario income − planned expenses.",
+      "plannedExpenses": "Planned expenses (AED)",
       "line": "Line",
-      "totalExpense": "Total expenses",
+      "totalExpense": "Total expense",
       "scenario": "Scenario",
       "metric": "Metric",
       "income": "Income",
