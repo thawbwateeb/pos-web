@@ -25,14 +25,17 @@ const NAV: Array<{
   titleKey: string;
   perm?: PermissionAction;
 }> = [
-  { id: 'order',    tKey: 'newOrder',   Icon: Icon.receipt, crumb: 'pointOfSale',   titleKey: 'newOrder' },
-  { id: 'orders',   tKey: 'orders',     Icon: Icon.board,   crumb: 'operations',    titleKey: 'ordersBoard' },
-  { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'finance',       titleKey: 'payments' },
-  { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',           titleKey: 'customers' },
-  { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',     titleKey: 'whatsappBusiness', perm: 'WHATSAPP' },
-  { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',       titleKey: 'dailySummary',     perm: 'VIEW_REPORTS' },
-  { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'finance',       titleKey: 'financialVision',  perm: 'VIEW_FINANCE' },
-  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration', titleKey: 'settings',         perm: 'SETTINGS' },
+  // Design app.js:261 hides only Finance + Settings unless Manager.
+  // WhatsApp + Reports are visible to all roles.
+  { id: 'order',    tKey: 'newOrder',   Icon: Icon.receipt, crumb: 'pointOfSale',     titleKey: 'newOrder' },
+  { id: 'orders',   tKey: 'orders',     Icon: Icon.board,   crumb: 'operations',      titleKey: 'ordersBoard' },
+  { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'finance',         titleKey: 'payments' },
+  { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',             titleKey: 'customers' },
+  { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',       titleKey: 'whatsappBusiness' },
+  { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',         titleKey: 'dailySummary' },
+  // Design TITLES.finance = ['Financial Vision', 'Planning'] (app.js:279).
+  { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'financialVision', titleKey: 'planning',         perm: 'VIEW_FINANCE' },
+  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration',   titleKey: 'settings',         perm: 'SETTINGS' },
 ];
 
 interface AppShellProps {
@@ -179,9 +182,10 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
 
   return (
     <div className="app">
+      {/* Design POS.html:16 + app.js renderRail. */}
       <aside className="rail">
-        <div className="logo" title={u.fullName}>{LOGO_ICON}</div>
-        <nav className="nav">
+        <div className="logo">{LOGO_ICON}</div>
+        <nav className="nav" id="rail-nav">
           {NAV.filter((n) => !n.perm || u.role.isSystemManager || !!u.role.permissions[n.perm]).map(({ id, tKey, Icon: NavIcon }) => {
             const isOn = active === id;
             const badge = (badges as any)[id];
@@ -191,7 +195,6 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 href={`/${locale}/${id}`}
                 prefetch
                 className={isOn ? 'active' : ''}
-                title={t(tKey)}
                 style={{ textDecoration: 'none' }}
               >
                 <NavIcon />
@@ -201,16 +204,14 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             );
           })}
         </nav>
-        <button className="role" title={u.role.name} onClick={() => setUserMenuOpen(true)}>
-          {/* Design (app.js:268) shows the role's initial here ("M" for Manager,
-              "C" for Cashier, "D" for Driver), not the user's full-name
-              initials — so the rail's bottom chip mirrors role identity. */}
+        <button className="role" id="role-fab" title={t('switchRole')} onClick={() => setUserMenuOpen(true)}>
+          {/* Design app.js:268 — role's first-letter init (M/C/D). */}
           {(u.role.name?.[0] ?? '?').toUpperCase()}
         </button>
       </aside>
 
       <div className="main">
-        <header className="topbar">
+        <header className="topbar" id="topbar">
           <div className="crumb">
             <span className="k">{tc(navMeta?.crumb ?? 'pointOfSale')}</span>
             <span className="t">{tc(navMeta?.titleKey ?? 'newOrder')}</span>
@@ -272,15 +273,14 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
           <div className="spacer" />
           <button
             className={`checkbtn${shifted ? ' on' : ''}`}
+            id="checkbtn"
             onClick={toggleShift}
-            title={shifted ? t('checkedIn') : t('checkIn')}
           >
-            {/* Design app.js:290 — when on shift the button text is
-                "● On shift · Check Out", not just "Checked In". */}
-            {shifted ? `● ${t('checkedIn')} · ${t('checkOut')}` : t('checkIn')}
+            {/* Design app.js:290 — "● On shift · Check Out" / "Check In". */}
+            {shifted ? `● ${t('onShift')} · ${t('checkOut')}` : t('checkIn')}
           </button>
-          {/* Design app.js:291 — storechip uses 16px icons (not 15) and has title. */}
-          <button className="storechip" title={t('switchStore')} onClick={() => setStorePickerOpen((v) => !v)}>
+          {/* Design app.js:291 — storechip uses 16px icons and has title. */}
+          <button className="storechip" id="storechip" title={t('switchStore')} onClick={() => setStorePickerOpen((v) => !v)}>
             <Icon.shop size={16} />
             <span className="snm">{activeStore?.name ?? t('pickStore')}</span>
             <Icon.chevd size={14} />
@@ -289,8 +289,8 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             <span className="t">{now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}</span>
             <span className="d">{now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
-          {/* Design app.js:293-296 — .nm and .av are <span>, not <div>. */}
-          <button className="rolechip" onClick={() => setUserMenuOpen(true)}>
+          {/* Design app.js:293-296 — .nm and .av are <span>; no title. */}
+          <button className="rolechip" id="rolechip" onClick={() => setUserMenuOpen(true)}>
             <span className="nm">
               <b>{u.role.name}</b>
               <span>{activeStore?.name ?? '—'}</span>

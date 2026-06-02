@@ -94,6 +94,8 @@
     "checkOut": "Check Out",
     "checkIn": "Check In",
     "checkedIn": "Checked In",
+    "onShift": "On shift",
+    "switchRole": "Switch role",
     "manageStores": "Manage stores",
     "endShiftConfirm": "End your shift now? You've been on shift {h}h {m}m.",
     "endShift": "End shift",
@@ -121,6 +123,7 @@
     "inspection": "Inspection & QA",
     "dailySummary": "Daily Summary",
     "financialVision": "Financial Vision",
+    "planning": "Planning",
     "settings": "Settings"
   },
   "Order": {
