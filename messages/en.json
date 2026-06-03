@@ -694,6 +694,7 @@
       "amountAed": "Amount (AED)",
       "noteOptional": "Note (optional)",
       "notePlaceholder": "e.g. Fund",
+      "namePlaceholder": "e.g. Quentin",
       "addBtn": "Add contribution",
       "added": "Contribution added",
       "enterAmount": "Enter an amount",
@@ -899,7 +900,8 @@
         "address": "Address",
         "trn": "TRN",
         "hours": "Hours"
-      }
+      },
+      "hoursPlaceholder": "e.g. 8:00 AM – 10:00 PM"
     },
     "users": {
       "title": "Users & Roles",
@@ -910,6 +912,10 @@
       "addUser": "+ Add user",
       "addRole": "+ Add role",
       "namePrompt": "Role name (e.g. Supervisor)",
+      "rolePlaceholder": "e.g. Supervisor",
+      "emailPlaceholder": "name@example.com",
+      "passwordKeepHint": "Leave blank to keep",
+      "passwordSetHint": "Set a password",
       "deleteRoleConfirm": "{count, plural, one {1 user uses} other {# users use}} this role. Reassign and delete?",
       "removeUserConfirm": "Remove {name}?",
       "table": {
@@ -956,6 +962,7 @@
       "settings": "Settings",
       "slots": "Slots",
       "addSlot": "+ Add slot",
+      "slotLabelPlaceholder": "e.g. 16:00 – 18:00",
       "slotLabelPrompt": "Slot label (e.g. 16:00 – 18:00)",
       "defaultCap": "Default slot capacity",
       "leadHours": "Lead time (hours)",
@@ -1041,6 +1048,7 @@
       "sub": "Recurring plans customers can subscribe to.",
       "tableTitle": "Plans",
       "labelSingular": "plan",
+      "includesPlaceholder": "e.g. 20 shirts + 4 abayas · free pickup",
       "fields": {
         "name": "Name",
         "price": "Price (AED)",
@@ -1055,6 +1063,7 @@
       "labelSingular": "item",
       "addTitle": "Add item",
       "editTitle": "Edit item",
+      "namePlaceholder": "e.g. Spray bottle",
       "lowStock": "Low",
       "addedStock": "+{qty} {unit} added",
       "removedStock": "−{qty} {unit} removed",
@@ -1156,6 +1165,12 @@
       "categoryTitlePrompt": "Category title",
       "itemNamePrompt": "Item name",
       "skuPrompt": "SKU"
+    },
+    "racks": {
+      "addLabelPlaceholder": "Add rack label… e.g. A-05"
+    },
+    "zones": {
+      "namePlaceholder": "e.g. Dubai Marina"
     }
   },
   "PromoChannel": {
