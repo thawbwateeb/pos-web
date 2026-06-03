@@ -83,15 +83,18 @@ export default function ChatbotSettings({ initial }: { initial: WhatsappSettings
       <div className="card" style={{ maxWidth: 820 }}>
         <div className="set-row">
           <div className="l">
-            <b>WhatsApp chatbot</b>
+            <b id="chatbot-enabled-label">WhatsApp chatbot</b>
             <span>Auto-reply to customers when staff are busy</span>
           </div>
           <div className="r">
             <button
               className={`switch ${f.botEnabled ? 'on' : ''}`}
               id="bot-en"
-              onClick={() => setF({ ...f, botEnabled: !f.botEnabled })}
               type="button"
+              role="switch"
+              aria-checked={f.botEnabled}
+              aria-labelledby="chatbot-enabled-label"
+              onClick={() => setF({ ...f, botEnabled: !f.botEnabled })}
             />
           </div>
         </div>
