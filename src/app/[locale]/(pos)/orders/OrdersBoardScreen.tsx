@@ -614,8 +614,21 @@ function OrderDetailModal({
     }
   }
 
-  function reprint() {
-    toast.show(t('reprintToast'));
+  async function reprint() {
+    if (!order) return;
+    try {
+      await api('/print-jobs', {
+        method: 'POST',
+        body: {
+          type: 'RECEIPT',
+          orderId: order.id,
+          targetHwKey: 'printer',
+        },
+      });
+      toast.show(t('reprintToast'));
+    } catch (e: any) {
+      toast.show(e?.detail?.message || t('failedToUpdate'));
+    }
   }
 
   if (!order) {
@@ -893,6 +906,14 @@ function TaggingModal({
         body: { orderItemId: slot.orderItemId, qtyIndex: slot.qtyIndex, source: 'PRINTED' },
       });
       setTagsByKey((m) => ({ ...m, [key]: row }));
+      // Real label-print job: a driver subscribed to (storeId, 'labels')
+      // will pick this up and actually print. Without a driver attached
+      // the row sits in QUEUED — UI label below reads "queued for print"
+      // which is honest about that state.
+      await api('/print-jobs', {
+        method: 'POST',
+        body: { type: 'LABEL', garmentTagId: row.id, targetHwKey: 'labels' },
+      }).catch(() => {/* tag was created — print failure is non-fatal */});
       toast.show(t('tagPrinted'));
     } catch (e: any) {
       toast.show(e?.detail?.message || t('failedToUpdate'));

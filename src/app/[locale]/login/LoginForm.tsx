@@ -123,7 +123,27 @@ export default function LoginForm({ next }: { next: string }) {
             <button
               id="lg-forgot"
               type="button"
-              onClick={() => setErr({ kind: 'info', text: t('resetLinkSent') })}
+              onClick={async () => {
+                if (!email) { setErr({ kind: 'err', text: t('missingEmail') }); return; }
+                try {
+                  const r = await api<{ code: string; tokenIssued: boolean; mailDelivered: boolean }>('/auth/password/reset-request', {
+                    method: 'POST',
+                    body: { email, businessSlug },
+                  });
+                  // Always show success — backend deliberately doesn't
+                  // leak whether the email exists. mailDelivered=false
+                  // when no mail provider is configured; in that case
+                  // an admin must check server logs for the reset link.
+                  setErr({
+                    kind: 'info',
+                    text: r.mailDelivered ? t('resetLinkSent') : t('resetLinkNoMail'),
+                  });
+                } catch {
+                  // Even hard failures shouldn't leak. Show the generic
+                  // success message so the form behaves identically.
+                  setErr({ kind: 'info', text: t('resetLinkSent') });
+                }
+              }}
             >
               {t('forgot')}
             </button>

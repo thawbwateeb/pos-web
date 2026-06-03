@@ -75,6 +75,7 @@
     "missingPassword": "Please enter your password.",
     "invalidCredentials": "Invalid credentials",
     "resetLinkSent": "A reset link has been sent to your email.",
+    "resetLinkNoMail": "Your reset link is ready. Email delivery isn't configured on this server — ask an admin to check the logs for the link.",
     "version": "v2.4"
   },
   "Nav": {
@@ -286,7 +287,7 @@
     "tomorrow": "Tomorrow",
     "yesterday": "Yesterday",
     "reprint": "Reprint receipt",
-    "reprintToast": "Receipt sent to printer",
+    "reprintToast": "Receipt queued for printing",
     "editItems": "Edit items",
     "payNow": "Take payment",
     "refundAll": "Refund all",
@@ -303,7 +304,7 @@
     "tagAwaiting": "Awaiting tag · print or scan one",
     "tagPrintAttach": "Print & attach",
     "tagUndo": "Undo",
-    "tagPrinted": "Tag printed — attach to garment",
+    "tagPrinted": "Tag queued for printing — attach when it lands",
     "tagAllLinkedAlready": "All garments on this order are already tagged",
     "tagNoGarments": "No garments to tag.",
     "orderDetails": "Order details",

@@ -382,7 +382,27 @@ function ShiftSummaryCard({
           <tr><td>Net takings</td><td className="num tnum">{AED(summary.kpis.netTakings)}</td></tr>
         </tfoot>
       </table>
-      <button className="btn btn-ghost" id="shift-print" style={{ marginTop: 14 }} onClick={() => toast.show('Shift report sent to printer')}>
+      <button
+        className="btn btn-ghost"
+        id="shift-print"
+        style={{ marginTop: 14 }}
+        onClick={async () => {
+          try {
+            await api('/print-jobs', {
+              method: 'POST',
+              body: {
+                type: 'SHIFT_REPORT',
+                shiftId: summary.shift.id,
+                storeId: summary.shift.storeId,
+                targetHwKey: 'printer',
+              },
+            });
+            toast.show('Shift report queued for printing');
+          } catch (e: any) {
+            toast.show(e?.detail?.message || 'Could not queue shift report');
+          }
+        }}
+      >
         Print shift report
       </button>
     </div>

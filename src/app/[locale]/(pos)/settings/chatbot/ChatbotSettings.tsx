@@ -220,7 +220,14 @@ export default function ChatbotSettings({ initial }: { initial: WhatsappSettings
           <button
             className="btn btn-ghost"
             id="bot-test"
-            onClick={() => toast.show('Test message sent to bot sandbox')}
+            onClick={async () => {
+              try {
+                const r = await api<{ sent: boolean; to: string }>('/whatsapp/test', { method: 'POST', body: {} });
+                toast.show(`Test message sent to ${r.to}`);
+              } catch (e: any) {
+                toast.show(e?.detail?.message || 'Could not send test message');
+              }
+            }}
           >
             Send test message
           </button>
