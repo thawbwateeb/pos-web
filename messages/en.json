@@ -673,6 +673,7 @@
       "investedLabel": "Invested",
       "addTitle": "Add capital contribution",
       "addSub": "Record money put into the business",
+      "firstOwnerHint": "No owners yet — record your first capital contribution to get started.",
       "amountAed": "Amount (AED)",
       "noteOptional": "Note (optional)",
       "notePlaceholder": "e.g. Fund",
