@@ -828,3 +828,16 @@ tr[data-ci]:active{cursor:grabbing}
 .blp-card{height:34px;border-radius:9px;background:#fff;border:1px solid rgba(0,0,0,.06)}
 .blp-appbtn{align-self:stretch;text-align:center;background:var(--a);color:#fff;font-size:12px;font-weight:600;padding:9px;border-radius:9px}
 .blp-badge{align-self:center;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--c)}
+
+/* ---------- A11Y :focus-visible ---------- */
+/* Browser default outlines are killed by .input/.btn/.cat/etc rules.
+   Restore a keyboard-only ring (mouse clicks don't trigger focus-visible)
+   so Tab-users can see where they are. The ring uses the accent token so
+   it follows the active branding. */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.input:focus-visible,.inp:focus-visible{outline-offset:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.btn:focus-visible,.btn-pri:focus-visible,.btn-ghost:focus-visible,.btn-charge:focus-visible,.btn-hold:focus-visible,.t-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.cat:focus-visible,.tier-tab:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rail .nav a:focus-visible,.rail .nav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:12px}
+.set-nav a:focus-visible,.set-nav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.switch:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
