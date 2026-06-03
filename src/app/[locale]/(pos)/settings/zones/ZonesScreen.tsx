@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
@@ -163,6 +164,7 @@ interface ZoneFormProps {
 }
 
 function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
+  const t = useTranslations('Settings.zones');
   const isEdit = !!initial;
   const defaultColor = initial?.color || ZONE_PALETTE[existingCount % ZONE_PALETTE.length];
   const [name, setName] = useState<string>(initial?.name ?? '');
@@ -205,7 +207,7 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Dubai Marina"
+              placeholder={t('namePlaceholder')}
               autoFocus
             />
           </div>
