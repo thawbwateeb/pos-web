@@ -76,7 +76,7 @@
     "invalidCredentials": "Invalid credentials",
     "resetLinkSent": "A reset link has been sent to your email.",
     "resetLinkNoMail": "Your reset link is ready. Email delivery isn't configured on this server — ask an admin to check the logs for the link.",
-    "version": "v2.4"
+    "version": "{v}"
   },
   "Nav": {
     "newOrder": "New Order",

@@ -40,8 +40,8 @@ function main() {
   const enKeys = new Set(Object.keys(en));
   const arKeys = new Set(Object.keys(ar));
 
-  const missing = [...enKeys].filter((k) => !arKeys.has(k));
-  const extra = [...arKeys].filter((k) => !enKeys.has(k));
+  const missing = Array.from(enKeys).filter((k) => !arKeys.has(k));
+  const extra = Array.from(arKeys).filter((k) => !enKeys.has(k));
   if (missing.length) {
     console.error(`MISSING in ar.json (${missing.length}):`);
     missing.forEach((k) => console.error('  ' + k));
@@ -52,7 +52,7 @@ function main() {
   }
 
   const phMismatch: string[] = [];
-  for (const k of enKeys) {
+  for (const k of Array.from(enKeys)) {
     if (!arKeys.has(k)) continue;
     const e = placeholders(en[k]);
     const a = placeholders(ar[k]);
