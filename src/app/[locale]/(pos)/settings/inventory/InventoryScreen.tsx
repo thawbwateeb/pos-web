@@ -178,6 +178,7 @@ export default function InventoryScreen({ initial }: { initial: Item[] }) {
    exact field layout: Item name / Category+Unit (g2) / Stock+Reorder+Cost (g3).
    Categories restricted to Chemicals / Packaging / Equipment / Other. */
 function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose: () => void; onSaved: (name: string) => void }) {
+  const t = useTranslations('Settings.inventory');
   const CATEGORIES = ['Chemicals', 'Packaging', 'Equipment', 'Other'] as const;
   const [f, setF] = useState({
     name: initial?.name ?? '',
@@ -210,7 +211,7 @@ function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose
         <div className="modal-body fin">
           <div className="field" style={{ marginBottom: 12 }}>
             <label>Item name</label>
-            <input className="inp" id="iv-name" placeholder="e.g. Spray bottle" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+            <input className="inp" id="iv-name" placeholder={t('namePlaceholder')} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           </div>
           <div className="grid g2" style={{ gap: 12, marginBottom: 12 }}>
             <div className="field">
