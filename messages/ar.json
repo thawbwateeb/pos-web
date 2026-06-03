@@ -135,6 +135,8 @@
     "addCustomer": "Add customer",
     "attachCustomer": "Attach customer",
     "walkInGuest": "Walk-in guest",
+    "customerRequired": "Pick a customer first — orders can't be created without one.",
+    "customerRequiredHint": "Tap to pick a customer",
     "notInTier": "Not in this tier",
     "checkoutAsGuest": "Or check out as guest",
     "emptyCart": "Empty order",

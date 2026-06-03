@@ -177,6 +177,7 @@ export default function NewOrderScreen({
 
   async function save() {
     if (!editing) return;
+    if (!customer) { toast.show(t('customerRequired')); setCustPicker(true); return; }
     setBusy(true);
     try {
       const r = await api<any>(`/orders/${editing.id}`, {
@@ -201,6 +202,7 @@ export default function NewOrderScreen({
   }
 
   async function charge() {
+    if (!customer) { toast.show(t('customerRequired')); setCustPicker(true); return; }
     if (!pay?.method) return toast.show(t('pickPaymentMethod'));
     setBusy(true);
     try {
@@ -398,11 +400,16 @@ export default function NewOrderScreen({
 
           {/* Design app.js:436-440 — .cust-attach spans + RIGHT chevron
               (path "M9 6l6 6-6 6"), NOT Icon.chevd's down chevron. */}
-          <button className="cust-attach" id="cust-attach" onClick={() => setCustPicker(true)}>
+          <button
+            className={`cust-attach${customer ? '' : ' required'}`}
+            id="cust-attach"
+            onClick={() => setCustPicker(true)}
+            title={customer ? customer.fullName : t('customerRequired')}
+          >
             <span className="av">{customer ? customer.fullName[0] : <Icon.users size={18} />}</span>
             <span className="ct">
               <b>{customer ? customer.fullName : t('attachCustomer')}</b>
-              <span>{customer ? customer.phone : t('walkInGuest')}</span>
+              <span>{customer ? customer.phone : t('customerRequiredHint')}</span>
             </span>
             <span className="chev">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

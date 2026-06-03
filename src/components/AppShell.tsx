@@ -64,6 +64,11 @@ const NAV: Array<{
   crumb: string;
   titleKey: string;
   perm?: PermissionAction;
+  /* Optional explicit href when the rail entry shouldn't navigate to
+     `/${locale}/${id}` (e.g. Settings jumps straight to /settings/
+     catalogue so users don't see the empty-shimmer pause caused by the
+     /settings → /settings/catalogue server redirect). */
+  href?: string;
 }> = [
   // Design app.js:261 hides only Finance + Settings unless Manager.
   // WhatsApp + Reports are visible to all roles.
@@ -75,7 +80,7 @@ const NAV: Array<{
   { id: 'reports',  tKey: 'report',     Icon: Icon.chart,   crumb: 'finance',         titleKey: 'dailySummary' },
   // Design TITLES.finance = ['Financial Vision', 'Planning'] (app.js:279).
   { id: 'finance',  tKey: 'finance',    Icon: Icon.trend,   crumb: 'financialVision', titleKey: 'planning',         perm: 'VIEW_FINANCE' },
-  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration',   titleKey: 'settings',         perm: 'SETTINGS' },
+  { id: 'settings', tKey: 'settings',   Icon: Icon.gear,    crumb: 'configuration',   titleKey: 'settings',         perm: 'SETTINGS', href: 'settings/catalogue' },
 ];
 
 interface AppShellProps {
@@ -260,7 +265,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
       <aside className="rail">
         <div className="logo">{LOGO_ICON}</div>
         <nav className="nav" id="rail-nav">
-          {NAV.filter((n) => !n.perm || u.role.isSystemManager || !!u.role.permissions[n.perm]).map(({ id, tKey, Icon: NavIcon }) => {
+          {NAV.filter((n) => !n.perm || u.role.isSystemManager || !!u.role.permissions[n.perm]).map(({ id, tKey, Icon: NavIcon, href }) => {
             const isOn = active === id;
             const badge = (badges as any)[id];
             /* Design app.js:262-265 — each nav button carries data-nav="${id}"
@@ -268,7 +273,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             return (
               <Link
                 key={id}
-                href={`/${locale}/${id}`}
+                href={`/${locale}/${href ?? id}`}
                 prefetch
                 className={isOn ? 'active' : ''}
                 data-nav={id}
