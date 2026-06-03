@@ -99,9 +99,17 @@ export default function GiftCardsScreen({ settings, initialCards }: { settings: 
 
       <div className="set-card">
         <div className="set-row">
-          <div className="l"><b>Enable gift cards</b><span>Sell gift cards at the POS</span></div>
+          <div className="l"><b id="gc-enabled-label">Enable gift cards</b><span>Sell gift cards at the POS</span></div>
           <div className="r">
-            <span className={`switch${enabled ? ' on' : ''}`} data-tog="giftcards.enabled" onClick={() => setEnabled(!enabled)} />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled}
+              aria-labelledby="gc-enabled-label"
+              className={`switch${enabled ? ' on' : ''}`}
+              data-tog="giftcards.enabled"
+              onClick={() => setEnabled(!enabled)}
+            />
           </div>
         </div>
         <div className="set-row">
@@ -111,9 +119,17 @@ export default function GiftCardsScreen({ settings, initialCards }: { settings: 
           </div>
         </div>
         <div className="set-row">
-          <div className="l"><b>Allow custom amount</b></div>
+          <div className="l"><b id="gc-custom-label">Allow custom amount</b></div>
           <div className="r">
-            <span className={`switch${customAllowed ? ' on' : ''}`} data-tog="giftcards.custom" onClick={() => setCustomAllowed(!customAllowed)} />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={customAllowed}
+              aria-labelledby="gc-custom-label"
+              className={`switch${customAllowed ? ' on' : ''}`}
+              data-tog="giftcards.custom"
+              onClick={() => setCustomAllowed(!customAllowed)}
+            />
           </div>
         </div>
         <div className="set-row" style={{ border: 'none' }}>
