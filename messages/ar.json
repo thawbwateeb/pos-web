@@ -483,7 +483,6 @@
     "exportCsv": "Export CSV",
     "exported": "Report exported as CSV",
     "printZ": "Print Z-Report",
-    "printed": "Z-Report sent to printer",
     "ranges": {
       "Today": "Today",
       "Yesterday": "Yesterday",
@@ -606,7 +605,9 @@
       "loyaltyRedeemed": "Loyalty points redeemed",
       "subscribers": "Active subscribers",
       "mrr": "Recurring revenue (MRR)"
-    }
+    },
+    "zQueued": "تم إرسال تقرير Z إلى الطابعة",
+    "zFailed": "تعذّر إرسال تقرير Z إلى قائمة الانتظار"
   },
   "Finance": {
     "title": "Financial Vision",

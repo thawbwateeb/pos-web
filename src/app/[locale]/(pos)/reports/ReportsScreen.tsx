@@ -8,6 +8,7 @@ import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
+import { enqueuePrintJob } from '@/lib/print';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { ReportsOverview, ReportsHourly } from './page';
 
@@ -53,6 +54,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   const [showCashUp, setShowCashUp] = useState(false);
   const [customFrom, setCustomFrom] = useState<string>(from || '');
   const [customTo, setCustomTo] = useState<string>(to || '');
+  const [printingZ, setPrintingZ] = useState(false);
 
   const RANGES: Range[] = ['Today', 'Yesterday', 'Week', 'Month', 'Custom'];
 
@@ -127,6 +129,26 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
     color: PALETTE[i % PALETTE.length],
     display: String(a.value),
   }));
+
+  // ──── Print Z-Report handler ────
+  async function printZReport() {
+    setPrintingZ(true);
+    try {
+      await enqueuePrintJob({
+        type: 'SHIFT_REPORT',
+        payload: {
+          range,
+          from: range === 'Custom' ? from : undefined,
+          to: range === 'Custom' ? to : undefined,
+        },
+      });
+      toast.show(t('zQueued'));
+    } catch (err: any) {
+      toast.show(err?.detail?.message || t('zFailed'));
+    } finally {
+      setPrintingZ(false);
+    }
+  }
 
   // ──── Navigation: range change ────
   function pushRange(next: Range, nextFrom?: string, nextTo?: string) {
@@ -209,7 +231,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <button className="btn btn-ghost" data-rexport onClick={() => toast.show(t('exported'))}>
             {t('exportCsv')}
           </button>
-          <button className="btn btn-ghost" onClick={() => toast.show(t('printed'))}>
+          <button className={`btn btn-ghost${printingZ ? ' btn-loading' : ''}`} disabled={printingZ} onClick={printZReport}>
             <Icon.print size={16} /> {t('printZ')}
           </button>
           <button className="btn btn-pri" data-cashup onClick={() => setShowCashUp(true)}>
