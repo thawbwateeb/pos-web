@@ -11,6 +11,7 @@ import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
 import { enqueuePrintJob } from '@/lib/print';
+import FocusTrap from '@/components/FocusTrap';
 
 interface CartLine {
   key: string;
@@ -571,6 +572,7 @@ export default function NewOrderScreen({
 
       {cancelConfirmOpen && (
         <div className="modal-scrim show" onClick={() => setCancelConfirmOpen(false)}>
+          <FocusTrap active onEscape={() => setCancelConfirmOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>{t('cancelTitle')}</h3>
@@ -584,6 +586,7 @@ export default function NewOrderScreen({
               <button className="btn btn-pri" style={{ flex: 1 }} onClick={confirmCancel}>{t('discardOrder')}</button>
             </div>
           </div>
+          </FocusTrap>
         </div>
       )}
     </div>
@@ -613,6 +616,7 @@ function PayModal({
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{tTitle}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -682,6 +686,7 @@ function PayModal({
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -704,6 +709,7 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{t('findCustomer')}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -720,6 +726,7 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
           </div>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -728,6 +735,7 @@ function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: (
   const t = useTranslations('Order');
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{t('applyPromo')}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -746,6 +754,7 @@ function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: (
           )}
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
