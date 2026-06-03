@@ -8,6 +8,7 @@ import { api, eventStream } from '@/lib/api-client';
 import { AED, dueLabel } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icons';
+import FocusTrap from '@/components/FocusTrap';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { OrdersBoard, OrderStatus, OrderType, Order, PaymentMethod } from '@/lib/types';
 
@@ -634,9 +635,11 @@ function OrderDetailModal({
   if (!order) {
     return (
       <div className="modal-scrim show" onClick={onClose}>
+        <FocusTrap active onEscape={onClose}>
         <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
+        </FocusTrap>
       </div>
     );
   }
@@ -647,6 +650,7 @@ function OrderDetailModal({
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>#{order.number}</h3>
@@ -774,6 +778,7 @@ function OrderDetailModal({
 
         {confirmRefund && (
           <div className="modal-scrim show" onClick={() => setConfirmRefund(null)} style={{ zIndex: 220 }}>
+            <FocusTrap active onEscape={() => setConfirmRefund(null)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-head">
                 <h3>{confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}</h3>
@@ -800,6 +805,7 @@ function OrderDetailModal({
                 </button>
               </div>
             </div>
+            </FocusTrap>
           </div>
         )}
         {showPayPicker && order && (
@@ -812,6 +818,7 @@ function OrderDetailModal({
           />
         )}
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -964,15 +971,18 @@ function TaggingModal({
   if (!order) {
     return (
       <div className="modal-scrim show" onClick={onClose}>
+        <FocusTrap active onEscape={onClose}>
         <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
+        </FocusTrap>
       </div>
     );
   }
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{t('tagGarments', { number: order.number })}</h3>
@@ -1068,6 +1078,7 @@ function TaggingModal({
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -1098,6 +1109,7 @@ function PaymentMethodPicker({
   const choices = methods.filter((m) => m.key !== 'ON_DELIVERY');
   return (
     <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 220 }}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{t('takePayment', { number: orderNumber, amount: AED(total) })}</h3>
@@ -1121,6 +1133,7 @@ function PaymentMethodPicker({
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -1148,6 +1161,7 @@ function OrderActionsMenu({
   const tCommon = useTranslations('Common');
   return (
     <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 230 }}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>#{o.number}</h3>
@@ -1211,6 +1225,7 @@ function OrderActionsMenu({
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
