@@ -103,7 +103,7 @@ export default function HardwareForm() {
           return (
             <div className="set-card" key={d.key}>
               <div className="set-row" style={{ border: 'none', padding: 0 }}>
-                <div className="l"><b>{d.name}</b><span>{dev.brand}</span></div>
+                <div className="l"><b id={`hw-lbl-${d.key}`}>{d.name}</b><span>{dev.brand}</span></div>
                 <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span className={`hw-stat ${connected ? 'ok' : 'off'}`}>
                     {connected ? 'Connected' : 'Offline'}
@@ -126,6 +126,9 @@ export default function HardwareForm() {
                     className={`switch ${connected ? 'on' : ''}`}
                     data-tog={`hardware.${d.key}`}
                     type="button"
+                    role="switch"
+                    aria-checked={connected}
+                    aria-labelledby={`hw-lbl-${d.key}`}
                     onClick={() => toggle(d.key)}
                   />
                 </div>
