@@ -92,7 +92,11 @@ export default function SubscriptionsScreen({ initial }: { initial: Plan[] }) {
                 <td>
                   <div className="r" style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'flex-end' }}>
                     <button className="t-btn ghost" data-editsub={i} onClick={() => setEditing(p)}>Edit</button>
-                    <span
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={p.active}
+                      aria-label={`Toggle subscription ${p.name}`}
                       className={`switch${p.active ? ' on' : ''}`}
                       data-sub={i}
                       onClick={() => toggleActive(p)}
