@@ -405,9 +405,16 @@ export default function NewOrderScreen({
             </div>
           </div>
 
-          <button className={`exp-toggle${expressOn ? ' on' : ''}`} id="exp-toggle" onClick={() => setExpressOn((v) => !v)}>
+          <button
+            className={`exp-toggle${expressOn ? ' on' : ''}`}
+            id="exp-toggle"
+            type="button"
+            role="switch"
+            aria-checked={expressOn}
+            onClick={() => setExpressOn((v) => !v)}
+          >
             <span>{t('expressLabel', { pct: expressPct })}</span>
-            <span className={`switch${expressOn ? ' on' : ''}`} />
+            <span aria-hidden="true" className={`switch${expressOn ? ' on' : ''}`} />
           </button>
 
           {/* Design app.js:436-440 — .cust-attach spans + RIGHT chevron
