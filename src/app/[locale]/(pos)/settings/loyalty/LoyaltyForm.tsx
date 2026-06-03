@@ -77,11 +77,15 @@ export default function LoyaltyForm({ initial }: { initial: Record<string, unkno
       <div className="set-card">
         <div className="set-row">
           <div className="l">
-            <b>Enable loyalty points</b>
+            <b id="loyalty-enabled-label">Enable loyalty points</b>
             <span>Customers earn points on every paid order</span>
           </div>
           <div className="r">
-            <span
+            <button
+              type="button"
+              role="switch"
+              aria-checked={f.enabled}
+              aria-labelledby="loyalty-enabled-label"
               className={`switch${f.enabled ? ' on' : ''}`}
               data-tog="loyalty.enabled"
               onClick={() => setF({ ...f, enabled: !f.enabled })}
