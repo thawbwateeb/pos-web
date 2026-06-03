@@ -317,7 +317,7 @@
     "refundReasonPlaceholder": "e.g. damaged garment",
     "refundIssued": "Refund {amount} issued",
     "invalidRefund": "Enter a valid refund amount",
-    "takePayment": "Take payment",
+    "takePayment": "Take payment for #{number} · {amount}",
     "paymentTaken": "Payment recorded for #{number}",
     "printReceipt": "Print receipt",
     "receiptPrinted": "Receipt #{number} sent to printer",

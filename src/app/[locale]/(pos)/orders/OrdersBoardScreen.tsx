@@ -9,7 +9,7 @@ import { AED, dueLabel } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icons';
 import type { MetaResponse } from '@/lib/meta-context';
-import type { OrdersBoard, OrderStatus, OrderType, Order } from '@/lib/types';
+import type { OrdersBoard, OrderStatus, OrderType, Order, PaymentMethod } from '@/lib/types';
 
 type Filter = 'all' | OrderType;
 
@@ -26,6 +26,9 @@ export default function OrdersBoardScreen({
   const [tagId, setTagId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<OrderStatus | null>(null);
   const [reloading, setReloading] = useState(false);
+  // Pending pay-now request awaiting a payment method choice. The picker
+  // modal is rendered when this is non-null; its onPick PATCHes /payments.
+  const [payNow, setPayNow] = useState<{ order: Order } | null>(null);
   const router = useRouter();
   const boardParams = useParams<{ locale: string }>();
   const boardLocale = boardParams.locale ?? 'en';
@@ -153,15 +156,21 @@ export default function OrdersBoardScreen({
     await doMove(o, to);
   }
 
-  async function togglePaid(o: Order) {
+  // Open the picker so the staff confirms how the customer paid. The
+  // actual POST happens in onPaymentMethodPicked when they choose.
+  function togglePaid(o: Order) {
+    if (o.paid) { toast.show(t('alreadyPaid')); return; }
+    setPayNow({ order: o });
+  }
+
+  async function onPaymentMethodPicked(method: PaymentMethod) {
+    if (!payNow) return;
+    const o = payNow.order;
+    setPayNow(null);
     try {
-      if (o.paid) {
-        toast.show(t('alreadyPaid'));
-        return;
-      }
       await api('/payments', {
         method: 'POST',
-        body: { orderId: o.id, method: 'CASH', amount: Number(o.total) },
+        body: { orderId: o.id, method, amount: Number(o.total) },
       });
       toast.show(t('markedPaid', { number: o.number }));
       refresh();
@@ -290,8 +299,18 @@ export default function OrdersBoardScreen({
       {openId && (
         <OrderDetailModal
           orderId={openId}
+          meta={meta}
           onClose={() => setOpenId(null)}
           onChanged={() => refresh()}
+        />
+      )}
+      {payNow && (
+        <PaymentMethodPicker
+          methods={meta.paymentMethods}
+          total={Number(payNow.order.total)}
+          orderNumber={payNow.order.number}
+          onPick={onPaymentMethodPicked}
+          onClose={() => setPayNow(null)}
         />
       )}
       {tagId && (
@@ -438,10 +457,12 @@ function OrderCard({
 
 function OrderDetailModal({
   orderId,
+  meta,
   onClose,
   onChanged,
 }: {
   orderId: string;
+  meta: MetaResponse;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -450,6 +471,7 @@ function OrderDetailModal({
   const [order, setOrder] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState<null | { kind: 'all' } | { kind: 'line'; line: any }>(null);
+  const [showPayPicker, setShowPayPicker] = useState(false);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const tStatus = useTranslations('OrderStatus');
@@ -465,13 +487,20 @@ function OrderDetailModal({
     setOrder(o);
   }
 
-  async function markPaid() {
+  // Open the picker; the actual POST runs once the staff confirms how
+  // the customer paid (cash / card / Apple Pay / gift card / account).
+  function markPaid() {
     if (!order || order.paid) return;
+    setShowPayPicker(true);
+  }
+  async function payWith(method: PaymentMethod) {
+    if (!order) return;
+    setShowPayPicker(false);
     setBusy(true);
     try {
       await api('/payments', {
         method: 'POST',
-        body: { orderId: order.id, method: 'CASH', amount: Number(order.total) },
+        body: { orderId: order.id, method, amount: Number(order.total) },
       });
       toast.show(t('markedPaid', { number: order.number }));
       onChanged();
@@ -713,6 +742,15 @@ function OrderDetailModal({
               </div>
             </div>
           </div>
+        )}
+        {showPayPicker && order && (
+          <PaymentMethodPicker
+            methods={meta.paymentMethods}
+            total={Number(order.total)}
+            orderNumber={order.number}
+            onPick={payWith}
+            onClose={() => setShowPayPicker(false)}
+          />
         )}
       </div>
     </div>
@@ -961,6 +999,59 @@ function TaggingModal({
           >
             {allDone ? t('tagDoneAdvance') : t('tagAllRemaining', { count: total - linkedCount })}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Modal: pick how the customer paid (cash / card / Apple Pay / account /
+   gift card). ON_DELIVERY is intentionally excluded here — "Take payment"
+   means money is in hand now; orders intended for cash-on-delivery are
+   created without a Payment row at order time and a Payment is recorded
+   from Delivery → Mark delivered with one of these methods. */
+function PaymentMethodPicker({
+  methods,
+  total,
+  orderNumber,
+  onPick,
+  onClose,
+}: {
+  methods: { key: string; icon?: string }[];
+  total: number;
+  orderNumber: number;
+  onPick: (m: PaymentMethod) => void;
+  onClose: () => void;
+}) {
+  const tMethod = useTranslations('PaymentMethod');
+  const tCommon = useTranslations('Common');
+  const t = useTranslations('OrdersBoard');
+  // ON_DELIVERY is the explicit not-yet-paid status; offering it on a
+  // "take payment" picker would create a falsely-paid record.
+  const choices = methods.filter((m) => m.key !== 'ON_DELIVERY');
+  return (
+    <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 220 }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>{t('takePayment', { number: orderNumber, amount: AED(total) })}</h3>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="pay-methods" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {choices.map((m) => (
+              <button
+                key={m.key}
+                className="pay-m"
+                style={{ padding: '14px 12px', textAlign: 'left' }}
+                onClick={() => onPick(m.key as PaymentMethod)}
+              >
+                <b style={{ display: 'block', fontSize: 14 }}>{tMethod(m.key as any)}</b>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
         </div>
       </div>
     </div>
