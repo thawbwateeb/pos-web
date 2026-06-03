@@ -10,6 +10,7 @@ import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
+import { enqueuePrintJob } from '@/lib/print';
 
 interface CartLine {
   key: string;
@@ -170,9 +171,20 @@ export default function NewOrderScreen({
     toast.show(t('cancelled'));
   }
 
-  function printReceipt() {
-    if (!cart.length) return;
-    toast.show(t('receiptPrinted'));
+  async function printReceipt() {
+    // Can only print after an order exists. When creating a new order, the
+    // receipt is printed by the backend's payment → printer pipeline at
+    // charge time. So this button only acts on existing (editing) orders.
+    if (!editing) {
+      toast.show(t('printAfterCharge'));
+      return;
+    }
+    try {
+      await enqueuePrintJob({ type: 'RECEIPT', orderId: editing.id, storeId });
+      toast.show(t('receiptQueued', { number: editing.number }));
+    } catch (err: any) {
+      toast.show(err?.detail?.message || t('receiptFailed'));
+    }
   }
 
   async function save() {

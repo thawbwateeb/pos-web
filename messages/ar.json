@@ -166,7 +166,6 @@
     "promoApplied": "Promo {code} applied",
     "noPromos": "No active promo codes. Create one in Settings → Promo Codes.",
     "printReceipt": "Print receipt",
-    "receiptPrinted": "Receipt sent to printer",
     "cancelConfirm": "Clear this order? Items added so far will be removed.",
     "cancelTitle": "Cancel order?",
     "cancelBody": "Items added so far will be removed. This cannot be undone.",
@@ -182,7 +181,10 @@
     "couldNotUpdate": "Could not update order",
     "sendWaLink": "Send payment link via WhatsApp",
     "waNoCustomer": "Attach a customer first to send a WhatsApp link.",
-    "waLinkSent": "Payment link sent to {name}"
+    "waLinkSent": "Payment link sent to {name}",
+    "printAfterCharge": "الطباعة متاحة بعد إنشاء الطلب",
+    "receiptQueued": "تم إرسال إيصال الطلب #{number} إلى الطابعة",
+    "receiptFailed": "تعذّر إرسال الإيصال إلى قائمة الانتظار"
   },
   "Delivery": {
     "title": "Delivery & Dispatch",
