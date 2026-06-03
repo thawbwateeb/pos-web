@@ -52,6 +52,12 @@ export default function OrdersBoardScreen({
     try {
       const b = await api<OrdersBoard>('/orders/board');
       setBoard(b);
+      // Also bust Next's RSC payload cache for this route, otherwise
+      // navigating to another tab and back replays the stale server
+      // snapshot — and the [initial]→setBoard sync effect would then
+      // overwrite the just-applied change. router.refresh() forces the
+      // next /orders visit to re-run the server component.
+      router.refresh();
     } finally {
       setReloading(false);
     }

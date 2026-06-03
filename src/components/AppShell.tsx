@@ -77,6 +77,27 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
     return () => clearInterval(id);
   }, []);
 
+  // Invalidate Next's RSC payload cache whenever the app mutates server
+  // state (POST/PATCH/PUT/DELETE via api-client). Without this, the
+  // user could change an order's status here, navigate to another tab,
+  // come back to /orders and see the pre-change snapshot from the
+  // cached payload — which our useState(initial)→useEffect sync would
+  // then write back over their live change. Debounced lightly so a
+  // burst of mutations (e.g. tagging 10 garments fast) only triggers
+  // one refresh.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    function onMutate() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { router.refresh(); timer = null; }, 200);
+    }
+    window.addEventListener('app:api-mutate', onMutate);
+    return () => {
+      window.removeEventListener('app:api-mutate', onMutate);
+      if (timer) clearTimeout(timer);
+    };
+  }, [router]);
+
   // Fetch live badge counts so the rail reflects what's actually pending —
   // active orders, unpaid orders (≈ Payments queue), and unread WhatsApp
   // conversations. Re-fetches on SSE order/payment/wa events.

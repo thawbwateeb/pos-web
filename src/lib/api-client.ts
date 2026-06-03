@@ -82,6 +82,15 @@ export async function api<T>(path: string, opts: ClientApiOptions = {}): Promise
     err.detail = detail;
     throw err;
   }
+  // Notify the app that something changed server-side. AppShell listens
+  // and calls router.refresh() so the cached RSC payload for whatever
+  // page the user is on (or returns to) reflects the mutation. Without
+  // this, navigating away and back to a list view replays the stale
+  // snapshot and the user's just-saved change appears to revert.
+  const method = init.method ?? 'GET';
+  if (method !== 'GET' && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('app:api-mutate', { detail: { path, method } }));
+  }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
