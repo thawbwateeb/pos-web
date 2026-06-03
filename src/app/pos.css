@@ -141,6 +141,9 @@ input,select{font:inherit}
 .cart-head .otype-toggle button.on{background:var(--accent);color:#fff}
 .cust-attach{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);cursor:pointer;transition:all .15s}
 .cust-attach:hover{border-color:var(--accent);background:#fff}
+.cust-attach.required{border:1px dashed var(--warn);background:#FEF6EC}
+.cust-attach.required .av{background:var(--warn);color:#fff}
+.cust-attach.required:hover{border-color:var(--warn);background:#fff}
 .cust-attach .av{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600}
 .cust-attach .ct{flex:1;min-width:0}
 .cust-attach .ct b{display:block;font-size:13.5px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
