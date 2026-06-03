@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from './Toast';
+import FocusTrap from './FocusTrap';
 
 type Field = { key: string; label: string; required?: boolean; type?: 'text' | 'number' | 'select'; options?: string[] };
 type Column = { key: string; label: string; align?: 'right' | 'left'; render?: (row: any) => React.ReactNode };
@@ -89,6 +90,7 @@ function Modal({ fields, initial, onSave, onClose, title }: { fields: Field[]; i
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{title}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -111,6 +113,7 @@ function Modal({ fields, initial, onSave, onClose, title }: { fields: Field[]; i
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit}>Save</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

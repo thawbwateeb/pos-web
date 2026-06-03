@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
 import { enqueuePrintJob } from '@/lib/print';
+import FocusTrap from '@/components/FocusTrap';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { ReportsOverview, ReportsHourly } from './page';
@@ -621,6 +622,7 @@ function CashUpModal({
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{t('cashUp.title')}</h3>
@@ -666,6 +668,7 @@ function CashUpModal({
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
