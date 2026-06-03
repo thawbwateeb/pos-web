@@ -97,6 +97,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
   const locale = params.locale ?? 'en';
   const t = useTranslations('Nav');
   const tc = useTranslations('Crumbs');
+  const tCommon = useTranslations('Common');
   const toast = useToast();
 
   const [bootstrap, setBootstrap] = useState(initial);
@@ -468,7 +469,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   {t('endShiftConfirm', { h: endShiftConfirm.h, m: endShiftConfirm.m })}
                 </p>
                 <div style={{ display: 'flex', gap: 8, padding: '8px 12px', justifyContent: 'flex-end' }}>
-                  <button className="btn" onClick={() => setEndShiftConfirm(null)}>Cancel</button>
+                  <button className="btn" onClick={() => setEndShiftConfirm(null)}>{tCommon('cancel')}</button>
                   <button className="btn btn-pri" onClick={confirmEndShift}>{t('endShift')}</button>
                 </div>
               </div>
