@@ -375,7 +375,10 @@ function OrderCard({
       <div className="oc-meta">
         <span>{itemCount > 0 ? `${itemCount} ${tCommon('items').toLowerCase()}` : t('awaiting')}</span>
         <span>·</span>
-        <span>{due}</span>
+        {/* dueLabel reads new Date() + uses system locale — SSR and client
+            disagree on today/tomorrow + AM/PM. Wrap so React doesn't abort
+            hydration; the client value wins. */}
+        <span suppressHydrationWarning>{due}</span>
       </div>
 
       {(o.rackCode || o.status === 'TAGGING') && (
@@ -577,7 +580,7 @@ function OrderDetailModal({
             <span>·</span>
             <span>{order.type === 'WALK_IN' ? 'Walk-in' : 'Pickup & Delivery'}</span>
             <span>·</span>
-            <span>{new Date(order.createdAt).toLocaleString()}</span>
+            <span suppressHydrationWarning>{new Date(order.createdAt).toLocaleString()}</span>
             {order.primaryMethod && (<><span>·</span><span>{tMethod(order.primaryMethod as any)}</span></>)}
           </div>
 

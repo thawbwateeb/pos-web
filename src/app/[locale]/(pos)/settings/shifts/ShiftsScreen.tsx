@@ -410,8 +410,8 @@ function HistoryCard({ rows }: { rows: ShiftHistoryRow[] }) {
             const variance = s.variance != null ? Number(s.variance) : null;
             return (
               <tr key={s.id}>
-                <td>{new Date(s.openedAt).toLocaleString()}</td>
-                <td>{s.closedAt ? new Date(s.closedAt).toLocaleString() : '—'}</td>
+                <td suppressHydrationWarning>{new Date(s.openedAt).toLocaleString()}</td>
+                <td suppressHydrationWarning>{s.closedAt ? new Date(s.closedAt).toLocaleString() : '—'}</td>
                 <td className="num tnum">{AED(Number(s.openingFloat))}</td>
                 <td className="num tnum">{s.countedDrawer != null ? AED(Number(s.countedDrawer)) : '—'}</td>
                 <td className={`num tnum ${variance != null && variance < 0 ? 'neg' : ''}`}>

@@ -237,7 +237,7 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   {(data.orders ?? []).map((o: any) => (
                     <tr key={o.id}>
                       <td>#{o.number}</td>
-                      <td>{new Date(o.createdAt).toLocaleDateString()}</td>
+                      <td suppressHydrationWarning>{new Date(o.createdAt).toLocaleDateString()}</td>
                       <td>{o.status}</td>
                       <td className="num">{AED(o.total)}</td>
                     </tr>

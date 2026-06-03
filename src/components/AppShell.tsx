@@ -55,7 +55,11 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
   const toast = useToast();
 
   const [bootstrap, setBootstrap] = useState(initial);
-  const [now, setNow] = useState(() => new Date());
+  // The clock is intentionally null on the first render: server-rendered HTML
+  // would use the server's wall-clock + locale, the client would hydrate with
+  // its own, and React would abort hydration (#418/#425). We render an empty
+  // slot on SSR and fill it in once useEffect runs on the client.
+  const [now, setNow] = useState<Date | null>(null);
   const [storePickerOpen, setStorePickerOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [shiftStart, setShiftStart] = useState<number | null>(null);
@@ -68,6 +72,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
   const searchWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
@@ -289,8 +294,8 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
             <Icon.chevd size={14} />
           </button>
           <div className="clock">
-            <span className="t">{now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}</span>
-            <span className="d">{now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <span className="t" suppressHydrationWarning>{now ? now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }) : ''}</span>
+            <span className="d" suppressHydrationWarning>{now ? now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
           </div>
           {/* Design app.js:293-296 — .av holds ROLES[state.role].init, the
               role's single-letter initial (M/C/D), NOT the user's full-name
