@@ -8,6 +8,7 @@ import { AED, initials, shortTime } from '@/lib/format';
 import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
 import type { Customer } from '@/lib/types';
+import FocusTrap from '@/components/FocusTrap';
 
 export default function CustomersScreen({ initial, initialQ }: { initial: Customer[]; initialQ: string }) {
   const router = useRouter();
@@ -156,6 +157,7 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{data?.fullName ?? tCommon('loading')}</h3>
@@ -269,6 +271,7 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           )}
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -292,6 +295,7 @@ function CustomerForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   }
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{t('addModal.title')}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -308,6 +312,7 @@ function CustomerForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{t('addModal.save')}</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

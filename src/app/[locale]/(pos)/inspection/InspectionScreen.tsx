@@ -7,6 +7,7 @@ import { AED, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icons';
 import type { Order } from '@/lib/types';
+import FocusTrap from '@/components/FocusTrap';
 
 interface ItemSnapshot {
   id: string;
@@ -318,15 +319,18 @@ function InspectionModal({
   if (!order) {
     return (
       <div className="modal-scrim show" onClick={onClose}>
+        <FocusTrap active onEscape={onClose}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
+        </FocusTrap>
       </div>
     );
   }
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>#{order.number} · {order.customer?.fullName ?? '—'}</h3>
@@ -405,6 +409,7 @@ function InspectionModal({
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
