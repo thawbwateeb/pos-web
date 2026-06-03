@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
@@ -257,6 +258,7 @@ function FeeRow({ label, sub, id, value, onChange }: { label: string; sub?: stri
 }
 
 function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | null; defaultCap: number; onClose: () => void; onSaved: () => void }) {
+  const t = useTranslations('Settings.pickup');
   const [label, setLabel] = useState<string>(initial?.label ?? '');
   const [capacity, setCapacity] = useState<number>(initial?.capacity ?? defaultCap);
   const [kind, setKind] = useState<Kind>(initial?.kind ?? 'BOTH');
@@ -283,7 +285,7 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
           <button className="x" onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
-          <div className="field"><label>Label</label><input className="input" placeholder="e.g. 16:00 – 18:00" value={label} onChange={(e) => setLabel(e.target.value)} /></div>
+          <div className="field"><label>Label</label><input className="input" placeholder={t('slotLabelPlaceholder')} value={label} onChange={(e) => setLabel(e.target.value)} /></div>
           <div className="field-2">
             <div className="field"><label>Type</label>
               <select className="input" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
