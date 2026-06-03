@@ -662,7 +662,7 @@ function Owners({
         <div className="csub">{t('owners.firstOwnerHint')}</div>
         <div className="field" style={{ margin: '12px 0' }}>
           <label>{t('owners.owner')}</label>
-          <input className="inp" placeholder="e.g. Quentin" value={newOwner} onChange={(e) => setNewOwner(e.target.value)} />
+          <input className="inp" placeholder={t('owners.namePlaceholder')} value={newOwner} onChange={(e) => setNewOwner(e.target.value)} />
         </div>
         <div className="grid g2" style={{ gap: 12, marginBottom: 12 }}>
           <div className="field"><label>{t('owners.date')}</label><input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
