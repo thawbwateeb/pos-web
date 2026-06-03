@@ -129,7 +129,11 @@ export default function PromosScreen({ initial }: { initial: Promo[] }) {
                   <td>
                     <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end' }}>
                       <button className="t-btn ghost" data-editpromo={i} onClick={() => setEditing(r)}>Edit</button>
-                      <span
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={r.active}
+                        aria-label={`Toggle promo ${r.code}`}
                         className={`switch${r.active ? ' on' : ''}`}
                         data-promo={i}
                         onClick={async () => { await api(`/promos/${r.id}`, { method: 'PATCH', body: { active: !r.active } }); reload(); }}
@@ -259,8 +263,15 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
                 <option>ALL</option><option>POS</option><option>ONLINE</option>
               </select>
             </div>
-            <div className="field"><label>Auto-apply</label>
-              <span className={`switch${f.auto ? ' on' : ''}`} onClick={() => setF({ ...f, auto: !f.auto })} />
+            <div className="field"><label id="promo-auto-label">Auto-apply</label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={f.auto}
+                aria-labelledby="promo-auto-label"
+                className={`switch${f.auto ? ' on' : ''}`}
+                onClick={() => setF({ ...f, auto: !f.auto })}
+              />
             </div>
           </div>
           <div className="field-2">
