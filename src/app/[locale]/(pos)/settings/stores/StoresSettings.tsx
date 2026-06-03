@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
@@ -195,6 +196,7 @@ function StoreViewModal({ store, isActive, onClose }: { store: Store; isActive: 
 }
 
 function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClose: () => void; onSaved: () => void }) {
+  const t = useTranslations('Settings.stores');
   const [f, setF] = useState({
     name: initial?.name ?? '',
     area: initial?.area ?? '',
@@ -231,7 +233,7 @@ function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClo
           <div className="field"><label>Address</label><input className="input" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /></div>
           <div className="field-2">
             <div className="field"><label>TRN</label><input className="input" value={f.trn} onChange={(e) => setF({ ...f, trn: e.target.value })} /></div>
-            <div className="field"><label>Hours</label><input className="input" placeholder="e.g. 8:00 AM – 10:00 PM" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></div>
+            <div className="field"><label>Hours</label><input className="input" placeholder={t('hoursPlaceholder')} value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></div>
           </div>
         </div>
         <div className="modal-foot">
