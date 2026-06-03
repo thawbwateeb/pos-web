@@ -258,13 +258,14 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
               </div>
             </div>
             <div className="field">
-              <label>Active</label>
-              <span
-                role="button"
-                tabIndex={0}
+              <label id="zone-active-label">Active</label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={active}
+                aria-labelledby="zone-active-label"
                 className={`switch${active ? ' on' : ''}`}
                 onClick={() => setActive((a) => !a)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActive((a) => !a); }}
               />
             </div>
           </div>
