@@ -481,7 +481,6 @@
     "title": "Daily Summary",
     "branch": "{store} branch",
     "exportCsv": "Export CSV",
-    "exported": "Report exported as CSV",
     "printZ": "Print Z-Report",
     "ranges": {
       "Today": "Today",
@@ -607,7 +606,9 @@
       "mrr": "Recurring revenue (MRR)"
     },
     "zQueued": "تم إرسال تقرير Z إلى الطابعة",
-    "zFailed": "تعذّر إرسال تقرير Z إلى قائمة الانتظار"
+    "zFailed": "تعذّر إرسال تقرير Z إلى قائمة الانتظار",
+    "exportNoData": "لا توجد بيانات للتصدير في هذا النطاق",
+    "exportSucceeded": "تم تنزيل التقرير"
   },
   "Finance": {
     "title": "Financial Vision",

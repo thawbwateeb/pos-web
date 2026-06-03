@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
 import { enqueuePrintJob } from '@/lib/print';
+import { toCsv, downloadCsv } from '@/lib/csv';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { ReportsOverview, ReportsHourly } from './page';
 
@@ -130,6 +131,31 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
     display: String(a.value),
   }));
 
+  // ──── Export CSV handler ────
+  function exportCsv() {
+    if (!overview) {
+      toast.show(t('exportNoData'));
+      return;
+    }
+    const rangeLabel = range === 'Custom' ? `${from}..${to}` : range;
+    const rows = [
+      { metric: 'Gross Sales', value: total },
+      { metric: 'Orders', value: ordersCount },
+      { metric: 'Items', value: items },
+      { metric: 'Avg Order Value', value: avg },
+      { metric: 'Express Orders', value: expressCount },
+      { metric: 'Outstanding', value: Math.round(outstanding) },
+      { metric: 'New Customers', value: newCust },
+      ...(turnaround != null ? [{ metric: 'Avg Turnaround (hrs)', value: turnaround }] : []),
+    ];
+    const csv = toCsv(rows, [
+      { key: 'metric', header: 'Metric' },
+      { key: 'value', header: `Value (${activeStoreName}, ${rangeLabel})` },
+    ]);
+    downloadCsv(`thawb-report-${rangeLabel}.csv`, csv);
+    toast.show(t('exportSucceeded'));
+  }
+
   // ──── Print Z-Report handler ────
   async function printZReport() {
     setPrintingZ(true);
@@ -228,7 +254,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
               />
             </>
           )}
-          <button className="btn btn-ghost" data-rexport onClick={() => toast.show(t('exported'))}>
+          <button className="btn btn-ghost" data-rexport onClick={exportCsv}>
             {t('exportCsv')}
           </button>
           <button className={`btn btn-ghost${printingZ ? ' btn-loading' : ''}`} disabled={printingZ} onClick={printZReport}>
