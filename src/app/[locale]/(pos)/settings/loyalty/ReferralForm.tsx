@@ -86,11 +86,15 @@ export default function ReferralForm({ initial }: { initial: Record<string, unkn
       <div className="set-card">
         <div className="set-row">
           <div className="l">
-            <b>Enable referrals</b>
+            <b id="referral-enabled-label">Enable referrals</b>
             <span>Customers get a shareable invite code</span>
           </div>
           <div className="r">
-            <span
+            <button
+              type="button"
+              role="switch"
+              aria-checked={f.enabled}
+              aria-labelledby="referral-enabled-label"
               className={`switch${f.enabled ? ' on' : ''}`}
               data-tog="referral.enabled"
               onClick={() => setF({ ...f, enabled: !f.enabled })}
