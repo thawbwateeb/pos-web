@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
-import { apiBase } from '@/lib/api-base';
 import { Icon } from '@/components/Icons';
 import { initials, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
@@ -92,6 +91,7 @@ export default function WhatsappScreen({
   const [newChatName, setNewChatName] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentSettings, setCurrentSettings] = useState<WhatsappSettings | null>(settings);
+  const [uploadBusy, setUploadBusy] = useState(false);
   const [, forceTick] = useState(0);
   const threadRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +125,13 @@ export default function WhatsappScreen({
       const list = await api<WaConversationListItem[]>('/whatsapp/conversations');
       setConvos(list);
     } catch {}
+  }
+
+  async function reloadActiveConversation() {
+    if (!activeId) return;
+    const r = await api<WaThread>(`/whatsapp/conversations/${activeId}`);
+    setThread(r);
+    refreshSidebar();
   }
 
   async function send() {
@@ -212,44 +219,39 @@ export default function WhatsappScreen({
 
   async function onFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    e.target.value = '';
     if (!file || !activeId) return;
-    const pauseMin = currentSettings?.pauseMinutes ?? 15;
+    // Reset the input so the same file can be re-selected after a failure.
+    e.target.value = '';
+
+    // 10 MB FE cap (server cap is 25 MB; we want to fail fast before hitting it).
+    if (file.size > 10 * 1024 * 1024) {
+      toast.show(t('uploadTooLarge'));
+      return;
+    }
+
+    setUploadBusy(true);
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const cookieStoreId =
-        typeof document !== 'undefined'
-          ? document.cookie.split('; ').find((c) => c.startsWith('active_store_id='))?.split('=')[1]
-          : undefined;
-      const upRes = await fetch(apiBase() + '/files/upload', {
-        method: 'POST',
-        credentials: 'include',
-        headers: cookieStoreId ? { 'x-store-id': cookieStoreId } : {},
-        body: fd,
-      });
-      if (!upRes.ok) throw new Error('upload failed');
-      const fileObj: { id: string; mime: string; originalName: string } = await upRes.json();
-      const mediaUrl = `${apiBase()}/files/${fileObj.id}`;
-      const isImage = (fileObj.mime || file.type).startsWith('image/');
+      const uploaded = await api<{ id: string; key: string; originalName: string; mime: string; sizeBytes: number }>(
+        '/files/upload',
+        { method: 'POST', body: fd },
+      );
+
       await api(`/whatsapp/conversations/${activeId}/messages`, {
         method: 'POST',
         body: {
-          body: file.name,
-          kind: isImage ? 'IMAGE' : 'DOCUMENT',
-          mediaUrl,
+          kind: uploaded.mime.startsWith('image/') ? 'IMAGE' : 'FILE',
+          mediaUrl: `/files/${uploaded.id}`,
         },
       });
-      await api(`/whatsapp/conversations/${activeId}`, {
-        method: 'PATCH',
-        body: { botPaused: true, pausedUntil: new Date(Date.now() + pauseMin * 60_000) },
-      }).catch(() => {});
-      const r = await api<WaThread>(`/whatsapp/conversations/${activeId}`);
-      setThread(r);
-      refreshSidebar();
-      toast.show(t('sentPaused', { mins: pauseMin }));
-    } catch {
-      toast.show(t('uploadComingSoon'));
+
+      // Refresh the thread so the new message lands.
+      await reloadActiveConversation();
+    } catch (err: any) {
+      toast.show(err?.detail?.message || t('uploadFailed'));
+    } finally {
+      setUploadBusy(false);
     }
   }
 
@@ -565,7 +567,7 @@ export default function WhatsappScreen({
                     <path d="M9 10h.01M15 10h.01M8.5 14a4 4 0 0 0 7 0" />
                   </svg>
                 </button>
-                <button className="wa-comp-ico wa-attach" id="wa-attach" onClick={openFilePicker} title={t('attach')} aria-label={t('uploadImage')}>
+                <button className="wa-comp-ico wa-attach" id="wa-attach" onClick={openFilePicker} disabled={uploadBusy} title={t('attach')} aria-label={t('uploadImage')}>
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 17.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8" />
                   </svg>

@@ -52,14 +52,21 @@ export async function api<T>(path: string, opts: ClientApiOptions = {}): Promise
     ? document.cookie.split('; ').find((c) => c.startsWith('active_store_id='))?.split('=')[1]
     : undefined;
   const storeId = opts.storeId ?? cookieStoreId;
+  const isFormData = opts.body instanceof FormData;
   const init: RequestInit = {
     method: opts.method ?? 'GET',
     credentials: 'include',
     headers: {
-      'content-type': 'application/json',
+      // FormData: let the browser set Content-Type (with multipart boundary).
+      // JSON: set application/json explicitly.
+      ...(isFormData ? {} : { 'content-type': 'application/json' }),
       ...(storeId ? { 'x-store-id': storeId } : {}),
     },
-    body: opts.body != null ? JSON.stringify(opts.body) : undefined,
+    body: opts.body != null
+      ? isFormData
+        ? (opts.body as FormData)
+        : JSON.stringify(opts.body)
+      : undefined,
     signal: opts.signal,
   };
   let res = await fetch(apiBase() + path, init);

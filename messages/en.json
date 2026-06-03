@@ -459,7 +459,6 @@
     "botPausedTimer": "Paused {mins}m",
     "attach": "Attach",
     "uploadImage": "Send image",
-    "uploadComingSoon": "Image upload coming soon",
     "settings": "Settings",
     "settingsTitle": "WhatsApp settings",
     "botEnabled": "Bot enabled",
@@ -474,7 +473,9 @@
     "newChatNamePlaceholder": "Customer name (optional)",
     "newChatStart": "Start chat",
     "clearComingSoon": "Clear chat coming soon",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "uploadTooLarge": "File too large — max 10 MB",
+    "uploadFailed": "Could not upload file"
   },
   "Reports": {
     "title": "Daily Summary",
@@ -630,48 +631,52 @@
       "owners": "Owners & Capital"
     },
     "kpis": {
-      "annualPlanCost": "Annual plan cost",
-      "annualIncome": "Annual income · {scenario}",
-      "annualProfit": "Annual profit · {scenario}",
-      "stripeFees": "Stripe fees",
-      "incomeMinusCost": "income − cost",
-      "perTx": "per transaction",
-      "yearTotal": "12 months total",
-      "scenarioAssumption": "scenario assumption"
+      "cashInBank": "Cash in bank (latest)",
+      "cashInBankSub": "Capital {capital} + cumulative profit",
+      "capitalInvested": "Total capital invested",
+      "contributionsCount": "{count} contributions",
+      "planCashEoy": "Plan cash, end of year",
+      "averageScenario": "Average scenario",
+      "monthlyBurn": "Monthly burn (fixed)",
+      "monthlyBurnSub": "May fixed expenses"
     },
     "dashboard": {
-      "incomeVsExpense": "Income vs expenses",
+      "cumulativeBank": "Cumulative company bank account",
+      "cumulativeBankSub": "Fixed view — plan vs actual. Not affected by the scenario selector.",
+      "planAvg": "Plan (avg)",
+      "actual": "Actual",
+      "scenarioProjections": "Scenario projections",
+      "scenarioProjectionsSub": "Only the two charts below react to the selected scenario.",
+      "incomeVsExpense": "Monthly income vs expenses",
       "incomeVsExpenseSub": "{scenario} scenario",
       "income": "Income",
       "expenses": "Expenses",
-      "ordersCustomers": "Orders & customers",
+      "ordersCustomers": "Orders & customers vs plan",
       "ordersCustomersSub": "{scenario} scenario",
       "orders": "Orders",
-      "customers": "Customers",
-      "cumulativeProfit": "Cumulative profit",
-      "cumulativeProfitSub": "Running annual profit, month over month",
-      "cumulative": "Cumulative"
+      "customers": "Customers"
     },
     "unit": {
-      "basket": "Avg. basket",
-      "basketSub": "income / orders",
-      "grossPerOrder": "Gross per order",
-      "grossPerOrderSub": "after variable costs (55% margin assumed)",
-      "cac": "CAC",
-      "cacSub": "expenses / new customers",
-      "ltv": "LTV",
-      "ltvSub": "gross/order × orders/customer",
-      "ltvCac": "LTV / CAC",
-      "ltvCacSub": "above 3× is healthy",
-      "payback": "Payback",
-      "paybackSub": "orders to recoup CAC",
-      "assumptions": "Assumptions",
-      "scenarioRow": "Scenario",
-      "annualIncome": "Annual income",
-      "annualOrders": "Annual orders",
-      "annualCustomers": "Annual customers",
-      "ordersPerCust": "Orders per customer",
-      "stripeFee": "Stripe fee"
+      "basket": "Average basket",
+      "basketSub": "Income ÷ orders",
+      "varCostPerOrder": "Variable cost / order",
+      "varCostPerOrderSub": "Scales with each order",
+      "contribMargin": "Contribution margin / order",
+      "contribMarginSub": "Covers fixed costs",
+      "fullyLoaded": "Fully-loaded cost / order",
+      "fullyLoadedSub": "All expenses ÷ orders",
+      "breakeven": "Break-even orders / month",
+      "breakevenSub": "To cover fixed costs",
+      "utilization": "Team utilization",
+      "utilizationSub": "Orders ÷ capacity",
+      "utilizationNoCap": "Set capacity on Actuals",
+      "varBreakdown": "Variable cost breakdown",
+      "stripeFeeRow": "Stripe fee",
+      "varTotalPerOrders": "Total variable ÷ {orders} orders",
+      "perOrder": "{value} / order",
+      "cacTitle": "Customer acquisition cost (CAC)",
+      "cacSubLine": "Ads + Marketing ÷ customers",
+      "cacWarning": "Based on total customers, not new customers — treat as an upper bound. Excluded from cost / order above."
     },
     "owners": {
       "title": "Owners & Capital",
@@ -701,32 +706,6 @@
       "totalPill": "Total {value}",
       "delete": "Delete"
     },
-    "kpis": {
-      "cashInBank": "Cash in bank (latest)",
-      "cashInBankSub": "Capital {capital} + cumulative profit",
-      "capitalInvested": "Total capital invested",
-      "contributionsCount": "{count} contributions",
-      "planCashEoy": "Plan cash, end of year",
-      "averageScenario": "Average scenario",
-      "monthlyBurn": "Monthly burn (fixed)",
-      "monthlyBurnSub": "May fixed expenses"
-    },
-    "dashboard": {
-      "cumulativeBank": "Cumulative company bank account",
-      "cumulativeBankSub": "Fixed view — plan vs actual. Not affected by the scenario selector.",
-      "planAvg": "Plan (avg)",
-      "actual": "Actual",
-      "scenarioProjections": "Scenario projections",
-      "scenarioProjectionsSub": "Only the two charts below react to the selected scenario.",
-      "incomeVsExpense": "Monthly income vs expenses",
-      "incomeVsExpenseSub": "{scenario} scenario",
-      "income": "Income",
-      "expenses": "Expenses",
-      "ordersCustomers": "Orders & customers vs plan",
-      "ordersCustomersSub": "{scenario} scenario",
-      "orders": "Orders",
-      "customers": "Customers"
-    },
     "actuals": {
       "realIncome": "Real income (AED)",
       "realOrders": "Real orders",
@@ -745,28 +724,6 @@
       "totalRow": "Total",
       "saveMonth": "Save {month}",
       "savedMonth": "{month} actuals saved"
-    },
-    "unit": {
-      "basket": "Average basket",
-      "basketSub": "Income ÷ orders",
-      "varCostPerOrder": "Variable cost / order",
-      "varCostPerOrderSub": "Scales with each order",
-      "contribMargin": "Contribution margin / order",
-      "contribMarginSub": "Covers fixed costs",
-      "fullyLoaded": "Fully-loaded cost / order",
-      "fullyLoadedSub": "All expenses ÷ orders",
-      "breakeven": "Break-even orders / month",
-      "breakevenSub": "To cover fixed costs",
-      "utilization": "Team utilization",
-      "utilizationSub": "Orders ÷ capacity",
-      "utilizationNoCap": "Set capacity on Actuals",
-      "varBreakdown": "Variable cost breakdown",
-      "stripeFeeRow": "Stripe fee",
-      "varTotalPerOrders": "Total variable ÷ {orders} orders",
-      "perOrder": "{value} / order",
-      "cacTitle": "Customer acquisition cost (CAC)",
-      "cacSubLine": "Ads + Marketing ÷ customers",
-      "cacWarning": "Based on total customers, not new customers — treat as an upper bound. Excluded from cost / order above."
     },
     "vision": {
       "note": "The yearly vision — read-only. Profit = scenario income − planned expenses.",
@@ -887,7 +844,12 @@
       "sub": "Branches your business operates. Staff sign into one or more of these.",
       "allStores": "All stores",
       "addStore": "+ Add store",
-      "table": { "name": "Name", "area": "Area", "phone": "Phone", "trn": "TRN" },
+      "table": {
+        "name": "Name",
+        "area": "Area",
+        "phone": "Phone",
+        "trn": "TRN"
+      },
       "addModal": "Add store",
       "editModal": "Edit store",
       "deleteConfirm": "Delete {name}?",
@@ -985,22 +947,33 @@
       "sub": "Service areas customers can pick when booking pickup & delivery.",
       "tableTitle": "Areas",
       "labelSingular": "area",
-      "fields": { "name": "Name", "sortOrder": "Sort order" }
+      "fields": {
+        "name": "Name",
+        "sortOrder": "Sort order"
+      }
     },
     "drivers": {
       "title": "Drivers",
       "sub": "People who pick up and deliver orders.",
       "tableTitle": "Drivers",
       "labelSingular": "driver",
-      "fields": { "name": "Name", "zone": "Zone" }
+      "fields": {
+        "name": "Name",
+        "zone": "Zone"
+      }
     },
     "promos": {
       "title": "Promotions",
       "sub": "Codes customers can apply to orders. Auto-apply or POS-only options below.",
       "customerSearchPlaceholder": "Search by name or phone",
-      "table": "All promotions",
+      "table": {
+        "code": "Code",
+        "description": "Description",
+        "value": "Value",
+        "channel": "Channel",
+        "uses": "Uses"
+      },
       "new": "+ New promo",
-      "table": { "code": "Code", "description": "Description", "value": "Value", "channel": "Channel", "uses": "Uses" },
       "addTitle": "New promo",
       "editTitle": "Edit promo",
       "codeRequired": "Code required",
@@ -1041,7 +1014,12 @@
       "issue": "+ Issue card",
       "amountPrompt": "Amount (AED)",
       "recipientPrompt": "Recipient name (optional)",
-      "table": { "code": "Code", "recipient": "Recipient", "initial": "Initial", "balance": "Balance" },
+      "table": {
+        "code": "Code",
+        "recipient": "Recipient",
+        "initial": "Initial",
+        "balance": "Balance"
+      },
       "noCards": "No cards issued yet"
     },
     "subscriptions": {
