@@ -82,43 +82,47 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   /* Top items from real API */
   const top = (overview.topItems ?? []).slice(0, 6);
 
-  /* Static/hardcoded figures to match design (app.js:783-788). Real values
-     for these series are not in the overview API yet. */
-  const refundsLabelValue = refundsAmt; // real refunds from API
-  const discounts = 124;
-  const vatRate = 5;
-  const vatColl = Math.round(total - total / (1 + vatRate / 100));
-  const cost = Math.round(total * 0.38);
-  const profit = total - cost;
-  const margin = total ? Math.round((profit / total) * 100) : 0;
+  // Every metric below now comes from /reports/overview aggregating real
+  // DB rows. Fields that the system genuinely doesn't have a source for
+  // (cost-of-goods, hence profit/margin) come back as null and the
+  // corresponding UI cards are omitted rather than filled with a guess.
+  const refundsLabelValue = refundsAmt;
+  const discounts = overview.discounts ?? 0;
+  const vatRate = overview.vatRate ?? 0;
+  const vatColl = overview.vatCollected ?? 0;
+  const cost = overview.cost;
+  const profit = overview.profit;
+  const margin = overview.margin;
 
-  // Hardcoded by design — no API source.
-  const walk = Math.round(ordersCount * 0.6);
-  const deliv = ordersCount - walk;
-  const items = Math.round(ordersCount * 4.2);
-  const expressCount = Math.round(ordersCount * 0.15);
-  const unpaidCount = Math.max(0, ordersCount - Math.round(ordersCount * 0.85));
-  const turnaround = 21;
-  const newCust = 7;
-  const gcSold = 0;
-  const gcRedeemed = 0;
-  const loyaltyIssued = 1240;
-  const loyaltyRedeemed = 380;
-  const subsActive = 0;
-  const mrr = 0;
-  const openingFloat = 200;
+  const walk = overview.byType?.walkIn ?? 0;
+  const deliv = overview.byType?.pickupDelivery ?? 0;
+  const items = overview.itemsCount ?? 0;
+  const expressCount = overview.expressCount ?? 0;
+  const unpaidCount = overview.unpaidCount ?? 0;
+  const turnaround = overview.turnaroundHours;
+  const newCust = overview.newCustomers ?? 0;
+  const gcSold = overview.giftCardsSold ?? 0;
+  const gcRedeemed = overview.giftCardsRedeemed ?? 0;
+  const loyaltyIssued = overview.loyaltyIssued ?? 0;
+  const loyaltyRedeemed = overview.loyaltyRedeemed ?? 0;
+  const subsActive = overview.subscriptionsActive ?? 0;
+  const mrr = overview.mrr ?? 0;
+  const openingFloat = overview.openingFloat;
 
-  const serviceMix = [
-    { label: t('serviceMix.dryClean'), value: 42, color: '#2A4858', display: `42 ${t('orderType.ordersUnit')}` },
-    { label: t('serviceMix.wash'), value: 68, color: '#16A34A', display: `68 ${t('orderType.ordersUnit')}` },
-    { label: t('serviceMix.press'), value: 54, color: '#D97706', display: `54 ${t('orderType.ordersUnit')}` },
-  ];
-  const topAreas = [
-    { label: 'Dubai Marina', value: 12, color: '#2A4858', display: '12' },
-    { label: 'Downtown', value: 9, color: '#16A34A', display: '9' },
-    { label: 'Business Bay', value: 7, color: '#D97706', display: '7' },
-    { label: 'Al Barari', value: 5, color: '#64748B', display: '5' },
-  ];
+  // Stable colour cycle so the same tier/area always gets the same swatch.
+  const PALETTE = ['#2A4858', '#16A34A', '#D97706', '#7C3AED', '#0891B2', '#DB2777'];
+  const serviceMix = (overview.serviceMix ?? []).map((s, i) => ({
+    label: s.label,
+    value: s.value,
+    color: PALETTE[i % PALETTE.length],
+    display: `${s.value} ${t('orderType.ordersUnit')}`,
+  }));
+  const topAreas = (overview.topAreas ?? []).map((a, i) => ({
+    label: a.label,
+    value: a.value,
+    color: PALETTE[i % PALETTE.length],
+    display: String(a.value),
+  }));
 
   // ──── Navigation: range change ────
   function pushRange(next: Range, nextFrom?: string, nextTo?: string) {
@@ -259,7 +263,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.turnaround')}</div>
-          <div className="sv">{turnaround}<span className="cur">h</span></div>
+          <div className="sv">{turnaround != null ? <>{turnaround}<span className="cur">h</span></> : '—'}</div>
           <div className="sd">{t('kpis.turnaroundSub')}</div>
         </div>
       </div>
@@ -407,27 +411,37 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
             </tbody>
           </table>
         </div>
-        <div className="panel">
-          <h3>{t('profitMargin.title')}</h3>
-          <div className="psub">{t('profitMargin.sub')}</div>
-          <div style={{ display: 'flex', gap: 24, marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', fontWeight: 600 }}>{t('profitMargin.profit')}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em' }}>{AED(profit)}</div>
+        {cost != null && profit != null && margin != null ? (
+          <div className="panel">
+            <h3>{t('profitMargin.title')}</h3>
+            <div className="psub">{t('profitMargin.sub')}</div>
+            <div style={{ display: 'flex', gap: 24, marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', fontWeight: 600 }}>{t('profitMargin.profit')}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em' }}>{AED(profit)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', fontWeight: 600 }}>{t('profitMargin.margin')}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ok)', letterSpacing: '-.02em' }}>{margin}%</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', fontWeight: 600 }}>{t('profitMargin.margin')}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ok)', letterSpacing: '-.02em' }}>{margin}%</div>
+            <div style={{ height: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ width: `${margin}%`, height: '100%', background: 'var(--ok)' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+              <span>{t('profitMargin.cost')} {AED(cost)}</span>
+              <span>{t('profitMargin.revenue')} {AED(total)}</span>
             </div>
           </div>
-          <div style={{ height: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ width: `${margin}%`, height: '100%', background: 'var(--ok)' }} />
+        ) : (
+          // Cost-of-goods isn't tracked yet, so we deliberately omit the
+          // panel rather than show a guessed margin. Add a CatalogueItem
+          // cost field + ProductCost endpoint to bring this back.
+          <div className="panel">
+            <h3>{t('profitMargin.title')}</h3>
+            <div className="psub" style={{ marginTop: 4 }}>{t('profitMargin.noCostData')}</div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
-            <span>{t('profitMargin.cost')} {AED(cost)}</span>
-            <span>{t('profitMargin.revenue')} {AED(total)}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ─────── Programs & Cash (cols-2b) ─────── */}
@@ -452,11 +466,11 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <div className="psub">{t('cashDrawer.sub')}</div>
           <table className="tbl" style={{ marginTop: 4 }}>
             <tbody>
-              <tr><td>{t('cashDrawer.openingFloat')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(openingFloat)}</td></tr>
+              <tr><td>{t('cashDrawer.openingFloat')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{openingFloat != null ? AED(openingFloat) : '—'}</td></tr>
               <tr><td>{t('cashDrawer.cashSales')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(cashTotal)}</td></tr>
               <tr><td>{t('cashDrawer.cardDigital')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(cardTotal)}</td></tr>
               <tr><td>{t('cashDrawer.account')}</td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(acctTotal)}</td></tr>
-              <tr><td><b>{t('cashDrawer.expected')}</b></td><td className="t-amt" style={{ textAlign: 'right' }}>{AED(openingFloat + cashTotal)}</td></tr>
+              <tr><td><b>{t('cashDrawer.expected')}</b></td><td className="t-amt" style={{ textAlign: 'right' }}>{openingFloat != null ? AED(openingFloat + cashTotal) : '—'}</td></tr>
             </tbody>
           </table>
         </div>

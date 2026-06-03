@@ -576,7 +576,8 @@
       "profit": "Profit",
       "margin": "Margin",
       "cost": "Cost",
-      "revenue": "Revenue"
+      "revenue": "Revenue",
+      "noCostData": "Cost of goods isn't tracked yet — add unit costs to your catalogue to see profit and margin here."
     },
     "programs": {
       "title": "Programs Activity",

@@ -19,8 +19,30 @@ export interface ReportsOverview {
   collected: number;
   refunds: number;
   refundCount: number;
+  discounts: number;
+  vatCollected: number;
+  vatRate: number;
+  /** null when the business doesn't track cost-of-goods. UI omits the card. */
+  cost: number | null;
+  profit: number | null;
+  margin: number | null;
   byStatus: { status: string; _count: number }[];
   byMethod: { method: string; _count: number; _sum: { amount: number | string | null } }[];
+  byType: { walkIn: number; pickupDelivery: number };
+  itemsCount: number;
+  expressCount: number;
+  unpaidCount: number;
+  turnaroundHours: number | null;
+  newCustomers: number;
+  loyaltyIssued: number;
+  loyaltyRedeemed: number;
+  giftCardsSold: number;
+  giftCardsRedeemed: number;
+  subscriptionsActive: number;
+  mrr: number;
+  openingFloat: number | null;
+  serviceMix: { label: string; value: number }[];
+  topAreas: { label: string; value: number }[];
   topItems: { name: string; qty: number | null; revenue: number }[];
 }
 
