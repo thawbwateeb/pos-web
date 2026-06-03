@@ -997,6 +997,7 @@
     "promos": {
       "title": "Promotions",
       "sub": "Codes customers can apply to orders. Auto-apply or POS-only options below.",
+      "customerSearchPlaceholder": "Search by name or phone",
       "table": "All promotions",
       "new": "+ New promo",
       "table": { "code": "Code", "description": "Description", "value": "Value", "channel": "Channel", "uses": "Uses" },

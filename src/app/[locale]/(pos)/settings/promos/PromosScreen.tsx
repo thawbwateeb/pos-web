@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
@@ -309,6 +310,7 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
 }
 
 function CustomerSearch({ excludeIds, onPick }: { excludeIds: string[]; onPick: (c: CustomerLite) => void }) {
+  const t = useTranslations('Settings.promos');
   const [q, setQ] = useState('');
   const [results, setResults] = useState<CustomerLite[]>([]);
   const [loading, setLoading] = useState(false);
@@ -336,7 +338,7 @@ function CustomerSearch({ excludeIds, onPick }: { excludeIds: string[]; onPick: 
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', padding: 8 }}>
       <input
         className="input"
-        placeholder="Search by name or phone"
+        placeholder={t('customerSearchPlaceholder')}
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
