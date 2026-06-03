@@ -469,7 +469,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 </p>
                 <div style={{ display: 'flex', gap: 8, padding: '8px 12px', justifyContent: 'flex-end' }}>
                   <button className="btn" onClick={() => setEndShiftConfirm(null)}>Cancel</button>
-                  <button className="btn btn-primary" onClick={confirmEndShift}>{t('endShift')}</button>
+                  <button className="btn btn-pri" onClick={confirmEndShift}>{t('endShift')}</button>
                 </div>
               </div>
             </div>
