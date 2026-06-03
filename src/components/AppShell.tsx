@@ -10,6 +10,7 @@ import type { Bootstrap, PermissionAction } from '@/lib/types';
 import { initials } from '@/lib/format';
 import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost, useToast } from './Toast';
+import FocusTrap from './FocusTrap';
 
 /**
  * Derive CSS theme variables from the business branding so Settings →
@@ -387,6 +388,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
 
         {storePickerOpen && (
           <div className="modal-scrim show" onClick={() => setStorePickerOpen(false)}>
+            <FocusTrap active onEscape={() => setStorePickerOpen(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-head">
                 <h3>{t('switchStore')}</h3>
@@ -422,11 +424,13 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 )}
               </div>
             </div>
+            </FocusTrap>
           </div>
         )}
 
         {userMenuOpen && (
           <div className="modal-scrim show" onClick={() => setUserMenuOpen(false)}>
+            <FocusTrap active onEscape={() => setUserMenuOpen(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-head">
                 <h3>{t('userMenu')}</h3>
@@ -454,11 +458,13 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 </button>
               </div>
             </div>
+            </FocusTrap>
           </div>
         )}
 
         {endShiftConfirm && (
           <div className="modal-scrim show" onClick={() => setEndShiftConfirm(null)}>
+            <FocusTrap active onEscape={() => setEndShiftConfirm(null)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-head">
                 <h3>{t('endShift')}</h3>
@@ -474,6 +480,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 </div>
               </div>
             </div>
+            </FocusTrap>
           </div>
         )}
       </div>
