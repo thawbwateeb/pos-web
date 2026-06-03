@@ -485,8 +485,9 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
   };
 
   return (
-    <div className="req-wrap">
-      <div className="req-list">
+    <div className="page">
+      <div className="req-wrap">
+        <div className="req-list">
         <div className="req-list-h">
           Open <span>{open.length}</span>
         </div>
@@ -524,6 +525,7 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
         ) : (
           <div className="req-empty-detail">Select a request to review</div>
         )}
+        </div>
       </div>
     </div>
   );
