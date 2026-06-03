@@ -614,7 +614,7 @@ export default function WhatsappScreen({
                 className="inp"
                 value={newChatPhone}
                 onChange={(e) => setNewChatPhone(e.target.value)}
-                placeholder="+971 50 123 4567"
+                placeholder={t('newChatPhonePlaceholder')}
                 autoFocus
               />
             </div>
@@ -624,7 +624,7 @@ export default function WhatsappScreen({
                 className="inp"
                 value={newChatName}
                 onChange={(e) => setNewChatName(e.target.value)}
-                placeholder="Customer name (optional)"
+                placeholder={t('newChatNamePlaceholder')}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

@@ -470,6 +470,8 @@
     "addTemplate": "Add template",
     "newChat": "New chat",
     "newChatPhone": "Phone (with country code)",
+    "newChatPhonePlaceholder": "+971 50 123 4567",
+    "newChatNamePlaceholder": "Customer name (optional)",
     "newChatStart": "Start chat",
     "clearComingSoon": "Clear chat coming soon",
     "saved": "Settings saved"
