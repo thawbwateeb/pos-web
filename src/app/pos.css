@@ -308,6 +308,16 @@ input,select{font:inherit}
 .modal{background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:460px;overflow:hidden;animation:pop .2s ease}
 .modal.wide{max-width:640px}
 @keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1)}}
+
+/* ---------- SHIMMER (loading skeletons) ---------- */
+/* A single .shimmer class with a sliding gradient. The two stops use the
+   actual surface colours so the bar reads as "this content is loading"
+   without screaming for attention. Reduced-motion users get the base
+   colour without the animation. */
+.shimmer{position:relative;overflow:hidden;background:#E6E9EE;border-radius:6px}
+.shimmer::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.65) 50%,transparent 100%);transform:translateX(-100%);animation:shimmer 1.2s infinite}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion: reduce){.shimmer::after{animation:none}}
 .modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-head h3{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.01em}
 .modal-head .x{width:34px;height:34px;border-radius:50%;background:var(--surface-2);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:18px}
