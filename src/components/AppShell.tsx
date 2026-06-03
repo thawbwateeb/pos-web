@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { CSSProperties, ReactNode, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -10,6 +10,46 @@ import type { Bootstrap, PermissionAction } from '@/lib/types';
 import { initials } from '@/lib/format';
 import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost, useToast } from './Toast';
+
+/**
+ * Derive CSS theme variables from the business branding so Settings →
+ * Branding actually changes the POS look. pos.css defines --accent,
+ * --accent-soft, --accent-deep at :root with hardcoded defaults; we
+ * shadow them on the .app wrapper from the active branding row.
+ *
+ * Soft = mix(primary, white, 88%). Deep = mix(primary, black, 25%).
+ * Computed in JS rather than CSS color-mix() so this works in Safari
+ * versions still in field at POS terminals.
+ */
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff };
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+function mix(hex: string, target: { r: number; g: number; b: number }, t: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  return rgbToHex(
+    rgb.r + (target.r - rgb.r) * t,
+    rgb.g + (target.g - rgb.g) * t,
+    rgb.b + (target.b - rgb.b) * t,
+  );
+}
+function brandingTheme(b: Bootstrap['business']['branding']): CSSProperties {
+  if (!b) return {};
+  const soft = mix(b.posPrimary, { r: 255, g: 255, b: 255 }, 0.88);
+  const deep = mix(b.posPrimary, { r: 0, g: 0, b: 0 }, 0.25);
+  return {
+    ['--accent' as any]: b.posPrimary,
+    ['--accent-soft' as any]: soft,
+    ['--accent-deep' as any]: deep,
+  };
+}
 
 // Each rail entry carries the i18n key for its short label, the icon, AND
 // the topbar crumb namespace + page-title key for that route. This way the
@@ -55,6 +95,12 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
   const toast = useToast();
 
   const [bootstrap, setBootstrap] = useState(initial);
+  // Re-sync from the server prop after router.refresh() (e.g. Branding
+  // saved → app:api-mutate listener busts cache → layout re-runs with
+  // fresh bootstrap → new initial arrives here). Without this the
+  // local optimistic activeStoreId stays in place but a freshly-saved
+  // brand colour / store list / logo doesn't propagate.
+  useEffect(() => { setBootstrap(initial); }, [initial]);
   // The clock is intentionally null on the first render: server-rendered HTML
   // would use the server's wall-clock + locale, the client would hydrate with
   // its own, and React would abort hydration (#418/#425). We render an empty
@@ -206,8 +252,10 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
     router.push(href);
   }
 
+  const themeStyle = brandingTheme(bootstrap.business.branding);
+
   return (
-    <div className="app">
+    <div className="app" style={themeStyle}>
       {/* Design POS.html:16 + app.js renderRail. */}
       <aside className="rail">
         <div className="logo">{LOGO_ICON}</div>
