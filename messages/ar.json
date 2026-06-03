@@ -451,7 +451,6 @@
     "menuOptions": {
       "unread": "Mark as unread",
       "info": "Contact info",
-      "clear": "Clear messages",
       "viewOrders": "Create order"
     },
     "markedUnread": "Marked as unread",
@@ -472,7 +471,6 @@
     "newChatPhonePlaceholder": "+971 50 123 4567",
     "newChatNamePlaceholder": "Customer name (optional)",
     "newChatStart": "Start chat",
-    "clearComingSoon": "Clear chat coming soon",
     "saved": "Settings saved",
     "uploadTooLarge": "الملف كبير جداً — الحد الأقصى 10 ميجابايت",
     "uploadFailed": "تعذّر تحميل الملف"

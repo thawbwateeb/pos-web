@@ -197,12 +197,6 @@ export default function WhatsappScreen({
     toast.show(t('markedUnread'));
   }
 
-  function clearChat() {
-    setMenuOpen(false);
-    // No DELETE endpoint exists yet; surface a coming-soon notice.
-    toast.show(t('clearComingSoon'));
-  }
-
   function viewOrders() {
     setMenuOpen(false);
     if (!thread) return;
@@ -463,7 +457,6 @@ export default function WhatsappScreen({
                       {t('menuOptions.info')}
                     </button>
                     <button data-m="unread" onClick={markUnread}>{t('menuOptions.unread')}</button>
-                    <button data-m="clear" onClick={clearChat}>{t('menuOptions.clear')}</button>
                     <button data-m="order" onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
                   </div>
                 </div>
