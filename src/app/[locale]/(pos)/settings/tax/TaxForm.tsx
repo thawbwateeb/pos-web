@@ -58,12 +58,15 @@ export default function TaxForm({ initial }: { initial: any }) {
       <div className="ssub">Configure how tax is calculated, labelled and printed</div>
       <div className="set-card">
         <div className="set-row">
-          <div className="l"><b>Charge VAT</b><span>Apply tax to every order</span></div>
+          <div className="l"><b id="tax-enabled-label">Charge VAT</b><span>Apply tax to every order</span></div>
           <div className="r">
             <button
               className={`switch ${f.enabled ? 'on' : ''}`}
               data-tog="tax.enabled"
               type="button"
+              role="switch"
+              aria-checked={f.enabled}
+              aria-labelledby="tax-enabled-label"
               onClick={() => setF({ ...f, enabled: !f.enabled })}
             />
           </div>
@@ -124,7 +127,7 @@ export default function TaxForm({ initial }: { initial: any }) {
         </div>
         <div className="set-row">
           <div className="l">
-            <b>Print tax breakdown on receipt</b>
+            <b id="tax-onreceipt-label">Print tax breakdown on receipt</b>
             <span>Show the {f.label} line on printed receipts</span>
           </div>
           <div className="r">
@@ -132,6 +135,9 @@ export default function TaxForm({ initial }: { initial: any }) {
               className={`switch ${f.onReceipt ? 'on' : ''}`}
               data-tog="tax.onReceipt"
               type="button"
+              role="switch"
+              aria-checked={f.onReceipt}
+              aria-labelledby="tax-onreceipt-label"
               onClick={() => setF({ ...f, onReceipt: !f.onReceipt })}
             />
           </div>
