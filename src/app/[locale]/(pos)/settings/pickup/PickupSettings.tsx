@@ -138,7 +138,15 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
                 </td>
                 <td className="num">{slot.capacity} orders</td>
                 <td className="num">
-                  <button className={`switch ${slot.active ? 'on' : ''}`} data-pkt={i} onClick={() => toggleSlot(slot)} />
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={slot.active}
+                    aria-label={`Toggle slot ${slot.label}`}
+                    className={`switch ${slot.active ? 'on' : ''}`}
+                    data-pkt={i}
+                    onClick={() => toggleSlot(slot)}
+                  />
                 </td>
                 <td className="num">
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -178,12 +186,28 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
           <FeeRow label="Free delivery over" sub="Waive fee above this total" id="pk-free" value={s.freeOver ?? 0} onChange={(v) => setS({ ...s, freeOver: v })} />
           <FeeRow label="Minimum order" sub="Below this, pickup unavailable" id="pk-min" value={s.minOrder ?? 0} onChange={(v) => setS({ ...s, minOrder: v })} />
           <div className="set-row" style={{ border: 'none' }}>
-            <div className="l"><b>Auto-assign driver</b><span>Route by zone on dispatch</span></div>
-            <button className={`switch ${s.autoAssignDriver ? 'on' : ''}`} data-pkflag="autoAssignDriver" onClick={() => setS({ ...s, autoAssignDriver: !s.autoAssignDriver })} />
+            <div className="l"><b id="pk-auto-assign-label">Auto-assign driver</b><span>Route by zone on dispatch</span></div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={s.autoAssignDriver ?? false}
+              aria-labelledby="pk-auto-assign-label"
+              className={`switch ${s.autoAssignDriver ? 'on' : ''}`}
+              data-pkflag="autoAssignDriver"
+              onClick={() => setS({ ...s, autoAssignDriver: !s.autoAssignDriver })}
+            />
           </div>
           <div className="set-row" style={{ border: 'none', paddingTop: 0 }}>
-            <div className="l"><b>Notify on dispatch</b><span>SMS customer with driver & ETA</span></div>
-            <button className={`switch ${s.notifyOnDispatch ? 'on' : ''}`} data-pkflag="notifyOnDispatch" onClick={() => setS({ ...s, notifyOnDispatch: !s.notifyOnDispatch })} />
+            <div className="l"><b id="pk-notify-dispatch-label">Notify on dispatch</b><span>SMS customer with driver & ETA</span></div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={s.notifyOnDispatch ?? false}
+              aria-labelledby="pk-notify-dispatch-label"
+              className={`switch ${s.notifyOnDispatch ? 'on' : ''}`}
+              data-pkflag="notifyOnDispatch"
+              onClick={() => setS({ ...s, notifyOnDispatch: !s.notifyOnDispatch })}
+            />
           </div>
         </div>
       </div>
@@ -296,8 +320,15 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
             </div>
             <div className="field"><label>Capacity</label><input className="input" type="number" value={capacity} onChange={(e) => setCapacity(+e.target.value || 0)} /></div>
           </div>
-          <div className="field"><label>Active</label>
-            <button type="button" className={`switch ${active ? 'on' : ''}`} onClick={() => setActive(!active)} />
+          <div className="field"><label id="pk-slot-active-label">Active</label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={active}
+              aria-labelledby="pk-slot-active-label"
+              className={`switch ${active ? 'on' : ''}`}
+              onClick={() => setActive(!active)}
+            />
           </div>
         </div>
         <div className="modal-foot">
