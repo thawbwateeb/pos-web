@@ -142,8 +142,13 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   // ──── Cash Up handler ────
   async function submitCashUp(counted: number) {
     try {
-      await api('/shifts/current/close', { method: 'POST', body: { countedDrawer: counted } });
-      toast.show(t('cashUp.closedToast', { amount: AED(0) }));
+      const result = await api<{ countedDrawer?: number | string }>(
+        '/shifts/current/close',
+        { method: 'POST', body: { countedDrawer: counted } },
+      );
+      // Prisma Decimal serializes as string; coerce defensively.
+      const closed = Number(result?.countedDrawer ?? counted);
+      toast.show(t('cashUp.closedToast', { amount: AED(closed) }));
       setShowCashUp(false);
       router.refresh();
     } catch (err: any) {
