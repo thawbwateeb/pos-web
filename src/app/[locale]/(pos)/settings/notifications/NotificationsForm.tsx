@@ -83,14 +83,18 @@ export default function NotificationsForm({ initial }: { initial: { templates: T
             const on = togByKey[r.key]?.enabled ?? false;
             return (
               <div className="set-row" key={r.key}>
-                <div className="l"><b>{r.name}</b><span>{r.desc}</span></div>
+                <div className="l"><b id={`notify-lbl-${r.key}`}>{r.name}</b><span>{r.desc}</span></div>
                 <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {r.hasTemplate && (
                     <button className="t-btn ghost" data-tmpledit={togKey} onClick={() => setEditingKey(r.key)}>
                       Template
                     </button>
                   )}
-                  <span
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    aria-labelledby={`notify-lbl-${r.key}`}
                     className={`switch${on ? ' on' : ''}`}
                     data-tog={`notify.${togKey}`}
                     onClick={() => flip(r.key)}
