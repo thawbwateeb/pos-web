@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import { initials } from '@/lib/format';
@@ -282,6 +283,7 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
 }
 
 function AddRoleModal({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
+  const t = useTranslations('Settings.users');
   const [name, setName] = useState('');
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { ref.current?.focus(); }, []);
@@ -300,7 +302,7 @@ function AddRoleModal({ onClose, onCreate }: { onClose: () => void; onCreate: (n
           <div className="modal-body">
             <div className="field">
               <label>Role name</label>
-              <input ref={ref} className="input" placeholder="e.g. Supervisor" value={name} onChange={(e) => setName(e.target.value)} />
+              <input ref={ref} className="input" placeholder={t('rolePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="note" style={{ marginTop: 7 }}>
               New roles start with no permissions. Toggle them on in the table below.
@@ -334,6 +336,7 @@ function ConfirmModal({ title, body, confirmLabel, onCancel, onConfirm }: { titl
 }
 
 function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRow[]; stores: Store[]; roles: Role[]; editing: UserRow | null; onClose: () => void; onSaved: () => void }) {
+  const t = useTranslations('Settings.users');
   const isEdit = !!editing;
   const [f, setF] = useState({
     fullName: editing?.fullName ?? '',
@@ -399,14 +402,14 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
           <div className="field-2">
             <div className="field">
               <label>Email</label>
-              <input type="email" className="input" placeholder="name@thawbwateeb.com" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+              <input type="email" className="input" placeholder={t('emailPlaceholder')} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
             </div>
             <div className="field">
               <label>{isEdit ? 'Reset password' : 'Password'}</label>
               <input
                 type="text"
                 className="input"
-                placeholder={isEdit ? 'Leave blank to keep' : 'Set a password'}
+                placeholder={isEdit ? t('passwordKeepHint') : t('passwordSetHint')}
                 value={f.password}
                 onChange={(e) => setF({ ...f, password: e.target.value })}
               />
