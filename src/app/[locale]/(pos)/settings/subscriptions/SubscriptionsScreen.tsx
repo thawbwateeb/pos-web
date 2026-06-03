@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
@@ -123,6 +124,7 @@ export default function SubscriptionsScreen({ initial }: { initial: Plan[] }) {
 }
 
 function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose: () => void; onSaved: () => void }) {
+  const t = useTranslations('Settings.subscriptions');
   const [f, setF] = useState({
     name: initial?.name ?? '',
     price: Number(initial?.price ?? 0),
@@ -165,7 +167,7 @@ function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose
               </select>
             </div>
           </div>
-          <div className="field"><label>Includes</label><input className="input" value={f.itemsDesc ?? ''} onChange={(e) => setF({ ...f, itemsDesc: e.target.value })} placeholder="e.g. 20 shirts + 4 abayas · free pickup" /></div>
+          <div className="field"><label>Includes</label><input className="input" value={f.itemsDesc ?? ''} onChange={(e) => setF({ ...f, itemsDesc: e.target.value })} placeholder={t('includesPlaceholder')} /></div>
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
