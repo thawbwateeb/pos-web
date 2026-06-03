@@ -15,10 +15,10 @@ import { api, eventStream } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import { initials, shortTime } from '@/lib/format';
 import {
-  BAG_HEX,
   PIC,
   STATUS,
   TYPE,
+  bagDisplay,
   type ReqStatusKey,
   type ReqTypeKey,
 } from './requests-constants';
@@ -32,9 +32,10 @@ const AED = (n: number): string =>
   });
 
 interface ReqBag {
-  // Design (requests.js) shape is { color, name }. The mobile app currently
-  // writes { serviceId, qty } into meta.bags, so both may be absent; we read
-  // the design fields defensively.
+  // The mobile intake writes { serviceId, qty } into meta.bags; the design
+  // prototype used { color, name }. We accept both and resolve via bagDisplay.
+  serviceId?: string;
+  qty?: number;
   color?: string;
   name?: string;
 }
@@ -105,9 +106,16 @@ const quotePrice = (r: RequestItem): number | null =>
       : r.quoteTotal
     : null;
 const hasQuote = (r: RequestItem): boolean => quotePrice(r) != null;
-// Design reads quick/weight service from a single `service`; the API names it
-// `quickService` for quick and `service` for weight. Fall back across both.
-const svc = (r: RequestItem): string => meta(r).quickService ?? meta(r).service ?? '';
+// Quick service: intake stores meta.quickService; 'auto' (or missing) means the
+// customer asked staff to decide. Never render blank.
+const quickSvc = (r: RequestItem): string => {
+  const s = meta(r).quickService;
+  return !s || s === 'auto' ? 'Let staff decide' : s;
+};
+// Weight requests carry no service in intake (only meta.estKg). Fall back to a
+// sensible label rather than a blank.
+const weightSvc = (r: RequestItem): string =>
+  meta(r).quickService ?? 'Staff decides';
 
 // requests.js:55-56
 function itemCount(r: RequestItem): number {
@@ -129,12 +137,12 @@ function knownTotal(r: RequestItem): number | null {
 function summaryLine(r: RequestItem): string {
   const t = typeKey(r);
   if (t === 'itemized') return `${itemCount(r)} items · ${AED(knownTotal(r) ?? 0)}`;
-  if (t === 'quick') return `~${meta(r).estCount} items · ${svc(r)}`;
+  if (t === 'quick') return `~${meta(r).estCount} items · ${quickSvc(r)}`;
   if (t === 'bags') {
     const bags = meta(r).bags ?? [];
-    return `${bags.length} bags · ${bags.map((b) => b.name).join(', ')}`;
+    return `${bags.length} bags · ${bags.map((b) => bagDisplay(b).name).join(', ')}`;
   }
-  if (t === 'weight') return `~${meta(r).estKg} kg · ${svc(r)}`;
+  if (t === 'weight') return `~${meta(r).estKg} kg · ${weightSvc(r)}`;
   if (t === 'photo')
     return hasQuote(r)
       ? `Quoted ${AED(quotePrice(r) ?? 0)}`
@@ -225,7 +233,7 @@ function BodyFor({ r }: { r: RequestItem }) {
         </div>
         <div>
           <span>Service</span>
-          <b>{svc(r)}</b>
+          <b>{quickSvc(r)}</b>
         </div>
         <div>
           <span>Pricing</span>
@@ -240,21 +248,24 @@ function BodyFor({ r }: { r: RequestItem }) {
       <>
         <div className="req-bags">
           {bags.map((b, idx) => {
-            const color = b.color ?? '';
+            const { name, hex, qty } = bagDisplay(b);
+            // Light swatches (e.g. the #F3F4F6 white bag) need an inset ring to
+            // stay visible against the card.
+            const light = hex.toUpperCase() === '#F3F4F6';
             return (
               <div className="req-bag" key={idx}>
                 <span
                   className="req-bag-sw"
                   style={{
-                    background: BAG_HEX[color] || color,
-                    ...(color === 'white'
-                      ? { boxShadow: 'inset 0 0 0 1px #CDD2D9' }
-                      : {}),
+                    background: hex,
+                    ...(light ? { boxShadow: 'inset 0 0 0 1px #CDD2D9' } : {}),
                   }}
                 />
                 <div>
-                  <b>{b.name}</b>
-                  <span>{color ? color[0].toUpperCase() + color.slice(1) + ' bag' : ''}</span>
+                  <b>{name}</b>
+                  <span>
+                    × {qty} bag{qty === 1 ? '' : 's'}
+                  </span>
                 </div>
               </div>
             );
@@ -273,7 +284,7 @@ function BodyFor({ r }: { r: RequestItem }) {
         </div>
         <div>
           <span>Service</span>
-          <b>{svc(r)}</b>
+          <b>{weightSvc(r)}</b>
         </div>
         <div>
           <span>Pricing</span>

@@ -19,6 +19,33 @@ export const BAG_HEX: Record<string, string> = {
   orange: '#E08A3C',
 };
 
+// The mobile intake writes meta.bags as { serviceId, qty }[] (serviceId =
+// catalogue externalKey) and never a colour/name. Mirror the mobile design's
+// service→colour mapping so swatches/names render meaningfully.
+// serviceId (catalogue externalKey) → display name + swatch colour
+export const SERVICE_BAG: Record<string, { name: string; hex: string }> = {
+  dry: { name: 'Dry Clean', hex: '#3B7DD8' },
+  wash: { name: 'Wash & Fold', hex: '#F3F4F6' },
+  steam: { name: 'Press Only', hex: '#2B313A' },
+  press: { name: 'Press Only', hex: '#2B313A' },
+  home: { name: 'Bedding & Linens', hex: '#2E9E6B' },
+};
+const titleCase = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+export const bagDisplay = (b: {
+  serviceId?: string;
+  qty?: number;
+  name?: string;
+  color?: string;
+}) => {
+  const sid = b.serviceId ?? '';
+  const m = SERVICE_BAG[sid];
+  return {
+    name: b.name ?? m?.name ?? titleCase(sid) ?? 'Bag',
+    hex: b.color ?? m?.hex ?? '#2A4858',
+    qty: b.qty ?? 1,
+  };
+};
+
 // requests.js:13-19 — SVG inner paths per type icon. Rendered through <ReqIcon>.
 export const PIC: Record<ReqTypeKey, string> = {
   itemized:
