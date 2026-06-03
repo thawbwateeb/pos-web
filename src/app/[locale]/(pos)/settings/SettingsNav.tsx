@@ -11,8 +11,9 @@ const GROUPS: { label: string; items: { id: string; href: string; label: string;
   {
     label: 'Catalogue',
     items: [
-      { id: 'products',    href: '/settings/catalogue',    label: 'Products',     Ico: Icon.box },
-      { id: 'promos',      href: '/settings/promos',       label: 'Promo Codes',  Ico: Icon.ticket },
+      { id: 'products',    href: '/settings/catalogue',    label: 'Products',         Ico: Icon.box },
+      { id: 'ordering',    href: '/settings/mobile-ordering', label: 'Mobile Ordering', Ico: Icon.bag },
+      { id: 'promos',      href: '/settings/promos',       label: 'Promo Codes',      Ico: Icon.ticket },
       { id: 'loyalty',     href: '/settings/loyalty',      label: 'Loyalty',      Ico: Icon.loyal },
       { id: 'subs',        href: '/settings/subscriptions',label: 'Subscriptions',Ico: Icon.users },
       { id: 'giftcards',   href: '/settings/gift-cards',   label: 'Gift Cards',   Ico: Icon.gift },
