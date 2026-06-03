@@ -29,6 +29,10 @@ export default function OrdersBoardScreen({
   // Pending pay-now request awaiting a payment method choice. The picker
   // modal is rendered when this is non-null; its onPick PATCHes /payments.
   const [payNow, setPayNow] = useState<{ order: Order } | null>(null);
+  // The ⋯ menu on order cards: opens a sheet with View detail / Take
+  // payment / Refund / Cancel / Delete actions. Each action goes through
+  // a real endpoint (no toast-only stubs).
+  const [manageId, setManageId] = useState<string | null>(null);
   const router = useRouter();
   const boardParams = useParams<{ locale: string }>();
   const boardLocale = boardParams.locale ?? 'en';
@@ -279,6 +283,7 @@ export default function OrdersBoardScreen({
                       order={o}
                       position={rankOf[o.id] ?? 0}
                       onOpen={() => setOpenId(o.id)}
+                      onOpenManage={() => setManageId(o.id)}
                       onOpenTagging={() => setTagId(o.id)}
                       onAdvance={() => moveTo(o, next(o.status))}
                       onRetreat={() => moveTo(o, prev(o.status))}
@@ -313,6 +318,45 @@ export default function OrdersBoardScreen({
           onClose={() => setPayNow(null)}
         />
       )}
+      {manageId && (() => {
+        const o = Object.values(board).flat().find((x) => x.id === manageId);
+        if (!o) return null;
+        return (
+          <OrderActionsMenu
+            order={o}
+            onClose={() => setManageId(null)}
+            onViewDetail={() => { setManageId(null); setOpenId(o.id); }}
+            onTakePayment={() => { setManageId(null); setPayNow({ order: o }); }}
+            onCancel={async () => {
+              if (!confirm(t('cancelOrderConfirm', { number: o.number }))) return;
+              try {
+                await api(`/orders/${o.id}/cancel`, { method: 'PATCH', body: {} });
+                toast.show(t('cancelledToast', { number: o.number }));
+                setManageId(null);
+                refresh();
+              } catch (e: any) {
+                toast.show(e?.detail?.message || t('failedToUpdate'));
+              }
+            }}
+            onRefundAll={async () => {
+              try {
+                // Load fresh order to know the payment row to refund.
+                const full = await api<any>(`/orders/${o.id}`);
+                const pay = full.payments?.find((p: any) => p.status !== 'REFUNDED');
+                if (!pay) { toast.show(t('failedToUpdate')); return; }
+                const remaining = Number(pay.amount) - Number(pay.refundedAmount);
+                if (!confirm(t('refundAllConfirm', { amount: AED(remaining), number: o.number }))) return;
+                await api(`/payments/${pay.id}/refund`, { method: 'POST', body: { amount: remaining, reason: 'Refund full order' } });
+                toast.show(t('refunded', { amount: AED(remaining) }));
+                setManageId(null);
+                refresh();
+              } catch (e: any) {
+                toast.show(e?.detail?.message || t('failedToUpdate'));
+              }
+            }}
+          />
+        );
+      })()}
       {tagId && (
         <TaggingModal
           orderId={tagId}
@@ -338,6 +382,7 @@ function OrderCard({
   order: o,
   position,
   onOpen,
+  onOpenManage,
   onOpenTagging,
   onAdvance,
   onRetreat,
@@ -350,6 +395,7 @@ function OrderCard({
   order: Order;
   position: number;
   onOpen: () => void;
+  onOpenManage: () => void;
   onOpenTagging: () => void;
   onAdvance: () => void;
   onRetreat: () => void;
@@ -391,7 +437,7 @@ function OrderCard({
         <span className={`oc-type${isExpress ? ' express' : ''}`}>
           {isExpress ? t('express') : (o.type === 'WALK_IN' ? tType('walkIn') : tType('pickupDelivery'))}
         </span>
-        <button className="oc-manage" data-manage={o.id} onClick={onOpen}>⋯</button>
+        <button className="oc-manage" data-manage={o.id} onClick={(e) => { e.stopPropagation(); onOpenManage(); }}>⋯</button>
       </div>
 
       <div className="oc-cust">{o.customer?.fullName ?? t('guest')}</div>
@@ -1052,6 +1098,96 @@ function PaymentMethodPicker({
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Modal: ⋯ menu on an order card. Maps each menu row to a real API
+   action (or to the dedicated picker modal for payment). Print Receipt
+   is intentionally absent until the PrintJob queue ships — design's
+   stub was toast-only, which violates the no-fakes rule. */
+function OrderActionsMenu({
+  order: o,
+  onClose,
+  onViewDetail,
+  onTakePayment,
+  onCancel,
+  onRefundAll,
+}: {
+  order: Order;
+  onClose: () => void;
+  onViewDetail: () => void;
+  onTakePayment: () => void;
+  onCancel: () => void;
+  onRefundAll: () => void;
+}) {
+  const t = useTranslations('OrdersBoard');
+  const tCommon = useTranslations('Common');
+  return (
+    <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 230 }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>#{o.number}</h3>
+          <button className="x" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div style={{ marginBottom: 14, fontSize: 13, color: 'var(--muted)' }}>
+            {o.customer?.fullName ?? t('guest')} · {AED(o.total)} ·{' '}
+            <span className={`pill ${o.paid ? 'paid' : 'unpaid'}`}>{o.paid ? t('paid') : t('unpaid')}</span>
+          </div>
+
+          <button className="role-opt" onClick={onViewDetail}>
+            <span className="rav" style={{ background: 'var(--accent)' }}>
+              <Icon.search size={18} />
+            </span>
+            <div className="ri">
+              <b>{t('menu.viewDetail')}</b>
+              <span>{t('menu.viewDetailSub')}</span>
+            </div>
+          </button>
+
+          {!o.paid && o.status !== 'CANCELLED' && (
+            <button className="role-opt" onClick={onTakePayment}>
+              <span className="rav" style={{ background: 'var(--ok)' }}>
+                <Icon.cash size={18} />
+              </span>
+              <div className="ri">
+                <b>{t('menu.takePayment')}</b>
+                <span>{t('menu.takePaymentSub')}</span>
+              </div>
+            </button>
+          )}
+
+          {o.paid && o.status !== 'CANCELLED' && (
+            <button className="role-opt" onClick={onRefundAll}>
+              <span className="rav" style={{ background: 'var(--warn)' }}>
+                <Icon.refresh size={18} />
+              </span>
+              <div className="ri">
+                <b>{t('menu.refund')}</b>
+                <span>{t('menu.refundSub', { amount: AED(o.total) })}</span>
+              </div>
+            </button>
+          )}
+
+          {o.status !== 'CANCELLED' && o.status !== 'COMPLETED' && (
+            <button className="role-opt" onClick={onCancel}>
+              <span className="rav" style={{ background: 'var(--muted)' }}>
+                <Icon.print size={18} />
+              </span>
+              <div className="ri">
+                <b>{t('menu.cancel')}</b>
+                <span>{t('menu.cancelSub')}</span>
+              </div>
+            </button>
+          )}
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>
+            {tCommon('close')}
+          </button>
         </div>
       </div>
     </div>
