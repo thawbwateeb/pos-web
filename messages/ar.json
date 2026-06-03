@@ -841,6 +841,9 @@
       "hardware": "Hardware",
       "users": "Users & Roles"
     },
+    "general": {
+      "branchAddressPlaceholder": "Shop number, building, street, city"
+    },
     "branding": {
       "title": "Branding",
       "sub": "How your business appears on the POS, customer app, and receipts.",

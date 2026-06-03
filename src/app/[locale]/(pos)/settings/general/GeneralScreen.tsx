@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
@@ -56,10 +57,11 @@ const CURRENCIES: { code: string; label: string }[] = [
 ];
 
 export default function GeneralScreen({ business, branding }: { business: BusinessRecord; branding: BrandingRecord | null }) {
+  const t = useTranslations('Settings.general');
   const [storeName, setStoreName] = useState<string>(business.name ?? '');
   const [currency, setCurrency] = useState<string>(branding?.currency ?? 'AED');
   const [expressPct, setExpressPct] = useState<number>(branding?.expressSurcharge ?? 30);
-  const [branchAddress, setBranchAddress] = useState<string>(branding?.branchAddress ?? 'Shop 4, Mangrove Plaza, Majan — Dubai');
+  const [branchAddress, setBranchAddress] = useState<string>(branding?.branchAddress ?? '');
   const [contactPhone, setContactPhone] = useState<string>(business.contactPhone ?? '+971 56 830 6804');
   const [receiptFooter, setReceiptFooter] = useState<string>(branding?.receiptFooter ?? 'Thank you — see you soon');
   const [busy, setBusy] = useState(false);
@@ -94,7 +96,7 @@ export default function GeneralScreen({ business, branding }: { business: Busine
     setStoreName(business.name ?? '');
     setCurrency(branding?.currency ?? 'AED');
     setExpressPct(branding?.expressSurcharge ?? 30);
-    setBranchAddress(branding?.branchAddress ?? 'Shop 4, Mangrove Plaza, Majan — Dubai');
+    setBranchAddress(branding?.branchAddress ?? '');
     setContactPhone(business.contactPhone ?? '+971 56 830 6804');
     setReceiptFooter(branding?.receiptFooter ?? 'Thank you — see you soon');
   }
@@ -143,6 +145,7 @@ export default function GeneralScreen({ business, branding }: { business: Busine
           <label>Branch address</label>
           <input
             className="input"
+            placeholder={t('branchAddressPlaceholder')}
             value={branchAddress}
             onChange={(e) => setBranchAddress(e.target.value)}
           />
