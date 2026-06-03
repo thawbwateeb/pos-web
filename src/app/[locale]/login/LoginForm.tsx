@@ -151,7 +151,13 @@ export default function LoginForm({ next }: { next: string }) {
 
           {/* Design login.js:24 — .lg-err is always present in DOM; the `hidden`
               attribute toggles visibility so the surrounding margin stays. */}
-          <div className={`lg-err ${err?.kind === 'info' ? 'info' : ''}`} id="lg-err" hidden={!err}>
+          <div
+            className={`lg-err ${err?.kind === 'info' ? 'info' : ''}`}
+            id="lg-err"
+            role={err?.kind === 'info' ? 'status' : 'alert'}
+            aria-live={err?.kind === 'info' ? 'polite' : 'assertive'}
+            hidden={!err}
+          >
             {err?.text ?? ''}
           </div>
 
