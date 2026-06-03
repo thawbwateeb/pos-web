@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "i18n:check": "tsx scripts/check-i18n-parity.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -25,6 +26,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   },
   "pnpm": {
