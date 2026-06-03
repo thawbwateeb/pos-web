@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 /**
  * Polygon vertices are stored as `[[x, y], ...]` in the design's normalized
@@ -195,6 +196,7 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
         <div className="modal-head">
           <h3>{isEdit ? 'Edit zone' : 'New zone'}</h3>
@@ -285,6 +287,7 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

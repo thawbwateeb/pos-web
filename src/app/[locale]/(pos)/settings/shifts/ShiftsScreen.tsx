@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { AED, AED0, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 /* Design ops.js:23-93 (renderCashShift + openMoveModal):
    Outer: <div class="fin">.
@@ -450,6 +451,7 @@ function HistoryCard({ rows }: { rows: ShiftHistoryRow[] }) {
 function ModalShell({ title, onClose, children, foot }: { title: string; onClose: () => void; children: React.ReactNode; foot: React.ReactNode }) {
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{title}</h3>
@@ -458,6 +460,7 @@ function ModalShell({ title, onClose, children, foot }: { title: string; onClose
         <div className="modal-body fin">{children}</div>
         <div className="modal-foot">{foot}</div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

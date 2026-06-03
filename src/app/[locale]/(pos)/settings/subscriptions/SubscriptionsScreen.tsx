@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 /* Design app.js:1513-1519 — Subscription Packages.
    - .set-sec max-width:none > .page-head h2 'Subscription Packages' + sub
@@ -153,6 +154,7 @@ function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{initial ? 'Edit package' : 'New package'}</h3>
@@ -178,6 +180,7 @@ function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{initial ? 'Save changes' : 'Create package'}</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

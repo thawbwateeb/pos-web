@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 /* Design app.js:1444-1487 — Pickup & Delivery settings.
    - .set-sec h2 'Pickup & Delivery' + .ssub 'Time slots, capacity, fees &
@@ -303,6 +304,7 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{initial ? 'Edit slot' : 'New slot'}</h3>
@@ -336,6 +338,7 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{initial ? 'Save' : 'Add slot'}</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

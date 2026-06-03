@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED, AED0 } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 /* Design ops.js:106-134 — renderInventory:
    - <div class="fin">
@@ -203,6 +204,7 @@ function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{initial ? 'Edit stock item' : 'Add stock item'}</h3>
@@ -238,6 +240,7 @@ function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

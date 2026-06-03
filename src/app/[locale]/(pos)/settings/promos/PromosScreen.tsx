@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 type PromoAudience = 'ALL' | 'SPECIFIC';
 type PromoKind = 'PERCENT' | 'AMOUNT';
@@ -243,6 +244,7 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{isEdit ? 'Edit promo' : 'New promo'}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -316,6 +318,7 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save changes' : 'Create promo'}</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }

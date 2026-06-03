@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import FocusTrap from '@/components/FocusTrap';
 
 /* Design app.js:1599-1612 — Stores:
    - .set-sec h2 'Stores' + ssub 'Manage every branch — switch the active
@@ -141,6 +142,7 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
       {viewing && <StoreViewModal store={viewing} isActive={viewing.id === activeStoreId} onClose={() => setViewing(null)} />}
       {confirmDelete && (
         <div className="modal-scrim show" onClick={() => setConfirmDelete(null)}>
+          <FocusTrap active onEscape={() => setConfirmDelete(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>Remove store?</h3>
@@ -156,6 +158,7 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
               <button className="btn btn-pri" style={{ flex: 1 }} onClick={() => doDelete(confirmDelete)}>Delete</button>
             </div>
           </div>
+          </FocusTrap>
         </div>
       )}
     </>
@@ -165,6 +168,7 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
 function StoreViewModal({ store, isActive, onClose }: { store: Store; isActive: boolean; onClose: () => void }) {
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>
@@ -191,6 +195,7 @@ function StoreViewModal({ store, isActive, onClose }: { store: Store; isActive: 
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Close</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -222,6 +227,7 @@ function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClo
 
   return (
     <div className="modal-scrim show" onClick={onClose}>
+      <FocusTrap active onEscape={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head"><h3>{isEdit ? 'Edit store' : 'Add store'}</h3><button className="x" onClick={onClose}>×</button></div>
         <div className="modal-body">
@@ -241,6 +247,7 @@ function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClo
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save changes' : 'Add store'}</button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   );
 }
