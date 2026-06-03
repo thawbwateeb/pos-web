@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import StoreSyncControls from '@/components/StoreSyncControls';
@@ -31,6 +32,7 @@ export interface RackRow {
 }
 
 export default function RacksScreen({ initial }: { initial: RackRow[] }) {
+  const t = useTranslations('Settings.racks');
   const activeStoreId = useActiveStoreId();
   const [racks, setRacks] = useState<RackRow[]>(initial);
   const [code, setCode] = useState<string>('');
@@ -84,7 +86,7 @@ export default function RacksScreen({ initial }: { initial: RackRow[] }) {
           <input
             className="inp"
             id="rk-new"
-            placeholder="Add rack label… e.g. A-05"
+            placeholder={t('addLabelPlaceholder')}
             autoComplete="off"
             value={code}
             onChange={(e) => setCode(e.target.value)}
