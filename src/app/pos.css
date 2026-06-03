@@ -37,16 +37,23 @@ input,select{font:inherit}
   display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0;
 }
 .rail .nav{display:flex;flex-direction:column;gap:2px;width:100%;align-items:center;flex:1}
-.rail .nav button, .rail .nav a{
+.rail .nav a,
+.rail .nav button{
   width:62px;height:56px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   color:var(--faint);transition:all .15s;position:relative;
 }
-.rail .nav button, .rail .nav a svg{width:21px;height:21px}
-.rail .nav button, .rail .nav a .nlbl{font-size:9px;letter-spacing:.01em;font-weight:600}
-.rail .nav button, .rail .nav a:hover{background:var(--surface-2);color:var(--text)}
-.rail .nav button, .rail .nav a.active{background:var(--accent-soft);color:var(--accent)}
-.rail .nav button, .rail .nav a.active .nlbl{color:var(--accent)}
-.rail .nav button, .rail .nav a .badge{
+.rail .nav a svg,
+.rail .nav button svg{width:21px;height:21px}
+.rail .nav a .nlbl,
+.rail .nav button .nlbl{font-size:9px;letter-spacing:.01em;font-weight:600}
+.rail .nav a:hover,
+.rail .nav button:hover{background:var(--surface-2);color:var(--text)}
+.rail .nav a.active,
+.rail .nav button.active{background:var(--accent-soft);color:var(--accent)}
+.rail .nav a.active .nlbl,
+.rail .nav button.active .nlbl{color:var(--accent)}
+.rail .nav a .badge,
+.rail .nav button .badge{
   position:absolute;top:6px;right:11px;min-width:16px;height:16px;border-radius:9px;
   background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;
 }
