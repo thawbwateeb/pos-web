@@ -155,7 +155,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
     }
   }
 
-  /* Design app.js:791 — subtitle is `${range} · Mangrove Plaza branch`.
+  /* Design app.js:791 — subtitle is `${range} · {store} branch`.
      Custom range maps to the literal "Custom range" string. */
   const subtitle = `${range === 'Custom' ? t('customRangeLabel') : t(`ranges.${range}`)} · ${t('branch', { store: activeStoreName })}`;
 
