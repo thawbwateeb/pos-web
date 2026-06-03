@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { AED } from '@/lib/format';
 import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
+import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { ReportsOverview, ReportsHourly } from './page';
@@ -45,6 +46,9 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   const t = useTranslations('Reports');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+  const bootstrap = useBootstrap();
+  const activeStoreName =
+    bootstrap.stores.find((s) => s.id === bootstrap.activeStoreId)?.name ?? '—';
 
   const [showCashUp, setShowCashUp] = useState(false);
   const [customFrom, setCustomFrom] = useState<string>(from || '');
@@ -153,7 +157,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
 
   /* Design app.js:791 — subtitle is `${range} · Mangrove Plaza branch`.
      Custom range maps to the literal "Custom range" string. */
-  const subtitle = `${range === 'Custom' ? t('customRangeLabel') : t(`ranges.${range}`)} · ${t('branch')}`;
+  const subtitle = `${range === 'Custom' ? t('customRangeLabel') : t(`ranges.${range}`)} · ${t('branch', { store: activeStoreName })}`;
 
   return (
     <div className="page">

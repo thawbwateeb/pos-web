@@ -476,7 +476,7 @@
   },
   "Reports": {
     "title": "Daily Summary",
-    "branch": "Mangrove Plaza branch",
+    "branch": "{store} branch",
     "exportCsv": "Export CSV",
     "exported": "Report exported as CSV",
     "printZ": "Print Z-Report",
