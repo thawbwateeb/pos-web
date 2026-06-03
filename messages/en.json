@@ -81,6 +81,7 @@
   "Nav": {
     "newOrder": "New Order",
     "orders": "Orders",
+    "requests": "Requests",
     "payments": "Payments",
     "customers": "Customers",
     "whatsapp": "WhatsApp",
@@ -118,6 +119,7 @@
     "configuration": "CONFIGURATION",
     "newOrder": "New Order",
     "ordersBoard": "Orders Board",
+    "requestsInbox": "Requests",
     "payments": "Payments & Invoicing",
     "customers": "Customer Directory",
     "whatsappBusiness": "WhatsApp Business",

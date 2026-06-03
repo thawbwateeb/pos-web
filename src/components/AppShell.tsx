@@ -75,6 +75,7 @@ const NAV: Array<{
   // WhatsApp + Reports are visible to all roles.
   { id: 'order',    tKey: 'newOrder',   Icon: Icon.receipt, crumb: 'pointOfSale',     titleKey: 'newOrder' },
   { id: 'orders',   tKey: 'orders',     Icon: Icon.board,   crumb: 'operations',      titleKey: 'ordersBoard' },
+  { id: 'requests', tKey: 'requests',   Icon: Icon.mail,    crumb: 'operations',      titleKey: 'requestsInbox' },
   { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'finance',         titleKey: 'payments' },
   { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',             titleKey: 'customers' },
   { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',       titleKey: 'whatsappBusiness' },
@@ -117,7 +118,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [shiftStart, setShiftStart] = useState<number | null>(null);
   const [endShiftConfirm, setEndShiftConfirm] = useState<{ h: number; m: number } | null>(null);
-  const [badges, setBadges] = useState<{ orders?: number; payments?: number; whatsapp?: number }>({});
+  const [badges, setBadges] = useState<{ orders?: number; payments?: number; whatsapp?: number; requests?: number }>({});
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -158,16 +159,18 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
     let cancelled = false;
     async function load() {
       try {
-        const [orders, , convos] = await Promise.all([
+        const [orders, , convos, reqs] = await Promise.all([
           api<any[]>('/orders?take=200').catch(() => []),
           api<any[]>('/payments?take=200').catch(() => []),
           api<any[]>('/whatsapp/conversations').catch(() => []),
+          api<unknown[]>('/requests?status=open').catch(() => []),
         ]);
         if (cancelled) return;
         setBadges({
           orders: orders.filter((o: any) => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length,
           payments: orders.filter((o: any) => !o.paid && o.status !== 'CANCELLED').length,
           whatsapp: convos.reduce((s: number, c: any) => s + (c.unread ?? 0), 0),
+          requests: reqs.length,
         });
       } catch {/* badges are decorative */}
     }
@@ -175,7 +178,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
     let es: EventSource | null = null;
     try {
       es = eventStream();
-      ['order.created', 'order.status', 'payment.recorded', 'wa.received'].forEach((ev) =>
+      ['order.created', 'order.status', 'payment.recorded', 'wa.received', 'request.created', 'request.updated'].forEach((ev) =>
         es!.addEventListener(ev, load),
       );
     } catch {}
