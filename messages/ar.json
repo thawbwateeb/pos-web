@@ -783,7 +783,8 @@
     "movedToast": "تم تسجيل {type} {amount}",
     "closeToast": "تم إغلاق الوردية · الفرق {amount}",
     "opened": "تم فتح الوردية",
-    "failed": "تعذّر الحفظ"
+    "failed": "تعذّر الحفظ",
+    "addMovement": "إضافة حركة"
   },
   "Settings": {
     "title": "الإعدادات",
@@ -931,7 +932,8 @@
         "WHATSAPP": "استخدام صندوق واتساب الوارد",
         "MANAGE_STAFF": "إدارة الموظفين والصلاحيات",
         "SETTINGS": "تعديل الإعدادات"
-      }
+      },
+      "createRole": "إنشاء دور"
     },
     "pickup": {
       "title": "الاستلام والتوصيل",
@@ -955,7 +957,8 @@
         "BOTH": "الاستلام والتوصيل",
         "PICKUP": "الاستلام فقط",
         "DELIVERY": "التوصيل فقط"
-      }
+      },
+      "addSlotShort": "إضافة فترة"
     },
     "areas": {
       "title": "المناطق",
@@ -1220,10 +1223,19 @@
   },
   "StoreSync": {
     "copyTitle": "النسخ إلى كل المتاجر",
-    "copyConfirm": "هل تريد نسخ هذه الإعدادات إلى كل متجر آخر؟ سيؤدي ذلك إلى استبدال الإعدادات الحالية في {count, plural, one {متجر واحد آخر} other {# متاجر أخرى}}."
+    "copyConfirm": "هل تريد نسخ هذه الإعدادات إلى كل متجر آخر؟ سيؤدي ذلك إلى استبدال الإعدادات الحالية في {count, plural, one {متجر واحد آخر} other {# متاجر أخرى}}.",
+    "copied": "تم النسخ إلى {count, plural, one {متجر واحد} other {# متاجر}}",
+    "copyFailed": "تعذّر نسخ الإعدادات",
+    "copyButton": "النسخ إلى كل المتاجر الأخرى",
+    "copying": "جارٍ النسخ…",
+    "copyHint": "ينسخ إعدادات المتجر النشط إلى {count, plural, one {متجر آخر} other {# متاجر أخرى}}",
+    "showingFor": "عرض إعدادات <store></store> — بدّل المتاجر من الشريط العلوي."
   },
   "Crud": {
     "deleteTitle": "حذف",
-    "deleteConfirm": "هل تريد حذف هذا {item}؟"
+    "deleteConfirm": "هل تريد حذف هذا {item}؟",
+    "noneYet": "لا يوجد {item} بعد",
+    "addTitle": "إضافة {item}",
+    "editTitle": "تعديل {item}"
   }
 }

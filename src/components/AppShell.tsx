@@ -405,7 +405,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                       <span>{s.area ?? s.address ?? '—'}</span>
                     </div>
                     {s.id === bootstrap.activeStoreId && (
-                      <span className="pill paid" style={{ marginLeft: 'auto' }}>Active</span>
+                      <span className="pill paid" style={{ marginLeft: 'auto' }}>{tCommon('active')}</span>
                     )}
                   </button>
                 ))}

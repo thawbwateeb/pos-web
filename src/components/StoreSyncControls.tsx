@@ -18,8 +18,8 @@ import { useBootstrap } from '@/components/BootstrapContext';
 export default function StoreSyncControls({
   syncEndpoint,
   syncBody,
-  syncLabel = 'Copy to all other stores',
-  busyLabel = 'Copying…',
+  syncLabel,
+  busyLabel,
   successKey = 'copiedTo',
   className,
 }: {
@@ -50,9 +50,9 @@ export default function StoreSyncControls({
         body: syncBody ?? {},
       });
       const n = Number(r?.[successKey] ?? 0) || others;
-      toast.show(`Copied to ${n} store${n === 1 ? '' : 's'}`);
+      toast.show(t('copied', { count: n }));
     } catch {
-      toast.show('Failed to copy settings');
+      toast.show(t('copyFailed'));
     } finally {
       setBusy(false);
     }
@@ -61,16 +61,18 @@ export default function StoreSyncControls({
   return (
     <div className={className ?? 'store-sync'} style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
       <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-        Showing settings for <b style={{ color: 'var(--text)' }}>{activeStore?.name ?? '—'}</b> — switch stores from the topbar.
+        {t.rich('showingFor', {
+          store: () => <b style={{ color: 'var(--text)' }}>{activeStore?.name ?? '—'}</b>,
+        })}
       </div>
       <button
         type="button"
         className={`btn btn-ghost${busy ? ' btn-loading' : ''}`}
         onClick={copyToAll}
         disabled={busy}
-        title={`Copies the active store's settings to all ${others} other store${others === 1 ? '' : 's'}`}
+        title={t('copyHint', { count: others })}
       >
-        {busy ? busyLabel : syncLabel}
+        {busy ? (busyLabel ?? t('copying')) : (syncLabel ?? t('copyButton'))}
       </button>
     </div>
   );

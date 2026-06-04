@@ -783,7 +783,8 @@
     "movedToast": "{type} {amount} recorded",
     "closeToast": "Shift closed · variance {amount}",
     "opened": "Shift opened",
-    "failed": "Could not save"
+    "failed": "Could not save",
+    "addMovement": "Add movement"
   },
   "Settings": {
     "title": "Settings",
@@ -931,7 +932,8 @@
         "WHATSAPP": "Use WhatsApp inbox",
         "MANAGE_STAFF": "Manage staff & permissions",
         "SETTINGS": "Edit settings"
-      }
+      },
+      "createRole": "Create role"
     },
     "pickup": {
       "title": "Pickup & Delivery",
@@ -955,7 +957,8 @@
         "BOTH": "Pickup & Delivery",
         "PICKUP": "Pickup only",
         "DELIVERY": "Delivery only"
-      }
+      },
+      "addSlotShort": "Add slot"
     },
     "areas": {
       "title": "Areas",
@@ -1220,10 +1223,19 @@
   },
   "StoreSync": {
     "copyTitle": "Copy to all stores",
-    "copyConfirm": "Copy these settings to every other store? This overwrites the existing settings on the other {count, plural, one {# store} other {# stores}}."
+    "copyConfirm": "Copy these settings to every other store? This overwrites the existing settings on the other {count, plural, one {# store} other {# stores}}.",
+    "copied": "Copied to {count, plural, one {# store} other {# stores}}",
+    "copyFailed": "Failed to copy settings",
+    "copyButton": "Copy to all other stores",
+    "copying": "Copying…",
+    "copyHint": "Copies the active store's settings to all {count, plural, one {# other store} other {# other stores}}",
+    "showingFor": "Showing settings for <store></store> — switch stores from the topbar."
   },
   "Crud": {
     "deleteTitle": "Delete",
-    "deleteConfirm": "Delete this {item}?"
+    "deleteConfirm": "Delete this {item}?",
+    "noneYet": "No {item}s yet",
+    "addTitle": "Add {item}",
+    "editTitle": "Edit {item}"
   }
 }

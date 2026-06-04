@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED, AED0, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
@@ -100,6 +101,7 @@ export default function ShiftsScreen({ initialSummary, initialHistory }: Props) 
   const [summary, setSummary] = useState<ShiftSummary | null>(initialSummary);
   const [history, setHistory] = useState<ShiftHistoryRow[]>(initialHistory);
   const [openModal, setOpenModal] = useState<null | 'open' | 'move'>(null);
+  const t = useTranslations('Shifts');
 
   async function refresh() {
     const [s, h] = await Promise.all([
@@ -158,7 +160,7 @@ export default function ShiftsScreen({ initialSummary, initialHistory }: Props) 
       <div className="fin">
         <div className="set-card" style={{ marginTop: 16 }}>
           <p className="muted">No shift open right now.</p>
-          <button className="btn btn-pri" onClick={() => setOpenModal('open')}>Open shift</button>
+          <button className="btn btn-pri" onClick={() => setOpenModal('open')}>{t('openShift')}</button>
         </div>
         <HistoryCard rows={history} />
         {openModal === 'open' && (
@@ -195,6 +197,7 @@ function ActiveShift({
   onAddMovement: () => void;
   onCloseShift: (counted: number) => void | Promise<void>;
 }) {
+  const t = useTranslations('Shifts');
   const { kpis, movements, breakdown, totals, shift } = summary;
   const openedAt = shortTime(shift.openedAt);
   const cashierName = shift.openedBy?.fullName ?? '—';
@@ -233,7 +236,7 @@ function ActiveShift({
       <div className="card flush" style={{ marginBottom: 16 }}>
         <div className="ch" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0 }}>Cash movements</h3>
-          <button className="btn btn-pri btn-sm" id="cm-add" onClick={onAddMovement}>+ Add movement</button>
+          <button className="btn btn-pri btn-sm" id="cm-add" onClick={onAddMovement}>+ {t('addMovement')}</button>
         </div>
         <table className="tbl">
           <thead>
@@ -458,6 +461,7 @@ function ModalShell({ title, onClose, children, foot }: { title: string; onClose
 }
 
 function OpenShiftModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (float: number) => void | Promise<void> }) {
+  const t = useTranslations('Shifts');
   const [amount, setAmount] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
@@ -474,7 +478,7 @@ function OpenShiftModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: 
       onClose={onClose}
       foot={<>
         <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>Open shift</button>
+        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{t('openShift')}</button>
       </>}
     >
       <div className="field">
@@ -495,6 +499,7 @@ function MoveCashModal({
   onClose: () => void;
   onSubmit: (type: MovementType, reason: string, amount: number) => void | Promise<void>;
 }) {
+  const t = useTranslations('Shifts');
   const [type, setType] = useState<MovementType>('PAID_IN');
   const [reason, setReason] = useState('');
   const [amount, setAmount] = useState('');
@@ -514,7 +519,7 @@ function MoveCashModal({
       onClose={onClose}
       foot={<>
         <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} id="mv-save" style={{ flex: 2 }} onClick={submit} disabled={busy}>Add movement</button>
+        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} id="mv-save" style={{ flex: 2 }} onClick={submit} disabled={busy}>{t('addMovement')}</button>
       </>}
     >
       <div className="field" style={{ marginBottom: 12 }}>

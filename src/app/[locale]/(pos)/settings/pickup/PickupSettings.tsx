@@ -80,6 +80,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
   const toast = useToast();
   const confirm = useConfirm();
   const tp = useTranslations('Pickup');
+  const t = useTranslations('Settings.pickup');
 
   async function reloadSlots() { setSlots(await api<Slot[]>('/pickup/slots')); }
 
@@ -119,7 +120,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
       <div className="set-card">
         <div className="pk-h">
           <b>Time slots</b>
-          <button className="btn btn-pri btn-sm" id="pk-add" onClick={() => setSlotAdd(true)}>+ Add slot</button>
+          <button className="btn btn-pri btn-sm" id="pk-add" onClick={() => setSlotAdd(true)}>{t('addSlot')}</button>
         </div>
         <table className="tbl pk-tbl">
           <thead>
@@ -239,7 +240,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
 
       <div style={{ marginTop: 14 }}>
         <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} id="pk-save" onClick={save} disabled={busy}>
-          Save Pickup Settings
+          {t('saveSettings')}
         </button>
       </div>
 
@@ -287,6 +288,7 @@ function FeeRow({ label, sub, id, value, onChange }: { label: string; sub?: stri
 
 function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | null; defaultCap: number; onClose: () => void; onSaved: () => void }) {
   const t = useTranslations('Settings.pickup');
+  const tc = useTranslations('Common');
   const [label, setLabel] = useState<string>(initial?.label ?? '');
   const [capacity, setCapacity] = useState<number>(initial?.capacity ?? defaultCap);
   const [kind, setKind] = useState<Kind>(initial?.kind ?? 'BOTH');
@@ -332,7 +334,7 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{initial ? 'Save' : 'Add slot'}</button>
+          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{initial ? tc('save') : t('addSlotShort')}</button>
         </div>
     </Modal>
   );

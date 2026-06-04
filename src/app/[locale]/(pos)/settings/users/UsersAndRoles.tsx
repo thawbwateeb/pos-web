@@ -306,7 +306,7 @@ function AddRoleModal({ onClose, onCreate }: { onClose: () => void; onCreate: (n
           </div>
           <div className="modal-foot">
             <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-pri" style={{ flex: 2 }} disabled={!name.trim()}>Create role</button>
+            <button type="submit" className="btn btn-pri" style={{ flex: 2 }} disabled={!name.trim()}>{t('createRole')}</button>
           </div>
         </form>
     </Modal>
