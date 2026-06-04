@@ -20,7 +20,11 @@ export async function apiServer<T>(path: string, opts: ServerApiOptions = {}): P
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
   const url = apiBase() + path;
-  const res = await fetch(url, {
+  // Type the init explicitly to include Next's `next` fetch extension rather
+  // than relying on the global RequestInit augmentation being loaded — that
+  // augmentation can resolve differently across @types/node versions and break
+  // `tsc` in CI (clean install) while passing locally.
+  const init: RequestInit & { next?: ServerApiOptions['next'] } = {
     method: opts.method ?? 'GET',
     headers: {
       'content-type': 'application/json',
@@ -34,7 +38,8 @@ export async function apiServer<T>(path: string, opts: ServerApiOptions = {}): P
     body: opts.body != null ? JSON.stringify(opts.body) : undefined,
     cache: opts.cache ?? 'no-store',
     next: opts.next,
-  });
+  };
+  const res = await fetch(url, init);
   if (!res.ok) {
     let detail: any;
     try { detail = await res.json(); } catch { detail = await res.text(); }
