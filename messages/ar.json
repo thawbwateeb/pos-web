@@ -390,7 +390,8 @@
     "originApp": "التطبيق",
     "originWhatsapp": "واتساب",
     "originCounterWalkIn": "الكاونتر · زائر مباشر",
-    "originCounter": "طلب من الكاونتر"
+    "originCounter": "طلب من الكاونتر",
+    "takePayment": "تحصيل الدفع · #{number} · {amount}"
   },
   "Payments": {
     "title": "المدفوعات والفوترة",

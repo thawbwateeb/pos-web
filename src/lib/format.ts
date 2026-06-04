@@ -1,6 +1,10 @@
 export const AED = (n: number | string): string => {
   const v = typeof n === 'string' ? parseFloat(n) : n;
-  return 'AED ' + (Math.round(v * 100) / 100).toFixed(2);
+  // Grouped to match the design's ops.js helper (e.g. "AED 2,840.00").
+  return 'AED ' + (Math.round(v * 100) / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 export const AED0 = (n: number | string): string => {

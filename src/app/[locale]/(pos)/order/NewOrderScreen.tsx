@@ -111,7 +111,7 @@ export default function NewOrderScreen({
   const [expressOn, setExpressOn] = useState<boolean>(editing?.expressOn ?? false);
   const [appliedPromo, setAppliedPromo] = useState<Promo | null>(null);
   const [promoPicker, setPromoPicker] = useState(false);
-  const [pay, setPay] = useState<{ method: PaymentMethod | null; cashGiven?: number } | null>(null);
+  const [pay, setPay] = useState<{ method: PaymentMethod | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [waBusy, setWaBusy] = useState(false);
@@ -552,17 +552,13 @@ export default function NewOrderScreen({
           currency={currency}
           methods={meta.paymentMethods}
           method={pay.method}
-          cashGiven={pay.cashGiven}
           busy={busy}
           waBusy={waBusy}
-          onSetMethod={(method) => setPay({ method, cashGiven: pay.cashGiven })}
-          onSetCash={(cashGiven) => setPay({ method: pay.method, cashGiven })}
+          onSetMethod={(method) => setPay({ method })}
           tAmountDue={tNew('amountDue', { number: bootstrap.business.nextOrderNumber ?? 0 })}
           tTitle={t('takePayment')}
           tCancel={tCommon('cancel')}
           tConfirm={tNew('confirmPayment')}
-          tCashGiven={t('cashGiven')}
-          tChange={t('change')}
           tSendWa={tNew('sendWaLink')}
           tWaHint={tNew('waHint')}
           methodLabel={(k) => (PAY_LABEL_KEY[k] ? tNew(PAY_LABEL_KEY[k] as any) : humanizeMethod(k))}
@@ -607,25 +603,22 @@ export default function NewOrderScreen({
 // ─── Sub-components ────────────────────────────────────────────────────
 
 function PayModal({
-  total, currency, methods, method, cashGiven, busy, waBusy,
-  tAmountDue, tTitle, tCancel, tConfirm, tCashGiven, tChange, tSendWa, tWaHint,
+  total, currency, methods, method, busy, waBusy,
+  tAmountDue, tTitle, tCancel, tConfirm, tSendWa, tWaHint,
   methodLabel, methodSub, methodIcon,
-  onSetMethod, onSetCash, onClose, onCharge, onSendWa,
+  onSetMethod, onClose, onCharge, onSendWa,
 }: {
   orderNumber: number;
   total: number; currency: string;
   methods: { key: string; icon: string }[];
-  method: PaymentMethod | null; cashGiven?: number; busy: boolean; waBusy: boolean;
+  method: PaymentMethod | null; busy: boolean; waBusy: boolean;
   tAmountDue: string; tTitle: string; tCancel: string; tConfirm: string;
-  tCashGiven: string; tChange: string; tSendWa: string; tWaHint: string;
+  tSendWa: string; tWaHint: string;
   methodLabel: (k: string) => string; methodSub: (k: string) => string;
   methodIcon: (k: string, icon: string) => string;
   onSetMethod: (m: PaymentMethod) => void;
-  onSetCash: (n: number | undefined) => void;
   onClose: () => void; onCharge: () => void; onSendWa: () => void;
 }) {
-  const change = method === 'CASH' && cashGiven != null ? Math.max(0, cashGiven - total) : 0;
-
   return (
     <Modal open onClose={onClose} title={tTitle} className="wide">
         <div className="modal-body">
@@ -648,30 +641,6 @@ function PayModal({
             })}
           </div>
 
-          {method === 'CASH' && (
-            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-              <div className="field" style={{ marginBottom: 8 }}>
-                <label>{tCashGiven}</label>
-                <input
-                  className="input"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  autoFocus
-                  placeholder="0.00"
-                  value={cashGiven ?? ''}
-                  onChange={(e) => onSetCash(e.target.value ? Number(e.target.value) : undefined)}
-                />
-              </div>
-              {cashGiven != null && cashGiven >= total && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                  <span style={{ color: 'var(--muted)' }}>{tChange}</span>
-                  <b style={{ color: 'var(--ok)' }}>{currency} {change.toFixed(2)}</b>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* WhatsApp payment link — design app.js:946: full-width SOLID
               WhatsApp-green CTA, white text, always enabled. The handler
               itself toasts if no customer is attached. */}
@@ -692,7 +661,7 @@ function PayModal({
             className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
             style={{ flex: 2 }}
             onClick={onCharge}
-            disabled={busy || !method || (method === 'CASH' && (cashGiven ?? 0) < total)}
+            disabled={busy || !method}
           >
             {tConfirm}
           </button>

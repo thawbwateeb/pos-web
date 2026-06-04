@@ -16,7 +16,7 @@ export function ToastHost({ children }: { children: ReactNode }) {
     setKind(k);
     setOpen(true);
     clearTimeout(t.current);
-    t.current = setTimeout(() => setOpen(false), 2200);
+    t.current = setTimeout(() => setOpen(false), 2400);
   }, []);
   return (
     <Ctx.Provider value={{ show }}>

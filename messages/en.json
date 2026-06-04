@@ -390,7 +390,8 @@
     "originApp": "App",
     "originWhatsapp": "WhatsApp",
     "originCounterWalkIn": "Counter · Walk-in",
-    "originCounter": "Counter order"
+    "originCounter": "Counter order",
+    "takePayment": "Take payment · #{number} · {amount}"
   },
   "Payments": {
     "title": "Payments & Invoicing",

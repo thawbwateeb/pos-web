@@ -20,7 +20,7 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
           <div className="modal-body"><p>{opts.message}</p></div>
           <div className="modal-foot">
             <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => close(false)}>{t('cancel')}</button>
-            <button className={`btn ${opts.danger ? 'btn-danger' : 'btn-pri'}`} style={{ flex: 2 }} onClick={() => close(true)}>{opts.confirmLabel ?? t('confirm')}</button>
+            <button className={`btn ${opts.danger === false ? 'btn-pri' : 'btn-danger'}`} style={{ flex: 2 }} onClick={() => close(true)}>{opts.confirmLabel ?? t('confirm')}</button>
           </div>
         </Modal>
       )}
