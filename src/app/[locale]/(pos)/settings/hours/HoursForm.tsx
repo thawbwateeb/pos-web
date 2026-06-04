@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
@@ -30,12 +31,13 @@ const SHORT: Record<DayKey, string> = {
 
 interface H { id?: string; day: DayKey; open: boolean; slots: [string, string][] }
 
-export default function HoursForm({ initial }: { initial: H[] }) {
+export default function HoursForm({ initial, initialCutoff }: { initial: H[]; initialCutoff?: string }) {
   const byDay: Record<string, H> = Object.fromEntries(initial.map((h) => [h.day, h]));
   const [rows, setRows] = useState<H[]>(
     DAY_KEYS.map((d) => byDay[d] ?? { day: d, open: true, slots: [['08:00', '22:00']] }),
   );
-  const [cutoff, setCutoff] = useState<string>('11:00');
+  const [cutoff, setCutoff] = useState<string>(initialCutoff ?? '11:00');
+  const tCommon = useTranslations('Common');
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
@@ -79,7 +81,10 @@ export default function HoursForm({ initial }: { initial: H[] }) {
     setBusy(true);
     try {
       await api('/business-hours', { method: 'PUT', body: rows });
+      await api('/business', { method: 'PATCH', body: { expressCutoff: cutoff } });
       toast.show('Hours saved');
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? tCommon('saveFailed'), 'error');
     } finally {
       setBusy(false);
     }
