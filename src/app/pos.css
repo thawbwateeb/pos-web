@@ -69,7 +69,7 @@ input,select{font:inherit}
 .topbar{height:64px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 22px;flex-shrink:0}
 .topbar .crumb{display:flex;flex-direction:column;line-height:1.15}
 .topbar .crumb .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
-.topbar .crumb .t{font-size:18px;font-weight:600;color:var(--text);margin-top:1px;letter-spacing:-.01em}
+.topbar .crumb .t{font-size:18px;font-weight:600;color:var(--text);margin:1px 0 0;letter-spacing:-.01em}
 .topbar .search{margin-left:6px;flex:1;max-width:400px;display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 14px}
 .topbar .search:focus-within{border-color:var(--accent);background:#fff}
 .topbar .search svg{color:var(--faint);flex-shrink:0}

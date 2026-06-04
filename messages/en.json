@@ -4,6 +4,7 @@
     "description": "Point-of-sale terminal for Thawb Wa Teeb Laundry."
   },
   "Common": {
+    "pendingCount": "{n} pending",
     "save": "Save",
     "saveChanges": "Save changes",
     "cancel": "Cancel",

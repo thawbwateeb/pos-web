@@ -4,6 +4,7 @@
     "description": "محطة نقطة بيع لمغسلة ثوب وطيب."
   },
   "Common": {
+    "pendingCount": "{n} قيد الانتظار",
     "save": "حفظ",
     "saveChanges": "حفظ التغييرات",
     "cancel": "إلغاء",

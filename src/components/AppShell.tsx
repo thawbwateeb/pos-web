@@ -282,12 +282,13 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 href={`/${locale}/${href ?? id}`}
                 prefetch
                 className={isOn ? 'active' : ''}
+                aria-current={isOn ? 'page' : undefined}
                 data-nav={id}
                 style={{ textDecoration: 'none' }}
               >
                 <NavIcon size={21} />
                 <span className="nlbl">{t(tKey)}</span>
-                {badge ? <span className="badge">{badge}</span> : null}
+                {badge ? <span className="badge" aria-label={tCommon('pendingCount', { n: badge })}>{badge}</span> : null}
               </Link>
             );
           })}
@@ -302,7 +303,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
         <header className="topbar" id="topbar">
           <div className="crumb">
             <span className="k">{tc(navMeta?.crumb ?? 'pointOfSale')}</span>
-            <span className="t">{tc(navMeta?.titleKey ?? 'newOrder')}</span>
+            <h1 className="t">{tc(navMeta?.titleKey ?? 'newOrder')}</h1>
           </div>
           <div className="search" ref={searchWrapRef} style={{ position: 'relative' }}>
             <Icon.search size={16} />
@@ -315,7 +316,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
               onFocus={() => search && setSearchOpen(true)}
             />
             {searchOpen && searchResults && (
-              <div className="gsearch show">
+              <div className="gsearch show" role="listbox">
                 {searchResults.orders.length === 0 && searchResults.customers.length === 0 ? (
                   <div className="gs-row muted" style={{ justifyContent: 'center' }}>{t('searchEmpty')}</div>
                 ) : (
@@ -324,16 +325,19 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                       <>
                         <div className="gs-sec">{t('searchOrders')}</div>
                         {searchResults.orders.slice(0, 6).map((o: any) => (
-                          <div
+                          <button
                             key={o.id}
+                            type="button"
+                            role="option"
                             className="gs-row"
+                            style={{ width: '100%', background: 'transparent', border: 0, font: 'inherit', textAlign: 'inherit', color: 'inherit' }}
                             onClick={() => gotoSearchHit(`/${locale}/orders?id=${o.id}`)}
                           >
                             <Icon.receipt size={14} />
                             <b>#{o.number}</b>
                             <span>{o.customer?.fullName ?? '—'}</span>
                             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>{o.status}</span>
-                          </div>
+                          </button>
                         ))}
                       </>
                     )}
@@ -341,15 +345,18 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                       <>
                         <div className="gs-sec">{t('searchCustomers')}</div>
                         {searchResults.customers.slice(0, 6).map((c: any) => (
-                          <div
+                          <button
                             key={c.id}
+                            type="button"
+                            role="option"
                             className="gs-row"
+                            style={{ width: '100%', background: 'transparent', border: 0, font: 'inherit', textAlign: 'inherit', color: 'inherit' }}
                             onClick={() => gotoSearchHit(`/${locale}/customers?id=${c.id}`)}
                           >
                             <Icon.users size={14} />
                             <b>{c.fullName}</b>
                             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>{c.phone}</span>
-                          </div>
+                          </button>
                         ))}
                       </>
                     )}
