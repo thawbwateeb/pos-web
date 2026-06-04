@@ -9,7 +9,7 @@ import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
 import { enqueuePrintJob } from '@/lib/print';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { ReportsOverview, ReportsHourly } from './page';
@@ -275,9 +275,6 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <div className="sv">
             <span className="cur">AED</span> {Math.round(total).toLocaleString()}
           </div>
-          {/* Design app.js:798 — only the trend percentage is in <b class="up">;
-              the " vs avg Friday" tail is plain text. */}
-          <div className="sd"><b className="up">{t('kpis.grossTrendPct')}</b> {t('kpis.grossTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.orders')}</div>
@@ -315,9 +312,6 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
         <div className="stat">
           <div className="sk">{t('kpis.newCustomers')}</div>
           <div className="sv">{newCust}</div>
-          {/* Design app.js:806 — only the "▲ 3" trend is in <b class="up">;
-              the " vs yesterday" tail is plain text. */}
-          <div className="sd"><b className="up">{t('kpis.newCustomersTrendPct')}</b> {t('kpis.newCustomersTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.turnaround')}</div>
@@ -392,9 +386,9 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <table className="tbl" style={{ marginTop: 4 }}>
             <thead>
               <tr>
-                <th>{t('topItems.item')}</th>
-                <th>{t('topItems.qty')}</th>
-                <th style={{ textAlign: 'right' }}>{t('topItems.revenue')}</th>
+                <th scope="col">{t('topItems.item')}</th>
+                <th scope="col">{t('topItems.qty')}</th>
+                <th scope="col" style={{ textAlign: 'right' }}>{t('topItems.revenue')}</th>
               </tr>
             </thead>
             <tbody>
@@ -621,13 +615,7 @@ function CashUpModal({
   const varianceColor = variance === 0 ? 'var(--ok)' : variance < 0 ? 'var(--danger)' : 'var(--warn)';
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{t('cashUp.title')}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={t('cashUp.title')}>
         <div className="modal-body fin">
           <div className="field" style={{ marginBottom: 12 }}>
             <label>{t('cashUp.expected')}</label>
@@ -667,8 +655,6 @@ function CashUpModal({
             {t('cashUp.confirm')}
           </button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

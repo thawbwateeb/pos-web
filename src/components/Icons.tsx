@@ -63,4 +63,6 @@ export const Icon = {
   plug: wrap(<><path d="M9 3v6M15 3v6M6 9h12v3a6 6 0 0 1-12 0zM12 18v3"/></>),
   eye: wrap(<><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></>),
   arrowRight: wrap(<><path d="M5 12h14M13 6l6 6-6 6"/></>),
+  phone: wrap(<><rect x="6.5" y="2" width="11" height="20" rx="2.6"/><path d="M10.5 18.5h3"/></>),
+  repeat: wrap(<><path d="M4 9l3-3 3 3M7 6v7a3 3 0 0 0 3 3h7M20 15l-3 3-3-3M17 18v-7a3 3 0 0 0-3-3H7"/></>),
 };

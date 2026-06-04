@@ -6,6 +6,7 @@
    verbatim from the prototype. */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import BagTypeModal from './BagTypeModal';
@@ -60,6 +61,7 @@ export default function MobileOrderingSettings({ initial }: { initial: OrderingC
   // -1 = closed, -2 = adding a new bag, >=0 = editing that index.
   const [bagModal, setBagModal] = useState(-1);
   const toast = useToast();
+  const tCommon = useTranslations('Common');
 
   const single = cfg.selection === 'single';
   const enabledCount = Object.values(cfg.enabled).filter(Boolean).length;
@@ -124,6 +126,8 @@ export default function MobileOrderingSettings({ initial }: { initial: OrderingC
       const next = await api<OrderingConfig>('/mobile-ordering', { method: 'PUT', body: cfg });
       setCfg(next);
       toast.show('Mobile ordering settings saved');
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? tCommon('saveFailed'), 'error');
     } finally {
       setBusy(false);
     }

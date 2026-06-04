@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 /* Design app.js:1348 (NT array) + 1418-1420 (notify body):
    - .set-sec h2 'Notifications' + .ssub 'Automated messages to customers
@@ -131,13 +131,7 @@ function TemplateModal({ label, body, onClose, onSave }: { label: string; body: 
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{label}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={label}>
         <div className="modal-body">
           <div className="field">
             <label>Message template</label>
@@ -156,8 +150,6 @@ function TemplateModal({ label, body, onClose, onSave }: { label: string; body: 
             Save template
           </button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

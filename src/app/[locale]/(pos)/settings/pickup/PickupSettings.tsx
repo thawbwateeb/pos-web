@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import { useConfirm } from '@/components/ConfirmDialog';
+import Modal from '@/components/Modal';
 
 /* Design app.js:1444-1487 — Pickup & Delivery settings.
    - .set-sec h2 'Pickup & Delivery' + .ssub 'Time slots, capacity, fees &
@@ -77,6 +78,9 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
   const [slotEdit, setSlotEdit] = useState<Slot | null>(null);
   const [slotAdd, setSlotAdd] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
+  const tp = useTranslations('Pickup');
+  const t = useTranslations('Settings.pickup');
 
   async function reloadSlots() { setSlots(await api<Slot[]>('/pickup/slots')); }
 
@@ -85,7 +89,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
     reloadSlots();
   }
   async function deleteSlot(slot: Slot) {
-    if (!confirm('Delete slot?')) return;
+    if (!(await confirm({ title: tp('deleteSlotTitle'), message: tp('deleteSlotConfirm'), danger: true }))) return;
     await api(`/pickup/slots/${slot.id}`, { method: 'DELETE' });
     reloadSlots();
   }
@@ -116,7 +120,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
       <div className="set-card">
         <div className="pk-h">
           <b>Time slots</b>
-          <button className="btn btn-pri btn-sm" id="pk-add" onClick={() => setSlotAdd(true)}>+ Add slot</button>
+          <button className="btn btn-pri btn-sm" id="pk-add" onClick={() => setSlotAdd(true)}>{t('addSlot')}</button>
         </div>
         <table className="tbl pk-tbl">
           <thead>
@@ -236,7 +240,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
 
       <div style={{ marginTop: 14 }}>
         <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} id="pk-save" onClick={save} disabled={busy}>
-          Save Pickup Settings
+          {t('saveSettings')}
         </button>
       </div>
 
@@ -284,6 +288,7 @@ function FeeRow({ label, sub, id, value, onChange }: { label: string; sub?: stri
 
 function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | null; defaultCap: number; onClose: () => void; onSaved: () => void }) {
   const t = useTranslations('Settings.pickup');
+  const tc = useTranslations('Common');
   const [label, setLabel] = useState<string>(initial?.label ?? '');
   const [capacity, setCapacity] = useState<number>(initial?.capacity ?? defaultCap);
   const [kind, setKind] = useState<Kind>(initial?.kind ?? 'BOTH');
@@ -303,13 +308,7 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{initial ? 'Edit slot' : 'New slot'}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={initial ? 'Edit slot' : 'New slot'}>
         <div className="modal-body">
           <div className="field"><label>Label</label><input className="input" placeholder={t('slotLabelPlaceholder')} value={label} onChange={(e) => setLabel(e.target.value)} /></div>
           <div className="field-2">
@@ -335,10 +334,8 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{initial ? 'Save' : 'Add slot'}</button>
+          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{initial ? tc('save') : t('addSlotShort')}</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

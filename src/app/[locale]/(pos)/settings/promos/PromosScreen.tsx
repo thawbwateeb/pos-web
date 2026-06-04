@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 type PromoAudience = 'ALL' | 'SPECIFIC';
 type PromoKind = 'PERCENT' | 'AMOUNT';
@@ -243,10 +243,7 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{isEdit ? 'Edit promo' : 'New promo'}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={isEdit ? 'Edit promo' : 'New promo'}>
         <div className="modal-body">
           <div className="field"><label>Code</label><input className="input" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value.toUpperCase() })} /></div>
           <div className="field"><label>Description</label><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
@@ -317,9 +314,7 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save changes' : 'Create promo'}</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 

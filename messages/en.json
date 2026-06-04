@@ -1,5 +1,10 @@
 {
+  "Meta": {
+    "title": "Thawb Wa Teeb — POS",
+    "description": "Point-of-sale terminal for Thawb Wa Teeb Laundry."
+  },
   "Common": {
+    "pendingCount": "{n} pending",
     "save": "Save",
     "saveChanges": "Save changes",
     "cancel": "Cancel",
@@ -40,6 +45,7 @@
     "noMatches": "No matches",
     "comingSoon": "Coming soon",
     "saved": "Saved",
+    "saveFailed": "Save failed",
     "deleted": "Deleted",
     "failed": "Failed",
     "items": "Items",
@@ -54,7 +60,9 @@
     "code": "Code",
     "description": "Description",
     "value": "Value",
-    "uses": "Uses"
+    "uses": "Uses",
+    "cost": "Cost",
+    "confirm": "Confirm"
   },
   "Login": {
     "brand": "THAWB WA TEEB",
@@ -119,7 +127,7 @@
     "configuration": "CONFIGURATION",
     "newOrder": "New Order",
     "ordersBoard": "Orders Board",
-    "requestsInbox": "Requests",
+    "requestsInbox": "Order Requests",
     "payments": "Payments & Invoicing",
     "customers": "Customer Directory",
     "whatsappBusiness": "WhatsApp Business",
@@ -168,7 +176,8 @@
     "promoApplied": "Promo {code} applied",
     "noPromos": "No active promo codes. Create one in Settings → Promo Codes.",
     "printReceipt": "Print receipt",
-    "cancelConfirm": "Clear this order? Items added so far will be removed.",
+    "cancelConfirm": "Yes, cancel",
+    "cancelKeep": "No, keep it",
     "cancelTitle": "Cancel order?",
     "cancelBody": "Items added so far will be removed. This cannot be undone.",
     "keepEditing": "Keep editing",
@@ -258,6 +267,9 @@
     "items": "{count, plural, =0 {no items} one {1 item} other {# items}}",
     "awaiting": "⚠ Awaiting details",
     "tagging": "tag pending",
+    "assignRack": "Assign rack",
+    "rackAssigned": "Rack assigned",
+    "noRack": "No rack",
     "express": "Express",
     "guest": "Guest",
     "noDue": "—",
@@ -276,6 +288,7 @@
     "expressFee": "Express surcharge",
     "deliveryFee": "Delivery fee",
     "cancelOrder": "Cancel order",
+    "cancelOrderTitle": "Cancel order",
     "cancelOrderConfirm": "Cancel order #{number}? This can't be undone.",
     "cancelledToast": "Order #{number} cancelled",
     "menu": {
@@ -297,6 +310,7 @@
     "editItems": "Edit items",
     "payNow": "Take payment",
     "refundAll": "Refund all",
+    "refundAllTitle": "Refund order",
     "refundAllConfirm": "Refund the full amount of {amount} for #{number}?",
     "refunded": "Refunded {amount}",
     "voidLine": "Void line",
@@ -344,8 +358,6 @@
     "noPayments": "No payments yet",
     "kpis": {
       "collectedToday": "Collected Today",
-      "collectedTrendPct": "▲ 12%",
-      "collectedTrendSub": "vs yesterday",
       "outstanding": "Outstanding",
       "unpaid": "{count} unpaid orders",
       "cardDigital": "Card / Digital",
@@ -455,7 +467,7 @@
     "menuOptions": {
       "unread": "Mark as unread",
       "info": "Contact info",
-      "viewOrders": "Create order"
+      "viewOrders": "View customer"
     },
     "markedUnread": "Marked as unread",
     "failedToSend": "Failed to send",
@@ -528,8 +540,6 @@
     },
     "kpis": {
       "gross": "Gross Sales",
-      "grossTrendPct": "▲ 12%",
-      "grossTrendSub": "vs avg Friday",
       "orders": "Orders",
       "ordersSub": "{walk} walk-in · {deliv} pickup & delivery",
       "items": "Items Processed",
@@ -541,8 +551,6 @@
       "outstanding": "Outstanding",
       "outstandingSub": "{count} unpaid orders",
       "newCustomers": "New Customers",
-      "newCustomersTrendPct": "▲ 3",
-      "newCustomersTrendSub": "vs yesterday",
       "turnaround": "Avg. Turnaround",
       "turnaroundSub": "within 24h target"
     },
@@ -776,7 +784,8 @@
     "movedToast": "{type} {amount} recorded",
     "closeToast": "Shift closed · variance {amount}",
     "opened": "Shift opened",
-    "failed": "Could not save"
+    "failed": "Could not save",
+    "addMovement": "Add movement"
   },
   "Settings": {
     "title": "Settings",
@@ -795,7 +804,7 @@
       "subscriptions": "Subscriptions",
       "stores": "Stores",
       "pickup": "Pickup & Delivery",
-      "areas": "Areas",
+      "areas": "Service Areas",
       "drivers": "Drivers",
       "inventory": "Inventory",
       "shifts": "Cash & Shift",
@@ -823,7 +832,10 @@
       "accent": "Accent",
       "background": "Background",
       "livePreview": "Live preview",
-      "saved": "Branding saved"
+      "saved": "Branding saved",
+      "resetTitle": "Reset to default",
+      "resetMsg": "Restore the default Thawb Wa Teeb logo and colors?",
+      "reset": "Reset"
     },
     "tax": {
       "title": "Tax / VAT",
@@ -875,6 +887,7 @@
       "users": "Users",
       "roles": "Roles & permissions",
       "rolesSub": "Create roles and choose what each can do. Manager always has full access.",
+      "permsAutoSave": "Changes save automatically",
       "addUser": "+ Add user",
       "addRole": "+ Add role",
       "namePrompt": "Role name (e.g. Supervisor)",
@@ -920,7 +933,8 @@
         "WHATSAPP": "Use WhatsApp inbox",
         "MANAGE_STAFF": "Manage staff & permissions",
         "SETTINGS": "Edit settings"
-      }
+      },
+      "createRole": "Create role"
     },
     "pickup": {
       "title": "Pickup & Delivery",
@@ -944,7 +958,8 @@
         "BOTH": "Pickup & Delivery",
         "PICKUP": "Pickup only",
         "DELIVERY": "Delivery only"
-      }
+      },
+      "addSlotShort": "Add slot"
     },
     "areas": {
       "title": "Areas",
@@ -1115,6 +1130,13 @@
       "sub": "Receipt printer, payment terminal, cash drawer, and label printer for each store.",
       "store": "Store",
       "saved": "Hardware saved",
+      "configure": "Configure",
+      "test": "Test",
+      "connected": "Connected",
+      "offline": "Offline",
+      "configureDevice": "Configure {name}",
+      "brand": "Brand",
+      "saveFailed": "Save failed",
       "sections": {
         "printer": "Printer",
         "terminal": "Terminal",
@@ -1147,7 +1169,14 @@
       "deleteItem": "Delete item?",
       "categoryTitlePrompt": "Category title",
       "itemNamePrompt": "Item name",
-      "skuPrompt": "SKU"
+      "skuPrompt": "SKU",
+      "addCategoryFirst": "Add a category first",
+      "editProduct": "Edit product",
+      "turnaround": "Turnaround",
+      "saveFailed": "Save failed",
+      "imported": "Imported {n} products",
+      "importFailed": "Import failed",
+      "importEmpty": "CSV has no data rows"
     },
     "racks": {
       "addLabelPlaceholder": "Add rack label… e.g. A-05"
@@ -1184,5 +1213,30 @@
     "FRI": "Fri",
     "SAT": "Sat",
     "SUN": "Sun"
+  },
+  "Zones": {
+    "deleteTitle": "Delete zone",
+    "deleteConfirm": "Delete zone {name}?"
+  },
+  "Pickup": {
+    "deleteSlotTitle": "Delete slot",
+    "deleteSlotConfirm": "Delete this time slot?"
+  },
+  "StoreSync": {
+    "copyTitle": "Copy to all stores",
+    "copyConfirm": "Copy these settings to every other store? This overwrites the existing settings on the other {count, plural, one {# store} other {# stores}}.",
+    "copied": "Copied to {count, plural, one {# store} other {# stores}}",
+    "copyFailed": "Failed to copy settings",
+    "copyButton": "Copy to all other stores",
+    "copying": "Copying…",
+    "copyHint": "Copies the active store's settings to all {count, plural, one {# other store} other {# other stores}}",
+    "showingFor": "Showing settings for <store></store> — switch stores from the topbar."
+  },
+  "Crud": {
+    "deleteTitle": "Delete",
+    "deleteConfirm": "Delete this {item}?",
+    "noneYet": "No {item}s yet",
+    "addTitle": "Add {item}",
+    "editTitle": "Edit {item}"
   }
 }

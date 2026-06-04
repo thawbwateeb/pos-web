@@ -1,16 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
 import { AED, dueLabel } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { Icon } from '@/components/Icons';
 import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { OrdersBoard, OrderStatus, OrderType, Order, PaymentMethod } from '@/lib/types';
+import type { RackRow } from '../settings/racks/RacksScreen';
 
 type Filter = 'all' | OrderType;
 
@@ -48,6 +51,7 @@ export default function OrdersBoardScreen({
   const tType = useTranslations('Order');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+  const confirm = useConfirm();
 
   // CANCELLED has no column on the board.
   const COLUMNS = useMemo(
@@ -329,7 +333,7 @@ export default function OrdersBoardScreen({
             onViewDetail={() => { setManageId(null); setOpenId(o.id); }}
             onTakePayment={() => { setManageId(null); setPayNow({ order: o }); }}
             onCancel={async () => {
-              if (!confirm(t('cancelOrderConfirm', { number: o.number }))) return;
+              if (!(await confirm({ title: t('cancelOrderTitle'), message: t('cancelOrderConfirm', { number: o.number }), danger: true }))) return;
               try {
                 await api(`/orders/${o.id}/cancel`, { method: 'PATCH', body: {} });
                 toast.show(t('cancelledToast', { number: o.number }));
@@ -346,7 +350,7 @@ export default function OrdersBoardScreen({
                 const pay = full.payments?.find((p: any) => p.status !== 'REFUNDED');
                 if (!pay) { toast.show(t('failedToUpdate')); return; }
                 const remaining = Number(pay.amount) - Number(pay.refundedAmount);
-                if (!confirm(t('refundAllConfirm', { amount: AED(remaining), number: o.number }))) return;
+                if (!(await confirm({ title: t('refundAllTitle'), message: t('refundAllConfirm', { amount: AED(remaining), number: o.number }), danger: true }))) return;
                 await api(`/payments/${pay.id}/refund`, { method: 'POST', body: { amount: remaining, reason: 'Refund full order' } });
                 toast.show(t('refunded', { amount: AED(remaining) }));
                 setManageId(null);
@@ -519,19 +523,44 @@ function OrderDetailModal({
   const [busy, setBusy] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState<null | { kind: 'all' } | { kind: 'line'; line: any }>(null);
   const [showPayPicker, setShowPayPicker] = useState(false);
+  // Interactive rack assignment: staff opens a picker (shared <Modal>) and
+  // selects a rack (or "No rack"). PATCH /orders/:id/rack takes the rack's
+  // CODE string (or null to clear). Racks are loaded once from GET /racks.
+  const [racks, setRacks] = useState<RackRow[]>([]);
+  const [rackOpen, setRackOpen] = useState(false);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const tStatus = useTranslations('OrderStatus');
   const tMethod = useTranslations('PaymentMethod');
   const toast = useToast();
+  const titleId = useId();
+  const confirmTitleId = useId();
 
   useEffect(() => {
     api<any>(`/orders/${orderId}`).then(setOrder);
   }, [orderId]);
 
+  useEffect(() => {
+    api<RackRow[]>('/racks').then(setRacks).catch(() => {});
+  }, []);
+
   async function reload() {
     const o = await api<any>(`/orders/${orderId}`);
     setOrder(o);
+  }
+
+  // PATCH the rack assignment. Empty value → null ("No rack" clears it).
+  async function assignRack(rackCode: string | null) {
+    if (!order) return;
+    setRackOpen(false);
+    try {
+      await api(`/orders/${order.id}/rack`, { method: 'PATCH', body: { rackCode } });
+      toast.show(t('rackAssigned'));
+      onChanged();
+      await reload();
+    } catch (e: any) {
+      toast.show(e?.detail?.message || tCommon('saveFailed'));
+    }
   }
 
   // Open the picker; the actual POST runs once the staff confirms how
@@ -636,7 +665,7 @@ function OrderDetailModal({
     return (
       <div className="modal-scrim show" onClick={onClose}>
         <FocusTrap active onEscape={onClose}>
-        <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal modal-lg" role="dialog" aria-modal="true" aria-label={tCommon('loading')} onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
         </FocusTrap>
@@ -651,10 +680,10 @@ function OrderDetailModal({
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>#{order.number}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>#{order.number}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="odl-head">
@@ -667,11 +696,11 @@ function OrderDetailModal({
                 <span>{order.customer?.phone ?? '—'}</span>
               </div>
             </div>
-            {order.rackCode && (
-              <div className="odl-rack">
-                <span className="rack-btn">▦ {order.rackCode}</span>
-              </div>
-            )}
+            <div className="odl-rack">
+              <button className="rack-btn" onClick={() => setRackOpen(true)}>
+                ▦ {order.rackCode ?? t('assignRack')}
+              </button>
+            </div>
           </div>
           <div className="odl-meta">
             <span>{tStatus(order.status)}</span>
@@ -779,10 +808,10 @@ function OrderDetailModal({
         {confirmRefund && (
           <div className="modal-scrim show" onClick={() => setConfirmRefund(null)} style={{ zIndex: 220 }}>
             <FocusTrap active onEscape={() => setConfirmRefund(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal" role="dialog" aria-modal="true" aria-labelledby={confirmTitleId} onClick={(e) => e.stopPropagation()}>
               <div className="modal-head">
-                <h3>{confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}</h3>
-                <button className="x" onClick={() => setConfirmRefund(null)}>×</button>
+                <h3 id={confirmTitleId}>{confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}</h3>
+                <button className="x" aria-label={tCommon('close')} onClick={() => setConfirmRefund(null)}>×</button>
               </div>
               <div className="modal-body">
                 <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>
@@ -817,6 +846,26 @@ function OrderDetailModal({
             onClose={() => setShowPayPicker(false)}
           />
         )}
+        <Modal open={rackOpen} onClose={() => setRackOpen(false)} title={t('assignRack')}>
+          <div className="modal-body">
+            <select
+              className="inp"
+              style={{ width: '100%' }}
+              defaultValue={order.rackCode ?? ''}
+              onChange={(e) => assignRack(e.target.value || null)}
+            >
+              <option value="">{t('noRack')}</option>
+              {racks.map((r) => (
+                <option key={r.id} value={r.code}>{r.code}</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-foot">
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setRackOpen(false)}>
+              {tCommon('cancel')}
+            </button>
+          </div>
+        </Modal>
       </div>
       </FocusTrap>
     </div>
@@ -864,6 +913,7 @@ function TaggingModal({
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+  const titleId = useId();
 
   const slotKey = (s: { orderItemId: string; qtyIndex: number }) => `${s.orderItemId}__${s.qtyIndex}`;
 
@@ -972,7 +1022,7 @@ function TaggingModal({
     return (
       <div className="modal-scrim show" onClick={onClose}>
         <FocusTrap active onEscape={onClose}>
-        <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal modal-lg" role="dialog" aria-modal="true" aria-label={tCommon('loading')} onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
         </FocusTrap>
@@ -983,10 +1033,10 @@ function TaggingModal({
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>{t('tagGarments', { number: order.number })}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>{t('tagGarments', { number: order.number })}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="tg-top">
@@ -1104,16 +1154,17 @@ function PaymentMethodPicker({
   const tMethod = useTranslations('PaymentMethod');
   const tCommon = useTranslations('Common');
   const t = useTranslations('OrdersBoard');
+  const titleId = useId();
   // ON_DELIVERY is the explicit not-yet-paid status; offering it on a
   // "take payment" picker would create a falsely-paid record.
   const choices = methods.filter((m) => m.key !== 'ON_DELIVERY');
   return (
     <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 220 }}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>{t('takePayment', { number: orderNumber, amount: AED(total) })}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>{t('takePayment', { number: orderNumber, amount: AED(total) })}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="pay-methods" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -1159,13 +1210,14 @@ function OrderActionsMenu({
 }) {
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
+  const titleId = useId();
   return (
     <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 230 }}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>#{o.number}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>#{o.number}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div style={{ marginBottom: 14, fontSize: 13, color: 'var(--muted)' }}>

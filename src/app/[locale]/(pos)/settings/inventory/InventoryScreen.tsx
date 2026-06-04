@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED, AED0 } from '@/lib/format';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 /* Design ops.js:106-134 — renderInventory:
    - <div class="fin">
@@ -203,13 +203,7 @@ function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{initial ? 'Edit stock item' : 'Add stock item'}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={initial ? 'Edit stock item' : 'Add stock item'}>
         <div className="modal-body fin">
           <div className="field" style={{ marginBottom: 12 }}>
             <label>Item name</label>
@@ -239,8 +233,6 @@ function ItemForm({ initial, onClose, onSaved }: { initial: Item | null; onClose
             {initial ? 'Save' : 'Add item'}
           </button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

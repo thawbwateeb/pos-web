@@ -11,7 +11,7 @@ import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
 import { enqueuePrintJob } from '@/lib/print';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 interface CartLine {
   key: string;
@@ -115,7 +115,7 @@ export default function NewOrderScreen({
   const tier = tiers.find((tt) => tt.externalKey === tierKey);
   const visibleItems = allItems.filter((it) => {
     if (cat !== 'all' && it.categoryKey !== cat) return false;
-    if (search && !it.name.toLowerCase().includes(search.toLowerCase()) && !it.sku.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !it.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -126,7 +126,7 @@ export default function NewOrderScreen({
   const discountAmount = appliedPromo
     ? appliedPromo.kind === 'PERCENT'
       ? +(subtotal * (Number(appliedPromo.value) / 100)).toFixed(2)
-      : Number(appliedPromo.value)
+      : Math.min(Number(appliedPromo.value), subtotal)
     : 0;
   const taxRate = Number(bootstrap.business.tax?.rate ?? 0);
   const taxEnabled = bootstrap.business.tax?.enabled ?? false;
@@ -190,7 +190,6 @@ export default function NewOrderScreen({
 
   async function save() {
     if (!editing) return;
-    if (!customer) { toast.show(t('customerRequired')); setCustPicker(true); return; }
     setBusy(true);
     try {
       const r = await api<any>(`/orders/${editing.id}`, {
@@ -215,7 +214,6 @@ export default function NewOrderScreen({
   }
 
   async function charge() {
-    if (!customer) { toast.show(t('customerRequired')); setCustPicker(true); return; }
     if (!pay?.method) return toast.show(t('pickPaymentMethod'));
     setBusy(true);
     try {
@@ -225,7 +223,7 @@ export default function NewOrderScreen({
         body: {
           storeId,
           type: orderType,
-          customerId: customer?.id,
+          customerId: customer?.id ?? null,
           expressOn,
           expressPct,
           promoCode: appliedPromo?.code,
@@ -384,7 +382,7 @@ export default function NewOrderScreen({
           <div className="row1">
             <div>
               <div className="onum">
-                {isEditing ? `#${editing!.number}` : `#${(bootstrap.business as any).nextOrderNumber ?? ''}`}
+                {isEditing ? `#${editing!.number}` : `#${bootstrap.business.nextOrderNumber ?? ''}`}
               </div>
               <span className="otype">
                 {/* Design app.js:430 — uses t.count which sums qty across
@@ -421,15 +419,15 @@ export default function NewOrderScreen({
           {/* Design app.js:436-440 — .cust-attach spans + RIGHT chevron
               (path "M9 6l6 6-6 6"), NOT Icon.chevd's down chevron. */}
           <button
-            className={`cust-attach${customer ? '' : ' required'}`}
+            className="cust-attach"
             id="cust-attach"
             onClick={() => setCustPicker(true)}
-            title={customer ? customer.fullName : t('customerRequired')}
+            title={customer ? customer.fullName : t('attachCustomer')}
           >
             <span className="av">{customer ? customer.fullName[0] : <Icon.users size={18} />}</span>
             <span className="ct">
               <b>{customer ? customer.fullName : t('attachCustomer')}</b>
-              <span>{customer ? customer.phone : t('customerRequiredHint')}</span>
+              <span>{customer ? customer.phone : t('walkInGuest')}</span>
             </span>
             <span className="chev">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -571,23 +569,15 @@ export default function NewOrderScreen({
       )}
 
       {cancelConfirmOpen && (
-        <div className="modal-scrim show" onClick={() => setCancelConfirmOpen(false)}>
-          <FocusTrap active onEscape={() => setCancelConfirmOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>{t('cancelTitle')}</h3>
-              <button className="x" onClick={() => setCancelConfirmOpen(false)}>×</button>
-            </div>
+        <Modal open onClose={() => setCancelConfirmOpen(false)} title={t('cancelTitle')}>
             <div className="modal-body">
               <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>{t('cancelBody')}</p>
             </div>
             <div className="modal-foot">
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setCancelConfirmOpen(false)}>{t('keepEditing')}</button>
-              <button className="btn btn-pri" style={{ flex: 1 }} onClick={confirmCancel}>{t('discardOrder')}</button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setCancelConfirmOpen(false)}>{t('cancelKeep')}</button>
+              <button className="btn btn-danger" style={{ flex: 2 }} onClick={confirmCancel}>{t('cancelConfirm')}</button>
             </div>
-          </div>
-          </FocusTrap>
-        </div>
+        </Modal>
       )}
     </div>
   );
@@ -615,10 +605,7 @@ function PayModal({
   const change = method === 'CASH' && cashGiven != null ? Math.max(0, cashGiven - total) : 0;
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{tTitle}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={tTitle}>
         <div className="modal-body">
           <div className="pay-amount">
             <div className="pl">{tCharge}</div>
@@ -685,9 +672,7 @@ function PayModal({
             {tConfirm}
           </button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
@@ -708,10 +693,7 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{t('findCustomer')}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={t('findCustomer')}>
         <div className="modal-body">
           <div className="field"><input className="input" placeholder={t('searchByNameOrPhone')} autoFocus value={q} onChange={(e) => search(e.target.value)} /></div>
           <div>
@@ -725,19 +707,14 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
             {!loading && q && results.length === 0 && <div className="muted" style={{ fontSize: 12, padding: 8 }}>—</div>}
           </div>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
 function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: () => void; onApply: (p: Promo) => void }) {
   const t = useTranslations('Order');
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{t('applyPromo')}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={t('applyPromo')}>
         <div className="modal-body">
           {promos.length === 0 ? (
             <div className="muted" style={{ fontSize: 13, padding: 8 }}>{t('noPromos')}</div>
@@ -753,8 +730,6 @@ function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: (
             ))
           )}
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

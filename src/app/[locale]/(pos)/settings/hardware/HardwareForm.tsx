@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import Modal from '@/components/Modal';
 import StoreSyncControls from '@/components/StoreSyncControls';
 import { useActiveStoreId } from '@/components/BootstrapContext';
 
@@ -56,8 +58,11 @@ function fromApi(json: any): HwShape {
 
 export default function HardwareForm() {
   const storeId = useActiveStoreId();
+  const t = useTranslations('Settings.hardware');
+  const tc = useTranslations('Common');
   const [hw, setHw] = useState<HwShape>(DEFAULT_HW);
   const [loaded, setLoaded] = useState(false);
+  const [config, setConfig] = useState<string | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -106,21 +111,21 @@ export default function HardwareForm() {
                 <div className="l"><b id={`hw-lbl-${d.key}`}>{d.name}</b><span>{dev.brand}</span></div>
                 <div className="r" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span className={`hw-stat ${connected ? 'ok' : 'off'}`}>
-                    {connected ? 'Connected' : 'Offline'}
+                    {connected ? t('connected') : t('offline')}
                   </span>
                   <button
                     className="t-btn ghost"
                     data-hwcfg={d.key}
-                    onClick={() => toast.show(`${d.name} configuration (coming soon)`)}
+                    onClick={() => setConfig(d.key)}
                   >
-                    Configure
+                    {t('configure')}
                   </button>
                   <button
                     className="t-btn ghost"
                     data-test={d.name}
                     onClick={() => toast.show(`${d.name} test message sent`)}
                   >
-                    Test
+                    {t('test')}
                   </button>
                   <button
                     className={`switch ${connected ? 'on' : ''}`}
@@ -136,6 +141,40 @@ export default function HardwareForm() {
             </div>
           );
         })
+      )}
+
+      {config && (
+        <Modal
+          open
+          onClose={() => setConfig(null)}
+          title={t('configureDevice', { name: DEVICES.find((x) => x.key === config)!.name })}
+        >
+          <form
+            className="modal-body"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const key = config as HwDevice['key'];
+              const f = new FormData(e.currentTarget);
+              const next: HwShape = { ...hw, [key]: { ...hw[key], brand: String(f.get('brand')) } };
+              try {
+                if (storeId) await api(`/hardware/${storeId}`, { method: 'PUT', body: next });
+                setHw(next);
+                setConfig(null);
+                toast.show(tc('saved'));
+              } catch (err: any) {
+                toast.show(err?.detail?.message ?? t('saveFailed'), 'error');
+              }
+            }}
+          >
+            <label>
+              {t('brand')}
+              <input name="brand" defaultValue={hw[config as HwDevice['key']].brand ?? ''} />
+            </label>
+            <div className="modal-foot">
+              <button className="btn btn-pri" type="submit">{tc('save')}</button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

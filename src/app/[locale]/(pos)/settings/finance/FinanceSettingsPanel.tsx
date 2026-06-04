@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useToast } from '@/components/Toast';
+import { api } from '@/lib/api-client';
+import type { FinanceConfig } from '../../finance/FinanceScreen';
 
 /* Design finance.js:256-274 — Finance settings panel rendered inside
    Settings → Finance.
@@ -35,13 +38,70 @@ VAR_FRAC_DEFAULTS['Car Gas'] = 1;
 
 const AMORTIZE_DEFAULTS: Record<string, boolean> = Object.fromEntries(LINES.map((l) => [l, false]));
 
-export default function FinanceSettingsPanel() {
-  const [stripePct, setStripePct] = useState<number>(0.029);
-  const [stripeFlat, setStripeFlat] = useState<number>(1);
-  const [hireThreshold, setHireThreshold] = useState<number>(0.85);
-  const [varFrac, setVarFrac] = useState<Record<string, number>>(VAR_FRAC_DEFAULTS);
-  const [amortize, setAmortize] = useState<Record<string, boolean>>(AMORTIZE_DEFAULTS);
+// `amortize` is a settings-panel concern that the main Finance dashboard does
+// not consume. It is stored under `settings.amortize` in the config blob, which
+// is not part of the typed FinanceConfig.settings shape — hence this loose read.
+type SettingsWithAmortize = FinanceConfig['settings'] & { amortize?: Record<string, boolean> };
+
+export default function FinanceSettingsPanel({ config }: { config: FinanceConfig }) {
+  const t = useTranslations('Common');
   const toast = useToast();
+
+  // Keep a reference to the FULL config blob so we can PUT it back untouched
+  // except for the settings this panel edits — PUT replaces the whole blob,
+  // so anything we drop here (budget/scenarios/owners) would be lost.
+  const [fullConfig] = useState<FinanceConfig>(config);
+  const cfgSettings = (config.settings ?? {}) as SettingsWithAmortize;
+
+  const [stripePct, setStripePct] = useState<number>(cfgSettings.stripePct ?? 0.029);
+  const [stripeFlat, setStripeFlat] = useState<number>(cfgSettings.stripeFlat ?? 1);
+  const [hireThreshold, setHireThreshold] = useState<number>(cfgSettings.hireThreshold ?? 0.85);
+
+  // Variable fractions live on each budget line in the config blob. Seed from
+  // there (matched by name), falling back to the hardcoded defaults per line.
+  const [varFrac, setVarFrac] = useState<Record<string, number>>(() => {
+    const byName = new Map((config.budget ?? []).map((l) => [l.name, l.varFrac]));
+    return Object.fromEntries(
+      LINES.map((l) => [l, byName.get(l) ?? VAR_FRAC_DEFAULTS[l] ?? 0]),
+    );
+  });
+  const [amortize, setAmortize] = useState<Record<string, boolean>>(() => {
+    const stored = cfgSettings.amortize ?? {};
+    return Object.fromEntries(
+      LINES.map((l) => [l, stored[l] ?? AMORTIZE_DEFAULTS[l] ?? false]),
+    );
+  });
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      // Full-blob merge: start from the entire loaded config, override only the
+      // settings this panel owns. Budget lines are merged by name so each
+      // line's other fields (monthly, sortOrder) survive; only varFrac changes.
+      const nextSettings: SettingsWithAmortize = {
+        ...(fullConfig.settings ?? ({} as FinanceConfig['settings'])),
+        stripePct,
+        stripeFlat,
+        hireThreshold,
+        amortize,
+      };
+      const nextBudget = (fullConfig.budget ?? []).map((l) =>
+        l.name in varFrac ? { ...l, varFrac: varFrac[l.name] } : l,
+      );
+      const nextData: FinanceConfig = {
+        ...fullConfig,
+        settings: nextSettings as FinanceConfig['settings'],
+        budget: nextBudget,
+      };
+      await api('/finance/config', { method: 'PUT', body: { data: nextData } });
+      toast.show(t('saved'));
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? t('saveFailed'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   function setVF(line: string, val: number) {
     const clamped = Math.max(0, Math.min(1, val || 0));
@@ -133,8 +193,13 @@ export default function FinanceSettingsPanel() {
           </table>
         </div>
 
-        <button className="btn btn-pri" id="s-save" onClick={() => toast.show('Finance settings saved')}>
-          Save
+        <button
+          className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
+          id="s-save"
+          onClick={save}
+          disabled={busy}
+        >
+          {t('save')}
         </button>
       </div>
     </div>

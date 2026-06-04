@@ -16,6 +16,7 @@ export interface Bootstrap {
   };
   business: {
     id: string; slug: string; name: string; status: string; timezone: string; countryCode: string;
+    nextOrderNumber?: number;
     branding: {
       brandName: string; tagline: string | null; logoFileKey: string | null;
       posPrimary: string; posAccent: string; appPrimary: string; appAccent: string; appBg: string;

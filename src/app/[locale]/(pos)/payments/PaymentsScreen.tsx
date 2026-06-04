@@ -96,7 +96,6 @@ export default function PaymentsScreen({
           <div className="sico"><Icon.cash size={34} /></div>
           <div className="sk">{t('kpis.collectedToday')}</div>
           <div className="sv"><span className="cur">AED</span> {Math.round(collectedToday)}</div>
-          <div className="sd"><b className="up">{t('kpis.collectedTrendPct')}</b> {t('kpis.collectedTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sico"><Icon.clock size={34} /></div>
@@ -132,13 +131,13 @@ export default function PaymentsScreen({
               Method / Amount / Status + unlabeled action col. */}
           <thead>
             <tr>
-              <th>{t('table.order')}</th>
-              <th>{t('table.customer')}</th>
-              <th>{t('table.items')}</th>
-              <th>{t('table.method')}</th>
-              <th>{t('table.amount')}</th>
-              <th>{t('table.status')}</th>
-              <th></th>
+              <th scope="col">{t('table.order')}</th>
+              <th scope="col">{t('table.customer')}</th>
+              <th scope="col">{t('table.items')}</th>
+              <th scope="col">{t('table.method')}</th>
+              <th scope="col">{t('table.amount')}</th>
+              <th scope="col">{t('table.status')}</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>

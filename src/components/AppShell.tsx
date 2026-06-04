@@ -10,7 +10,8 @@ import type { Bootstrap, PermissionAction } from '@/lib/types';
 import { initials } from '@/lib/format';
 import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost, useToast } from './Toast';
-import FocusTrap from './FocusTrap';
+import { ConfirmHost } from './ConfirmDialog';
+import Modal from './Modal';
 
 /**
  * Derive CSS theme variables from the business branding so Settings →
@@ -281,12 +282,13 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                 href={`/${locale}/${href ?? id}`}
                 prefetch
                 className={isOn ? 'active' : ''}
+                aria-current={isOn ? 'page' : undefined}
                 data-nav={id}
                 style={{ textDecoration: 'none' }}
               >
                 <NavIcon size={21} />
                 <span className="nlbl">{t(tKey)}</span>
-                {badge ? <span className="badge">{badge}</span> : null}
+                {badge ? <span className="badge" aria-label={tCommon('pendingCount', { n: badge })}>{badge}</span> : null}
               </Link>
             );
           })}
@@ -301,7 +303,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
         <header className="topbar" id="topbar">
           <div className="crumb">
             <span className="k">{tc(navMeta?.crumb ?? 'pointOfSale')}</span>
-            <span className="t">{tc(navMeta?.titleKey ?? 'newOrder')}</span>
+            <h1 className="t">{tc(navMeta?.titleKey ?? 'newOrder')}</h1>
           </div>
           <div className="search" ref={searchWrapRef} style={{ position: 'relative' }}>
             <Icon.search size={16} />
@@ -314,7 +316,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
               onFocus={() => search && setSearchOpen(true)}
             />
             {searchOpen && searchResults && (
-              <div className="gsearch show">
+              <div className="gsearch show" role="listbox">
                 {searchResults.orders.length === 0 && searchResults.customers.length === 0 ? (
                   <div className="gs-row muted" style={{ justifyContent: 'center' }}>{t('searchEmpty')}</div>
                 ) : (
@@ -323,16 +325,19 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                       <>
                         <div className="gs-sec">{t('searchOrders')}</div>
                         {searchResults.orders.slice(0, 6).map((o: any) => (
-                          <div
+                          <button
                             key={o.id}
+                            type="button"
+                            role="option"
                             className="gs-row"
+                            style={{ width: '100%', background: 'transparent', border: 0, font: 'inherit', textAlign: 'inherit', color: 'inherit' }}
                             onClick={() => gotoSearchHit(`/${locale}/orders?id=${o.id}`)}
                           >
                             <Icon.receipt size={14} />
                             <b>#{o.number}</b>
                             <span>{o.customer?.fullName ?? '—'}</span>
                             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>{o.status}</span>
-                          </div>
+                          </button>
                         ))}
                       </>
                     )}
@@ -340,15 +345,18 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                       <>
                         <div className="gs-sec">{t('searchCustomers')}</div>
                         {searchResults.customers.slice(0, 6).map((c: any) => (
-                          <div
+                          <button
                             key={c.id}
+                            type="button"
+                            role="option"
                             className="gs-row"
+                            style={{ width: '100%', background: 'transparent', border: 0, font: 'inherit', textAlign: 'inherit', color: 'inherit' }}
                             onClick={() => gotoSearchHit(`/${locale}/customers?id=${c.id}`)}
                           >
                             <Icon.users size={14} />
                             <b>{c.fullName}</b>
                             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>{c.phone}</span>
-                          </div>
+                          </button>
                         ))}
                       </>
                     )}
@@ -390,13 +398,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
         <div className="screen">{children}</div>
 
         {storePickerOpen && (
-          <div className="modal-scrim show" onClick={() => setStorePickerOpen(false)}>
-            <FocusTrap active onEscape={() => setStorePickerOpen(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <h3>{t('switchStore')}</h3>
-                <button className="x" onClick={() => setStorePickerOpen(false)}>×</button>
-              </div>
+          <Modal open onClose={() => setStorePickerOpen(false)} title={t('switchStore')}>
               <div className="modal-body">
                 {bootstrap.stores.map((s) => (
                   <button
@@ -410,7 +412,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                       <span>{s.area ?? s.address ?? '—'}</span>
                     </div>
                     {s.id === bootstrap.activeStoreId && (
-                      <span className="pill paid" style={{ marginLeft: 'auto' }}>Active</span>
+                      <span className="pill paid" style={{ marginLeft: 'auto' }}>{tCommon('active')}</span>
                     )}
                   </button>
                 ))}
@@ -426,19 +428,11 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   </Link>
                 )}
               </div>
-            </div>
-            </FocusTrap>
-          </div>
+          </Modal>
         )}
 
         {userMenuOpen && (
-          <div className="modal-scrim show" onClick={() => setUserMenuOpen(false)}>
-            <FocusTrap active onEscape={() => setUserMenuOpen(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <h3>{t('userMenu')}</h3>
-                <button className="x" onClick={() => setUserMenuOpen(false)}>×</button>
-              </div>
+          <Modal open onClose={() => setUserMenuOpen(false)} title={t('userMenu')}>
               <div className="modal-body">
                 <div className="role-opt sel" style={{ pointerEvents: 'none' }}>
                   <div className="rav">{initials(u.fullName)}</div>
@@ -460,19 +454,11 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   <div className="ri"><b>{t('signOut')}</b></div>
                 </button>
               </div>
-            </div>
-            </FocusTrap>
-          </div>
+          </Modal>
         )}
 
         {endShiftConfirm && (
-          <div className="modal-scrim show" onClick={() => setEndShiftConfirm(null)}>
-            <FocusTrap active onEscape={() => setEndShiftConfirm(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <h3>{t('endShift')}</h3>
-                <button className="x" onClick={() => setEndShiftConfirm(null)}>×</button>
-              </div>
+          <Modal open onClose={() => setEndShiftConfirm(null)} title={t('endShift')}>
               <div className="modal-body">
                 <p style={{ padding: '8px 12px', fontSize: 14 }}>
                   {t('endShiftConfirm', { h: endShiftConfirm.h, m: endShiftConfirm.m })}
@@ -482,9 +468,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   <button className="btn btn-pri" onClick={confirmEndShift}>{t('endShift')}</button>
                 </div>
               </div>
-            </div>
-            </FocusTrap>
-          </div>
+          </Modal>
         )}
       </div>
     </div>
@@ -495,7 +479,9 @@ export default function AppShell({ bootstrap, children }: AppShellProps) {
   return (
     <BootstrapProvider value={bootstrap}>
       <ToastHost>
-        <AppShellInner bootstrap={bootstrap}>{children}</AppShellInner>
+        <ConfirmHost>
+          <AppShellInner bootstrap={bootstrap}>{children}</AppShellInner>
+        </ConfirmHost>
       </ToastHost>
     </BootstrapProvider>
   );

@@ -1,6 +1,6 @@
 import { apiServer } from '@/lib/api-server';
 import ChatbotSettings from './ChatbotSettings';
-import type { WhatsappSettings } from '../../whatsapp/WhatsappSettingsPanel';
+import type { WhatsappSettings } from '../../whatsapp/types';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import FocusTrap from '@/components/FocusTrap';
 
 /**
@@ -44,6 +45,8 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
   const [editing, setEditing] = useState<Zone | null>(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
+  const tz = useTranslations('Zones');
 
   // Re-sync from the server prop on store switch / router.refresh.
   useEffect(() => { setRows(initial); }, [initial]);
@@ -53,7 +56,7 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
   }
 
   async function remove(z: Zone) {
-    if (!confirm(`Delete zone ${z.name}?`)) return;
+    if (!(await confirm({ title: tz('deleteTitle'), message: tz('deleteConfirm', { name: z.name }), danger: true }))) return;
     await api(`/delivery-zones/${z.id}`, { method: 'DELETE' });
     toast.show('Zone deleted');
     reload();
@@ -166,6 +169,8 @@ interface ZoneFormProps {
 
 function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
   const t = useTranslations('Settings.zones');
+  const tCommon = useTranslations('Common');
+  const titleId = useId();
   const isEdit = !!initial;
   const defaultColor = initial?.color || ZONE_PALETTE[existingCount % ZONE_PALETTE.length];
   const [name, setName] = useState<string>(initial?.name ?? '');
@@ -197,10 +202,10 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
         <div className="modal-head">
-          <h3>{isEdit ? 'Edit zone' : 'New zone'}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>{isEdit ? 'Edit zone' : 'New zone'}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="field">

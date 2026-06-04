@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 /* Design app.js:1513-1519 — Subscription Packages.
    - .set-sec max-width:none > .page-head h2 'Subscription Packages' + sub
@@ -153,13 +153,7 @@ function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{initial ? 'Edit package' : 'New package'}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={initial ? 'Edit package' : 'New package'}>
         <div className="modal-body">
           <div className="field"><label>Name</label><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <div className="field-2">
@@ -179,8 +173,6 @@ function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{initial ? 'Save changes' : 'Create package'}</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

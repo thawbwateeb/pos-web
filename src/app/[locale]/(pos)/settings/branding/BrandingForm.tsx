@@ -1,8 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api, apiUploadUrl } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { Icon, LOGO_ICON } from '@/components/Icons';
 
 /* Design app.js:1547-1597 — Branding & Theme:
@@ -55,6 +57,8 @@ export default function BrandingForm({ initial }: { initial: any }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+  const confirm = useConfirm();
+  const t = useTranslations('Settings.branding');
 
   const logoUrl = f.logoFileKey ? apiUploadUrl(`/files/${f.logoFileKey}`) : null;
 
@@ -85,8 +89,8 @@ export default function BrandingForm({ initial }: { initial: any }) {
     }
   }
 
-  function resetToDefault() {
-    if (!confirm('Reset to default — restore the default Thawb Wa Teeb logo and colors?')) return;
+  async function resetToDefault() {
+    if (!(await confirm({ title: t('resetTitle'), message: t('resetMsg'), danger: true, confirmLabel: t('reset') }))) return;
     setF({ ...DEFAULTS, logoFileKey: null });
     toast.show('Reset to default');
   }

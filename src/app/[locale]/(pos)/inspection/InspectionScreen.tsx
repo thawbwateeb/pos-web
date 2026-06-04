@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
 import { AED, shortTime } from '@/lib/format';
@@ -263,6 +263,7 @@ function InspectionModal({
   const t = useTranslations('Inspection');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+  const titleId = useId();
 
   useEffect(() => {
     let alive = true;
@@ -320,7 +321,7 @@ function InspectionModal({
     return (
       <div className="modal-scrim show" onClick={onClose}>
         <FocusTrap active onEscape={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" role="dialog" aria-modal="true" aria-label={tCommon('loading')} onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
         </FocusTrap>
@@ -331,10 +332,10 @@ function InspectionModal({
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>#{order.number} · {order.customer?.fullName ?? '—'}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>#{order.number} · {order.customer?.fullName ?? '—'}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           {items.length === 0 ? (

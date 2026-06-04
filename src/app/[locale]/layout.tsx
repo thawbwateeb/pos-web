@@ -1,17 +1,22 @@
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import '../pos.css';
-import { QueryProvider } from '@/components/QueryProvider';
 import { routing } from '@/i18n/routing';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-export const metadata = {
-  title: 'Thawb Wa Teeb — POS',
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Meta' });
+  return {
+    title: t('title'),
+    description: t('description'),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function LocaleLayout({
   children,
@@ -36,10 +41,8 @@ export default async function LocaleLayout({
       </head>
       <body>
         <NextIntlClientProvider>
-          <QueryProvider>{children}</QueryProvider>
+          {children}
         </NextIntlClientProvider>
-        <div id="modal-root" />
-        <div id="toast-root" />
       </body>
     </html>
   );

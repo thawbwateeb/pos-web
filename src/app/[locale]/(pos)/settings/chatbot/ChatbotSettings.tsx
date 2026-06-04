@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
-import type { WhatsappSettings } from '../../whatsapp/WhatsappSettingsPanel';
+import type { WhatsappSettings } from '../../whatsapp/types';
 
 /* Design whatsapp.js:183-226 — WhatsApp chatbot settings panel rendered
    inline in Settings → WhatsApp Bot.

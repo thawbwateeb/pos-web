@@ -6,7 +6,7 @@ import { api, eventStream } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icons';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 import type { Order, Driver } from '@/lib/types';
 
 // `deliveryAddress` is present on the API row but isn't on the FE `Order`
@@ -406,13 +406,7 @@ function DriverPicker({
   onPick: (driverId: string) => void;
 }) {
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{pickLabel}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={pickLabel}>
         <div className="modal-body">
           {drivers.length === 0 ? (
             <div className="muted" style={{ padding: 14, textAlign: 'center' }}>—</div>
@@ -434,8 +428,6 @@ function DriverPicker({
             ))
           )}
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
