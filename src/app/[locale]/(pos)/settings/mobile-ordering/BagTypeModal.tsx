@@ -3,7 +3,7 @@
 /* Ports `bagModal(idx)` from the design prototype ordering.js. Add / edit a
    colour-coded bag type. Copy text and class names are kept verbatim. */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import FocusTrap from '@/components/FocusTrap';
 import { useToast } from '@/components/Toast';
 import {
@@ -50,6 +50,8 @@ export default function BagTypeModal({ initial, onClose, onSave }: BagTypeModalP
   const [unit, setUnit] = useState<'bag' | 'item'>(base.unit);
   const toast = useToast();
 
+  const titleId = useId();
+
   const custom = isHex(color);
 
   function save() {
@@ -64,10 +66,17 @@ export default function BagTypeModal({ initial, onClose, onSave }: BagTypeModalP
   return (
     <div className="mini-scrim" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-        <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal"
+          style={{ maxWidth: 440 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="modal-head">
-            <h3>{isNew ? 'Add bag type' : 'Edit bag type'}</h3>
-            <button className="x" onClick={onClose}>
+            <h3 id={titleId}>{isNew ? 'Add bag type' : 'Edit bag type'}</h3>
+            <button className="x" aria-label="Close" onClick={onClose}>
               ×
             </button>
           </div>
