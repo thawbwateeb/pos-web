@@ -1114,6 +1114,13 @@
       "sub": "Receipt printer, payment terminal, cash drawer, and label printer for each store.",
       "store": "Store",
       "saved": "Hardware saved",
+      "configure": "Configure",
+      "test": "Test",
+      "connected": "Connected",
+      "offline": "Offline",
+      "configureDevice": "Configure {name}",
+      "brand": "Brand",
+      "saveFailed": "Save failed",
       "sections": {
         "printer": "Printer",
         "terminal": "Terminal",
