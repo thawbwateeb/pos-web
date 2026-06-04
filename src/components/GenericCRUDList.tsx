@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from './Toast';
+import { useConfirm } from './ConfirmDialog';
 import Modal from './Modal';
 
 type Field = { key: string; label: string; required?: boolean; type?: 'text' | 'number' | 'select'; options?: string[] };
@@ -23,6 +25,8 @@ export default function GenericCRUDList({
   const [editing, setEditing] = useState<any | null>(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
+  const t = useTranslations('Crud');
 
   // Re-sync from the server prop on store switch / router.refresh.
   useEffect(() => { setRows(initial); }, [initial]);
@@ -38,7 +42,7 @@ export default function GenericCRUDList({
   }
 
   async function remove(id: string) {
-    if (!confirm(`Delete this ${labelSingular}?`)) return;
+    if (!(await confirm({ title: t('deleteTitle'), message: t('deleteConfirm', { item: labelSingular }), danger: true }))) return;
     await api(`${endpoint}/${id}`, { method: 'DELETE' });
     reload();
     toast.show('Deleted');

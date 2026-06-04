@@ -60,7 +60,8 @@
     "description": "Description",
     "value": "Value",
     "uses": "Uses",
-    "cost": "Cost"
+    "cost": "Cost",
+    "confirm": "Confirm"
   },
   "Login": {
     "brand": "THAWB WA TEEB",
@@ -286,6 +287,7 @@
     "expressFee": "Express surcharge",
     "deliveryFee": "Delivery fee",
     "cancelOrder": "Cancel order",
+    "cancelOrderTitle": "Cancel order",
     "cancelOrderConfirm": "Cancel order #{number}? This can't be undone.",
     "cancelledToast": "Order #{number} cancelled",
     "menu": {
@@ -307,6 +309,7 @@
     "editItems": "Edit items",
     "payNow": "Take payment",
     "refundAll": "Refund all",
+    "refundAllTitle": "Refund order",
     "refundAllConfirm": "Refund the full amount of {amount} for #{number}?",
     "refunded": "Refunded {amount}",
     "voidLine": "Void line",
@@ -827,7 +830,10 @@
       "accent": "Accent",
       "background": "Background",
       "livePreview": "Live preview",
-      "saved": "Branding saved"
+      "saved": "Branding saved",
+      "resetTitle": "Reset to default",
+      "resetMsg": "Restore the default Thawb Wa Teeb logo and colors?",
+      "reset": "Reset"
     },
     "tax": {
       "title": "Tax / VAT",
@@ -1203,5 +1209,21 @@
     "FRI": "Fri",
     "SAT": "Sat",
     "SUN": "Sun"
+  },
+  "Zones": {
+    "deleteTitle": "Delete zone",
+    "deleteConfirm": "Delete zone {name}?"
+  },
+  "Pickup": {
+    "deleteSlotTitle": "Delete slot",
+    "deleteSlotConfirm": "Delete this time slot?"
+  },
+  "StoreSync": {
+    "copyTitle": "Copy to all stores",
+    "copyConfirm": "Copy these settings to every other store? This overwrites the existing settings on the other {count, plural, one {# store} other {# stores}}."
+  },
+  "Crud": {
+    "deleteTitle": "Delete",
+    "deleteConfirm": "Delete this {item}?"
   }
 }

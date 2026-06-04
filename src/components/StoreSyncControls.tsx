@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { useBootstrap } from '@/components/BootstrapContext';
 
 /* Reusable "Copy these settings to all other stores" button for any
@@ -31,6 +33,8 @@ export default function StoreSyncControls({
 }) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
+  const t = useTranslations('StoreSync');
   const { stores, activeStoreId } = useBootstrap();
   const activeStore = stores.find((s) => s.id === activeStoreId);
   const others = stores.length - 1;
@@ -38,7 +42,7 @@ export default function StoreSyncControls({
   if (stores.length <= 1) return null;
 
   async function copyToAll() {
-    if (!confirm(`Copy these settings to every other store? This overwrites the existing settings on the other ${others} store${others === 1 ? '' : 's'}.`)) return;
+    if (!(await confirm({ title: t('copyTitle'), message: t('copyConfirm', { count: others }), danger: true }))) return;
     setBusy(true);
     try {
       const r = await api<Record<string, unknown>>(syncEndpoint, {

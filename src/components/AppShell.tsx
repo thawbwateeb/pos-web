@@ -10,6 +10,7 @@ import type { Bootstrap, PermissionAction } from '@/lib/types';
 import { initials } from '@/lib/format';
 import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost, useToast } from './Toast';
+import { ConfirmHost } from './ConfirmDialog';
 import Modal from './Modal';
 
 /**
@@ -471,7 +472,9 @@ export default function AppShell({ bootstrap, children }: AppShellProps) {
   return (
     <BootstrapProvider value={bootstrap}>
       <ToastHost>
-        <AppShellInner bootstrap={bootstrap}>{children}</AppShellInner>
+        <ConfirmHost>
+          <AppShellInner bootstrap={bootstrap}>{children}</AppShellInner>
+        </ConfirmHost>
       </ToastHost>
     </BootstrapProvider>
   );

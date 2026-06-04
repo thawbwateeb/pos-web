@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import Modal from '@/components/Modal';
 
 /* Design app.js:1444-1487 — Pickup & Delivery settings.
@@ -77,6 +78,8 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
   const [slotEdit, setSlotEdit] = useState<Slot | null>(null);
   const [slotAdd, setSlotAdd] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
+  const tp = useTranslations('Pickup');
 
   async function reloadSlots() { setSlots(await api<Slot[]>('/pickup/slots')); }
 
@@ -85,7 +88,7 @@ export default function PickupSettings({ initialSettings, initialSlots }: { init
     reloadSlots();
   }
   async function deleteSlot(slot: Slot) {
-    if (!confirm('Delete slot?')) return;
+    if (!(await confirm({ title: tp('deleteSlotTitle'), message: tp('deleteSlotConfirm'), danger: true }))) return;
     await api(`/pickup/slots/${slot.id}`, { method: 'DELETE' });
     reloadSlots();
   }

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import FocusTrap from '@/components/FocusTrap';
 
 /**
@@ -44,6 +45,8 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
   const [editing, setEditing] = useState<Zone | null>(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
+  const tz = useTranslations('Zones');
 
   // Re-sync from the server prop on store switch / router.refresh.
   useEffect(() => { setRows(initial); }, [initial]);
@@ -53,7 +56,7 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
   }
 
   async function remove(z: Zone) {
-    if (!confirm(`Delete zone ${z.name}?`)) return;
+    if (!(await confirm({ title: tz('deleteTitle'), message: tz('deleteConfirm', { name: z.name }), danger: true }))) return;
     await api(`/delivery-zones/${z.id}`, { method: 'DELETE' });
     toast.show('Zone deleted');
     reload();

@@ -60,7 +60,8 @@
     "description": "الوصف",
     "value": "القيمة",
     "uses": "مرات الاستخدام",
-    "cost": "التكلفة"
+    "cost": "التكلفة",
+    "confirm": "تأكيد"
   },
   "Login": {
     "brand": "ثوب وطيب",
@@ -286,6 +287,7 @@
     "expressFee": "رسوم الخدمة السريعة",
     "deliveryFee": "رسوم التوصيل",
     "cancelOrder": "إلغاء الطلب",
+    "cancelOrderTitle": "إلغاء الطلب",
     "cancelOrderConfirm": "هل تريد إلغاء الطلب #{number}؟ لا يمكن التراجع عن هذا.",
     "cancelledToast": "تم إلغاء الطلب #{number}",
     "menu": {
@@ -307,6 +309,7 @@
     "editItems": "تعديل الأصناف",
     "payNow": "استلام الدفع",
     "refundAll": "استرداد الكل",
+    "refundAllTitle": "استرداد الطلب",
     "refundAllConfirm": "هل تريد استرداد المبلغ الكامل {amount} للطلب #{number}؟",
     "refunded": "تم استرداد {amount}",
     "voidLine": "إلغاء البند",
@@ -827,7 +830,10 @@
       "accent": "مميّز",
       "background": "الخلفية",
       "livePreview": "معاينة مباشرة",
-      "saved": "تم حفظ الهوية التجارية"
+      "saved": "تم حفظ الهوية التجارية",
+      "resetTitle": "إعادة التعيين إلى الافتراضي",
+      "resetMsg": "هل تريد استعادة شعار وألوان ثوب وطيب الافتراضية؟",
+      "reset": "إعادة التعيين"
     },
     "tax": {
       "title": "الضريبة / ضريبة القيمة المضافة",
@@ -1203,5 +1209,21 @@
     "FRI": "جمعة",
     "SAT": "سبت",
     "SUN": "أحد"
+  },
+  "Zones": {
+    "deleteTitle": "حذف المنطقة",
+    "deleteConfirm": "هل تريد حذف المنطقة {name}؟"
+  },
+  "Pickup": {
+    "deleteSlotTitle": "حذف الفترة",
+    "deleteSlotConfirm": "هل تريد حذف هذه الفترة الزمنية؟"
+  },
+  "StoreSync": {
+    "copyTitle": "النسخ إلى كل المتاجر",
+    "copyConfirm": "هل تريد نسخ هذه الإعدادات إلى كل متجر آخر؟ سيؤدي ذلك إلى استبدال الإعدادات الحالية في {count, plural, one {متجر واحد آخر} other {# متاجر أخرى}}."
+  },
+  "Crud": {
+    "deleteTitle": "حذف",
+    "deleteConfirm": "هل تريد حذف هذا {item}؟"
   }
 }

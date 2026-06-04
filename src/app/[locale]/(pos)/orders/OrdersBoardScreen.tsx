@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
 import { AED, dueLabel } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import { Icon } from '@/components/Icons';
 import FocusTrap from '@/components/FocusTrap';
 import Modal from '@/components/Modal';
@@ -50,6 +51,7 @@ export default function OrdersBoardScreen({
   const tType = useTranslations('Order');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+  const confirm = useConfirm();
 
   // CANCELLED has no column on the board.
   const COLUMNS = useMemo(
@@ -331,7 +333,7 @@ export default function OrdersBoardScreen({
             onViewDetail={() => { setManageId(null); setOpenId(o.id); }}
             onTakePayment={() => { setManageId(null); setPayNow({ order: o }); }}
             onCancel={async () => {
-              if (!confirm(t('cancelOrderConfirm', { number: o.number }))) return;
+              if (!(await confirm({ title: t('cancelOrderTitle'), message: t('cancelOrderConfirm', { number: o.number }), danger: true }))) return;
               try {
                 await api(`/orders/${o.id}/cancel`, { method: 'PATCH', body: {} });
                 toast.show(t('cancelledToast', { number: o.number }));
@@ -348,7 +350,7 @@ export default function OrdersBoardScreen({
                 const pay = full.payments?.find((p: any) => p.status !== 'REFUNDED');
                 if (!pay) { toast.show(t('failedToUpdate')); return; }
                 const remaining = Number(pay.amount) - Number(pay.refundedAmount);
-                if (!confirm(t('refundAllConfirm', { amount: AED(remaining), number: o.number }))) return;
+                if (!(await confirm({ title: t('refundAllTitle'), message: t('refundAllConfirm', { amount: AED(remaining), number: o.number }), danger: true }))) return;
                 await api(`/payments/${pay.id}/refund`, { method: 'POST', body: { amount: remaining, reason: 'Refund full order' } });
                 toast.show(t('refunded', { amount: AED(remaining) }));
                 setManageId(null);
