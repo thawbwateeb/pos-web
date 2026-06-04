@@ -9,8 +9,10 @@ import { AED, dueLabel } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icons';
 import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { OrdersBoard, OrderStatus, OrderType, Order, PaymentMethod } from '@/lib/types';
+import type { RackRow } from '../settings/racks/RacksScreen';
 
 type Filter = 'all' | OrderType;
 
@@ -519,6 +521,11 @@ function OrderDetailModal({
   const [busy, setBusy] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState<null | { kind: 'all' } | { kind: 'line'; line: any }>(null);
   const [showPayPicker, setShowPayPicker] = useState(false);
+  // Interactive rack assignment: staff opens a picker (shared <Modal>) and
+  // selects a rack (or "No rack"). PATCH /orders/:id/rack takes the rack's
+  // CODE string (or null to clear). Racks are loaded once from GET /racks.
+  const [racks, setRacks] = useState<RackRow[]>([]);
+  const [rackOpen, setRackOpen] = useState(false);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const tStatus = useTranslations('OrderStatus');
@@ -531,9 +538,27 @@ function OrderDetailModal({
     api<any>(`/orders/${orderId}`).then(setOrder);
   }, [orderId]);
 
+  useEffect(() => {
+    api<RackRow[]>('/racks').then(setRacks).catch(() => {});
+  }, []);
+
   async function reload() {
     const o = await api<any>(`/orders/${orderId}`);
     setOrder(o);
+  }
+
+  // PATCH the rack assignment. Empty value → null ("No rack" clears it).
+  async function assignRack(rackCode: string | null) {
+    if (!order) return;
+    setRackOpen(false);
+    try {
+      await api(`/orders/${order.id}/rack`, { method: 'PATCH', body: { rackCode } });
+      toast.show(t('rackAssigned'));
+      onChanged();
+      await reload();
+    } catch (e: any) {
+      toast.show(e?.detail?.message || tCommon('saveFailed'));
+    }
   }
 
   // Open the picker; the actual POST runs once the staff confirms how
@@ -669,11 +694,11 @@ function OrderDetailModal({
                 <span>{order.customer?.phone ?? '—'}</span>
               </div>
             </div>
-            {order.rackCode && (
-              <div className="odl-rack">
-                <span className="rack-btn">▦ {order.rackCode}</span>
-              </div>
-            )}
+            <div className="odl-rack">
+              <button className="rack-btn" onClick={() => setRackOpen(true)}>
+                ▦ {order.rackCode ?? t('assignRack')}
+              </button>
+            </div>
           </div>
           <div className="odl-meta">
             <span>{tStatus(order.status)}</span>
@@ -819,6 +844,26 @@ function OrderDetailModal({
             onClose={() => setShowPayPicker(false)}
           />
         )}
+        <Modal open={rackOpen} onClose={() => setRackOpen(false)} title={t('assignRack')}>
+          <div className="modal-body">
+            <select
+              className="inp"
+              style={{ width: '100%' }}
+              defaultValue={order.rackCode ?? ''}
+              onChange={(e) => assignRack(e.target.value || null)}
+            >
+              <option value="">{t('noRack')}</option>
+              {racks.map((r) => (
+                <option key={r.id} value={r.code}>{r.code}</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-foot">
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setRackOpen(false)}>
+              {tCommon('cancel')}
+            </button>
+          </div>
+        </Modal>
       </div>
       </FocusTrap>
     </div>
