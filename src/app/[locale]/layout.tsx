@@ -2,7 +2,6 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import '../pos.css';
-import { QueryProvider } from '@/components/QueryProvider';
 import { routing } from '@/i18n/routing';
 
 export function generateStaticParams() {
@@ -36,7 +35,7 @@ export default async function LocaleLayout({
       </head>
       <body>
         <NextIntlClientProvider>
-          <QueryProvider>{children}</QueryProvider>
+          {children}
         </NextIntlClientProvider>
         <div id="modal-root" />
         <div id="toast-root" />
