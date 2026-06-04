@@ -46,13 +46,13 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
         <table className="tbl">
           <thead>
             <tr>
-              <th>{t('table.customer')}</th>
-              <th>{t('table.phone')}</th>
-              <th>{t('table.area')}</th>
-              <th>{t('table.orders')}</th>
-              <th>{t('table.lifetime')}</th>
-              <th>{t('table.tags')}</th>
-              <th></th>
+              <th scope="col">{t('table.customer')}</th>
+              <th scope="col">{t('table.phone')}</th>
+              <th scope="col">{t('table.area')}</th>
+              <th scope="col">{t('table.orders')}</th>
+              <th scope="col">{t('table.lifetime')}</th>
+              <th scope="col">{t('table.tags')}</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -232,10 +232,10 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               <table className="odl-tbl">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>{t('drawer.date')}</th>
-                    <th>{t('drawer.status')}</th>
-                    <th className="num">{t('drawer.total')}</th>
+                    <th scope="col">#</th>
+                    <th scope="col">{t('drawer.date')}</th>
+                    <th scope="col">{t('drawer.status')}</th>
+                    <th scope="col" className="num">{t('drawer.total')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -257,7 +257,7 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 <>
                   <h3 style={{ fontSize: 13, margin: '14px 0 10px' }}>{t('drawer.loyaltyHistory')}</h3>
                   <table className="odl-tbl">
-                    <thead><tr><th>{t('drawer.when')}</th><th>{t('drawer.type')}</th><th className="num">{t('drawer.points')}</th></tr></thead>
+                    <thead><tr><th scope="col">{t('drawer.when')}</th><th scope="col">{t('drawer.type')}</th><th scope="col" className="num">{t('drawer.points')}</th></tr></thead>
                     <tbody>
                       {data.loyalty.transactions.slice(0, 10).map((tx: any) => (
                         <tr key={tx.id}>

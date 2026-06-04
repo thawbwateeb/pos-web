@@ -131,13 +131,13 @@ export default function PaymentsScreen({
               Method / Amount / Status + unlabeled action col. */}
           <thead>
             <tr>
-              <th>{t('table.order')}</th>
-              <th>{t('table.customer')}</th>
-              <th>{t('table.items')}</th>
-              <th>{t('table.method')}</th>
-              <th>{t('table.amount')}</th>
-              <th>{t('table.status')}</th>
-              <th></th>
+              <th scope="col">{t('table.order')}</th>
+              <th scope="col">{t('table.customer')}</th>
+              <th scope="col">{t('table.items')}</th>
+              <th scope="col">{t('table.method')}</th>
+              <th scope="col">{t('table.amount')}</th>
+              <th scope="col">{t('table.status')}</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>

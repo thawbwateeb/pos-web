@@ -440,10 +440,10 @@ function Actuals({
           <table className="tbl">
             <thead>
               <tr>
-                <th>{t('actuals.expenseLine')}</th>
-                <th className="num">{t('actuals.plan')}</th>
-                <th className="num">{t('actuals.actual')}</th>
-                <th className="num">{t('actuals.variance')}</th>
+                <th scope="col">{t('actuals.expenseLine')}</th>
+                <th scope="col" className="num">{t('actuals.plan')}</th>
+                <th scope="col" className="num">{t('actuals.actual')}</th>
+                <th scope="col" className="num">{t('actuals.variance')}</th>
               </tr>
             </thead>
             <tbody>
@@ -454,7 +454,7 @@ function Actuals({
                 const vrClass = vr > 0 ? 'neg' : vr < 0 ? 'pos' : 'muted';
                 return (
                   <tr key={l}>
-                    <td className="ln">{l}</td>
+                    <th scope="row" className="ln">{l}</th>
                     <td className="num tnum muted">{AED(plan)}</td>
                     <td className="num">
                       <input className="inp r tnum" style={{ width: 120, marginLeft: 'auto' }} type="number" data-exp={l} value={a.exp[l] ?? 0} onChange={(e) => updateExpense(month, l, +e.target.value || 0)} />
@@ -566,12 +566,12 @@ function Vision() {
         <div className="scroll-x">
           <table className="tbl">
             <thead>
-              <tr><th>{t('vision.line')}</th>{months.map((m) => <th key={m} className="num">{m}</th>)}</tr>
+              <tr><th scope="col">{t('vision.line')}</th>{months.map((m) => <th key={m} scope="col" className="num">{m}</th>)}</tr>
             </thead>
             <tbody>
               {lines.map((l) => (
                 <tr key={l}>
-                  <td className="ln">{l}</td>
+                  <th scope="row" className="ln">{l}</th>
                   {months.map((_, i) => <td key={i} className="num tnum">{N(planFor(l, i))}</td>)}
                 </tr>
               ))}
@@ -601,12 +601,12 @@ function ScenarioTable({ scenario }: { scenario: Scenario }) {
       </div>
       <div className="scroll-x">
         <table className="tbl">
-          <thead><tr><th>{t('vision.metric')}</th>{months.map((m) => <th key={m} className="num">{m}</th>)}</tr></thead>
+          <thead><tr><th scope="col">{t('vision.metric')}</th>{months.map((m) => <th key={m} scope="col" className="num">{m}</th>)}</tr></thead>
           <tbody>
-            <tr><td className="ln">{t('vision.income')}</td>{data.income.map((v, i) => <td key={i} className="num tnum">{N(v)}</td>)}</tr>
-            <tr><td className="ln">{t('vision.orders')}</td>{data.orders.map((v, i) => <td key={i} className="num tnum">{N(v)}</td>)}</tr>
-            <tr><td className="ln">{t('vision.customers')}</td>{data.customers.map((v, i) => <td key={i} className="num tnum">{N(v)}</td>)}</tr>
-            <tr><td className="ln">{t('vision.profit')}</td>{months.map((_, m) => {
+            <tr><th scope="row" className="ln">{t('vision.income')}</th>{data.income.map((v, i) => <td key={i} className="num tnum">{N(v)}</td>)}</tr>
+            <tr><th scope="row" className="ln">{t('vision.orders')}</th>{data.orders.map((v, i) => <td key={i} className="num tnum">{N(v)}</td>)}</tr>
+            <tr><th scope="row" className="ln">{t('vision.customers')}</th>{data.customers.map((v, i) => <td key={i} className="num tnum">{N(v)}</td>)}</tr>
+            <tr><th scope="row" className="ln">{t('vision.profit')}</th>{months.map((_, m) => {
               const p = scenarioProfit(scenario, m);
               return (<td key={m} className="num tnum"><span className={p >= 0 ? 'pos' : 'neg'}>{p < 0 ? '-' : ''}{AED0(Math.abs(p))}</span></td>);
             })}</tr>
@@ -716,7 +716,7 @@ function Owners({
             <span className="pill mut">{t('owners.totalPill', { value: AED0(totalInvested) })}</span>
           </div>
           <table className="tbl">
-            <thead><tr><th>{t('owners.date')}</th><th>{t('owners.owner')}</th><th className="num">{t('owners.amount')}</th><th>{t('owners.note')}</th><th></th></tr></thead>
+            <thead><tr><th scope="col">{t('owners.date')}</th><th scope="col">{t('owners.owner')}</th><th scope="col" className="num">{t('owners.amount')}</th><th scope="col">{t('owners.note')}</th><th scope="col"></th></tr></thead>
             <tbody>
               {contributions.map((c) => (
                 <tr key={c.id}>

@@ -115,7 +115,7 @@ export default function NewOrderScreen({
   const tier = tiers.find((tt) => tt.externalKey === tierKey);
   const visibleItems = allItems.filter((it) => {
     if (cat !== 'all' && it.categoryKey !== cat) return false;
-    if (search && !it.name.toLowerCase().includes(search.toLowerCase()) && !it.sku.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !it.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 

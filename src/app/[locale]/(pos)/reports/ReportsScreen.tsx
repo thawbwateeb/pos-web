@@ -386,9 +386,9 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <table className="tbl" style={{ marginTop: 4 }}>
             <thead>
               <tr>
-                <th>{t('topItems.item')}</th>
-                <th>{t('topItems.qty')}</th>
-                <th style={{ textAlign: 'right' }}>{t('topItems.revenue')}</th>
+                <th scope="col">{t('topItems.item')}</th>
+                <th scope="col">{t('topItems.qty')}</th>
+                <th scope="col" style={{ textAlign: 'right' }}>{t('topItems.revenue')}</th>
               </tr>
             </thead>
             <tbody>

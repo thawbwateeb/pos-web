@@ -126,7 +126,7 @@
     "configuration": "CONFIGURATION",
     "newOrder": "New Order",
     "ordersBoard": "Orders Board",
-    "requestsInbox": "Requests",
+    "requestsInbox": "Order Requests",
     "payments": "Payments & Invoicing",
     "customers": "Customer Directory",
     "whatsappBusiness": "WhatsApp Business",
@@ -466,7 +466,7 @@
     "menuOptions": {
       "unread": "Mark as unread",
       "info": "Contact info",
-      "viewOrders": "Create order"
+      "viewOrders": "View customer"
     },
     "markedUnread": "Marked as unread",
     "failedToSend": "Failed to send",

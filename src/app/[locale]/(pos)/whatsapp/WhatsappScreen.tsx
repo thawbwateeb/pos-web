@@ -234,7 +234,7 @@ export default function WhatsappScreen({
       await api(`/whatsapp/conversations/${activeId}/messages`, {
         method: 'POST',
         body: {
-          kind: uploaded.mime.startsWith('image/') ? 'IMAGE' : 'FILE',
+          kind: uploaded.mime.startsWith('image/') ? 'IMAGE' : 'DOCUMENT',
           mediaUrl: `/files/${uploaded.id}`,
         },
       });

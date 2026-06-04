@@ -11,6 +11,7 @@
 // (`.toLowerCase()`) and read body data from `meta`/`photos`/`messages`.
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import { initials, shortTime } from '@/lib/format';
@@ -329,6 +330,7 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
   const [rqMsg, setRqMsg] = useState('');
   const [reply, setReply] = useState('');
   const toast = useToast();
+  const tCommon = useTranslations('Common');
 
   // Load the selected request's full detail.
   useEffect(() => {
@@ -397,8 +399,8 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
       await api(`/requests/${detail.id}/messages`, { method: 'POST', body: { text: v } });
       setReply('');
       await refreshAll();
-    } catch {
-      /* ignore */
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? tCommon('saveFailed'), 'error');
     }
   }
 
@@ -418,8 +420,8 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
       });
       await refreshAll();
       toast.show('Quote sent to customer');
-    } catch {
-      /* ignore */
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? tCommon('saveFailed'), 'error');
     }
   }
 
@@ -432,8 +434,8 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
       );
       await refreshAll();
       toast.show(`Accepted · order #${res.number} created`);
-    } catch {
-      /* ignore */
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? tCommon('saveFailed'), 'error');
     }
   }
 
@@ -443,8 +445,8 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
       await api(`/requests/${detail.id}/decline`, { method: 'POST' });
       await refreshAll();
       toast.show('Request declined');
-    } catch {
-      /* ignore */
+    } catch (e: any) {
+      toast.show(e?.detail?.message ?? tCommon('saveFailed'), 'error');
     }
   }
 
