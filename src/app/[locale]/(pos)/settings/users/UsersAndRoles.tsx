@@ -31,6 +31,7 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
   const [addingRole, setAddingRole] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
+  const t = useTranslations('Settings.users');
   const toast = useToast();
 
   // Re-sync from the server props on store switch / router.refresh.
@@ -93,8 +94,8 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
      - .card.flush Roles & permissions with .ch h3 + csub
        'Create roles and choose what each can do. Manager always has full
        access.' + .btn.btn-pri.btn-sm '+ Add role' id='role-add'.
-       Save button .btn.btn-pri id='perm-save' 'Save permissions' in a
-       footer with padding 14px 20px. */
+       Permission cells auto-save on click (togglePerm → PATCH
+       /roles/:id/permissions); no separate save button. */
   return (
     <div className="fin">
       <div className="card flush" style={{ marginBottom: 16 }}>
@@ -182,6 +183,7 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
             <div className="csub" style={{ margin: '2px 0 0' }}>
               Create roles and choose what each can do. Manager always has full access.
             </div>
+            <span className="muted" style={{ fontSize: 12 }}>{t('permsAutoSave')}</span>
           </div>
           <button className="btn btn-pri btn-sm" id="role-add" onClick={() => setAddingRole(true)}>+ Add role</button>
         </div>
@@ -233,11 +235,6 @@ export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { 
             ))}
           </tbody>
         </table>
-        <div style={{ padding: '14px 20px' }}>
-          <button className="btn btn-pri" id="perm-save" onClick={() => toast.show('Permissions saved')}>
-            Save permissions
-          </button>
-        </div>
       </div>
 
       {(adding || editing) && (

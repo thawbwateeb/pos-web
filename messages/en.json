@@ -875,6 +875,7 @@
       "users": "Users",
       "roles": "Roles & permissions",
       "rolesSub": "Create roles and choose what each can do. Manager always has full access.",
+      "permsAutoSave": "Changes save automatically",
       "addUser": "+ Add user",
       "addRole": "+ Add role",
       "namePrompt": "Role name (e.g. Supervisor)",
