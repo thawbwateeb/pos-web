@@ -7,7 +7,7 @@ import { api } from '@/lib/api-client';
 import { Icon } from '@/components/Icons';
 import { initials, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
-import WhatsappSettingsPanel, { type WhatsappSettings } from './WhatsappSettingsPanel';
+import type { WhatsappSettings } from './types';
 
 const EMOJI = ['😊', '👍', '🙏', '❤️', '👕', '🧺', '✨', '🚒', '📦', '👌', '🙌', '🔥'];
 
@@ -89,8 +89,7 @@ export default function WhatsappScreen({
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [newChatPhone, setNewChatPhone] = useState('');
   const [newChatName, setNewChatName] = useState('');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [currentSettings, setCurrentSettings] = useState<WhatsappSettings | null>(settings);
+  const [currentSettings] = useState<WhatsappSettings | null>(settings);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [, forceTick] = useState(0);
   const threadRef = useRef<HTMLDivElement>(null);
@@ -265,12 +264,6 @@ export default function WhatsappScreen({
     } catch {
       toast.show(t('failedToSend'));
     }
-  }
-
-  async function onSettingsSaved(next: WhatsappSettings) {
-    setCurrentSettings(next);
-    setSettingsOpen(false);
-    toast.show(t('saved'));
   }
 
   // ─── Render ─────────────────────────────────────────────────────────
@@ -629,14 +622,6 @@ export default function WhatsappScreen({
             </div>
           </div>
         </div>
-      )}
-
-      {settingsOpen && (
-        <WhatsappSettingsPanel
-          initial={currentSettings}
-          onClose={() => setSettingsOpen(false)}
-          onSaved={onSettingsSaved}
-        />
       )}
     </div>
   );
