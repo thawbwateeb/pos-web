@@ -529,7 +529,9 @@
     "menuOptions": {
       "unread": "تحديد كغير مقروء",
       "info": "معلومات جهة الاتصال",
-      "viewOrders": "عرض العميل"
+      "viewOrders": "عرض العميل",
+      "clear": "مسح الرسائل",
+      "createOrder": "إنشاء طلب"
     },
     "markedUnread": "تم التحديد كغير مقروء",
     "failedToSend": "فشل الإرسال",
@@ -551,7 +553,10 @@
     "newChatStart": "بدء المحادثة",
     "saved": "تم حفظ الإعدادات",
     "uploadTooLarge": "الملف كبير جداً — الحد الأقصى 10 ميجابايت",
-    "uploadFailed": "تعذّر تحميل الملف"
+    "uploadFailed": "تعذّر تحميل الملف",
+    "clearConfirm": "هل تريد مسح جميع الرسائل في هذه المحادثة؟",
+    "messagesCleared": "تم مسح الرسائل",
+    "document": "مستند"
   },
   "Reports": {
     "title": "الملخص اليومي",

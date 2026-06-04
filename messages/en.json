@@ -529,7 +529,9 @@
     "menuOptions": {
       "unread": "Mark as unread",
       "info": "Contact info",
-      "viewOrders": "View customer"
+      "viewOrders": "View customer",
+      "clear": "Clear messages",
+      "createOrder": "Create order"
     },
     "markedUnread": "Marked as unread",
     "failedToSend": "Failed to send",
@@ -551,7 +553,10 @@
     "newChatStart": "Start chat",
     "saved": "Settings saved",
     "uploadTooLarge": "File too large — max 10 MB",
-    "uploadFailed": "Could not upload file"
+    "uploadFailed": "Could not upload file",
+    "clearConfirm": "Clear all messages in this chat?",
+    "messagesCleared": "Messages cleared",
+    "document": "Document"
   },
   "Reports": {
     "title": "Daily Summary",
