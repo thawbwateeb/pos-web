@@ -216,11 +216,24 @@
     "assignedToast": "#{number} → {driver}",
     "deliveredToast": "#{number} delivered",
     "failed": "Could not update",
-    "pickDriver": "Pick a driver"
+    "pickDriver": "Pick a driver",
+    "headerCount": "{jobs} active jobs · {unassigned} unassigned",
+    "routesTitle": "Today's Routes",
+    "routesSub": "Pick a driver to assign or reassign a job",
+    "driversTitle": "Drivers",
+    "driversSub": "On shift today",
+    "statusReady": "Ready",
+    "statusOut": "Out for delivery",
+    "unassigned": "Unassigned",
+    "guest": "Guest",
+    "onShift": "On shift",
+    "off": "Off",
+    "jobCount": "{count, plural, one {# job} other {# jobs}}",
+    "driverRemovedToast": "#{number} driver removed"
   },
   "Inspection": {
     "title": "Inspection & QA",
-    "subtitle": "QA before garments hit the rack",
+    "subtitle": "Order #{number} · {customer} · {done}/{total} inspected",
     "colPending": "Pending QA",
     "colPassed": "Passed today",
     "openQA": "Open QA",
@@ -232,7 +245,24 @@
     "passedBy": "Passed {time}",
     "empty": "Nothing to inspect",
     "saved": "#{number} → Ready",
-    "itemsCount": "{count, plural, one {1 item} other {# items}}"
+    "itemsCount": "{count, plural, one {1 item} other {# items}}",
+    "printTags": "Print Tags",
+    "complete": "Complete Inspection",
+    "guest": "Guest",
+    "notesTitle": "Inspection Notes",
+    "notesSub": "Logged to the order & visible to the customer",
+    "notesEmpty": "No issues flagged yet. Tap a flag on any item to record a condition note.",
+    "flaggedTag": "{flag} flagged",
+    "flag": {
+      "Stain": "Stain",
+      "Damage": "Damage",
+      "Delicate": "Delicate"
+    },
+    "emptySub": "No orders awaiting inspection",
+    "tagsPrinted": "Garment tags sent to printer",
+    "printFailed": "Could not send tags to printer",
+    "completed": "Inspection complete · order #{number} marked ready",
+    "completeFailed": "Could not complete inspection"
   },
   "OrderStatus": {
     "boardTitle": "Orders Board",
@@ -300,7 +330,11 @@
       "refund": "Refund order",
       "refundSub": "Return {amount} to the customer",
       "cancel": "Cancel order",
-      "cancelSub": "Mark cancelled and remove from the board"
+      "cancelSub": "Mark cancelled and remove from the board",
+      "printReceipt": "Print receipt",
+      "printReceiptSub": "Print without taking payment",
+      "markPaid": "Mark as paid",
+      "markPaidSub": "Record payment as received"
     },
     "activeShortDrag": "{count} active · drag-free, tap to advance",
     "today": "Today",
@@ -330,7 +364,33 @@
     "tagNoGarments": "No garments to tag.",
     "orderDetails": "Order details",
     "tagDoneAdvance": "Done · Move to Cleaning →",
-    "tagAllRemaining": "Tag all garments ({count} left)"
+    "tagAllRemaining": "Tag all garments ({count} left)",
+    "activeItems": "{count} active items",
+    "actionCol": "Action",
+    "createdAt": "Created {when}",
+    "dueAt": "Due {when}",
+    "garmentTags": "Garment tags",
+    "noGarmentsToTag": "No garments to tag.",
+    "noTimeline": "No activity yet.",
+    "paidWith": "Paid · {method}",
+    "rack": "Rack",
+    "receiptSent": "Receipt #{number} sent to printer",
+    "refundedBadge": "Refunded",
+    "refundLine": "Refund",
+    "tagBadgeDone": "✓ Tagged",
+    "tagBadgeNone": "Not tagged",
+    "taggedCount": "{linked}/{total} tagged",
+    "timeline": "Timeline",
+    "tlMovedTo": "Moved to {status}",
+    "tlPayment": "Payment received · {method} {amount}",
+    "tlRefund": "Refunded {amount}",
+    "voidBadge": "Void",
+    "voidedTotal": "Voided",
+    "originWebsite": "Website",
+    "originApp": "App",
+    "originWhatsapp": "WhatsApp",
+    "originCounterWalkIn": "Counter · Walk-in",
+    "originCounter": "Counter order"
   },
   "Payments": {
     "title": "Payments & Invoicing",
@@ -365,7 +425,8 @@
       "cardDigitalSub": "of today's volume",
       "avgOrder": "Avg. Order",
       "avgOrderSub": "across {count} orders",
-      "transactions": "{count, plural, =0 {no transactions} one {1 transaction} other {# transactions}}"
+      "transactions": "{count, plural, =0 {no transactions} one {1 transaction} other {# transactions}}",
+      "collectedTodaySub": "vs yesterday"
     },
     "table": {
       "order": "Order",
@@ -553,7 +614,9 @@
       "outstandingSub": "{count} unpaid orders",
       "newCustomers": "New Customers",
       "turnaround": "Avg. Turnaround",
-      "turnaroundSub": "within 24h target"
+      "turnaroundSub": "within 24h target",
+      "grossSub": "vs avg Friday",
+      "newCustomersSub": "vs yesterday"
     },
     "paymentMix": {
       "title": "Payment Mix",
@@ -860,7 +923,7 @@
       "title": "Stores",
       "sub": "Branches your business operates. Staff sign into one or more of these.",
       "allStores": "All stores",
-      "addStore": "+ Add store",
+      "addStore": "Add Store",
       "table": {
         "name": "Name",
         "area": "Area",
@@ -878,9 +941,30 @@
         "phone": "Phone",
         "address": "Address",
         "trn": "TRN",
-        "hours": "Hours"
+        "hours": "Hours",
+        "status": "Status"
       },
-      "hoursPlaceholder": "e.g. 8:00 AM – 10:00 PM"
+      "hoursPlaceholder": "e.g. 8:00 AM – 10:00 PM",
+      "open": "Open",
+      "closed": "Closed",
+      "closedAllDay": "Closed all day",
+      "openingHours": "Opening hours",
+      "openForBusiness": "Open for business",
+      "openForBusinessSub": "Closed stores can't be selected",
+      "addModalTitle": "Add Store",
+      "editModalTitle": "Edit Store",
+      "saveChanges": "Save Changes",
+      "namePlaceholder": "e.g. Marina Walk",
+      "nameRequired": "Enter a store name",
+      "copyMondayToAll": "Copy Monday to all days",
+      "copiedMonday": "Monday hours copied to all days",
+      "status": {
+        "opens": "Opens {time}",
+        "opensWhen": "Opens {time} {when}",
+        "closes": "Closes {time}",
+        "closed": "Closed",
+        "tomorrow": "tomorrow"
+      }
     },
     "users": {
       "title": "Users & Roles",
@@ -960,7 +1044,13 @@
         "PICKUP": "Pickup only",
         "DELIVERY": "Delivery only"
       },
-      "addSlotShort": "Add slot"
+      "addSlotShort": "Add slot",
+      "addSlotTitle": "Add time slot",
+      "editSlotTitle": "Edit time slot",
+      "slotLabel": "Slot label",
+      "slotLabelPlaceholderHr": "e.g. 08:00 – 10:00",
+      "capacityOrders": "Capacity (orders)",
+      "type": "Type"
     },
     "areas": {
       "title": "Areas",
@@ -1047,13 +1137,19 @@
       "sub": "Recurring plans customers can subscribe to.",
       "tableTitle": "Plans",
       "labelSingular": "plan",
-      "includesPlaceholder": "e.g. 20 shirts + 4 abayas · free pickup",
+      "includesPlaceholder": "e.g. Up to 20 items / week",
       "fields": {
         "name": "Name",
         "price": "Price (AED)",
         "period": "Period",
-        "itemsDesc": "Items description"
-      }
+        "itemsDesc": "Items description",
+        "includes": "What's included"
+      },
+      "addTitle": "New Subscription Package",
+      "editTitle": "Edit Package",
+      "namePlaceholder": "e.g. Weekly Essentials",
+      "createPackage": "Create Package",
+      "saveChanges": "Save Changes"
     },
     "inventory": {
       "title": "Inventory",
@@ -1178,7 +1274,12 @@
         "WA_CONFIRM": "WhatsApp · Pickup confirmation",
         "MARKETING": "Marketing broadcasts",
         "LOW_STOCK": "Low stock alerts"
-      }
+      },
+      "messageTemplate": "Message template",
+      "placeholderHint": "Tap a placeholder to insert it:",
+      "conditionHint": "Conditions — wrap text to show only when true. Works with any placeholder (e.g. ",
+      "conditionOps": "). Operators: == != > <",
+      "saveTemplate": "Save Template"
     },
     "catalogue": {
       "title": "Products & Pricing",
@@ -1195,13 +1296,37 @@
       "saveFailed": "Save failed",
       "imported": "Imported {n} products",
       "importFailed": "Import failed",
-      "importEmpty": "CSV has no data rows"
+      "importEmpty": "CSV has no data rows",
+      "addProductTitle": "Add Product",
+      "addProductBtn": "Add Product",
+      "saveChanges": "Save Changes",
+      "category": "Category",
+      "icon": "Icon",
+      "itemNamePlaceholder": "e.g. Linen Shirt",
+      "costPerItem": "Cost per item (AED)",
+      "costPlaceholder": "Your cost — used for margin reporting",
+      "turnaroundPlaceholder": "e.g. 24h, 48h, Same day",
+      "skuPlaceholder": "Auto-generated if blank"
     },
     "racks": {
       "addLabelPlaceholder": "Add rack label… e.g. A-05"
     },
     "zones": {
-      "namePlaceholder": "e.g. Dubai Marina"
+      "namePlaceholder": "e.g. Dubai Marina",
+      "viewTitle": "View Zone",
+      "editTitle": "Edit Zone",
+      "newTitle": "New Zone",
+      "pointsCount": "{n} points",
+      "nameLabel": "Zone name",
+      "baseFeeLabel": "Base fee (AED)",
+      "capacityLabel": "Daily capacity",
+      "colourLabel": "Colour",
+      "useColour": "Use colour {color}",
+      "drawLabel": "Draw the polygon below",
+      "drawHint": "Click to add vertices · drag vertices to adjust",
+      "clearPolygon": "Clear polygon",
+      "saveZone": "Save Zone",
+      "createZone": "Create Zone"
     }
   },
   "PromoChannel": {
@@ -1257,5 +1382,25 @@
     "noneYet": "No {item}s yet",
     "addTitle": "Add {item}",
     "editTitle": "Edit {item}"
+  },
+  "NewOrder": {
+    "amountDue": "Order #{number} · Amount Due",
+    "confirmPayment": "Confirm Payment",
+    "sendWaLink": "Send payment link via WhatsApp",
+    "waHint": "Customer pays online · order is marked paid automatically on confirmation",
+    "attachCustomer": "Attach Customer",
+    "custMeta": "{phone} · {area} · {orders} orders",
+    "subscriber": "Subscriber",
+    "noCustomerMatch": "No match. This will stay a walk-in guest.",
+    "payCash": "Cash",
+    "payCashSub": "Notes & coins",
+    "payCard": "Card",
+    "payCardSub": "Stripe terminal",
+    "payApple": "Apple Pay",
+    "payAppleSub": "Tap to pay",
+    "payAccount": "Account",
+    "payAccountSub": "Subscription credit",
+    "payLater": "Pay later",
+    "payLaterSub": "On delivery"
   }
 }

@@ -243,39 +243,29 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
   }
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? 'Edit promo' : 'New promo'}>
+    <Modal open onClose={onClose} className="wide" title={isEdit ? 'Edit promo' : 'New promo'}>
         <div className="modal-body">
           <div className="field"><label>Code</label><input className="input" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value.toUpperCase() })} /></div>
           <div className="field"><label>Description</label><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
           <div className="field-2">
             <div className="field"><label>Kind</label>
               <select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as PromoKind })}>
-                <option value="PERCENT">% Percent</option>
-                <option value="AMOUNT">AED off</option>
+                <option value="PERCENT">Percentage (%)</option>
+                <option value="AMOUNT">Flat (AED)</option>
               </select>
             </div>
             <div className="field"><label>Value</label><input className="input" type="number" value={f.value} onChange={(e) => setF({ ...f, value: +e.target.value })} /></div>
           </div>
           <div className="field-2">
-            <div className="field"><label>Channel</label>
-              <select className="input" value={f.channel} onChange={(e) => setF({ ...f, channel: e.target.value as PromoChannel })}>
-                <option>ALL</option><option>POS</option><option>ONLINE</option>
-              </select>
-            </div>
-            <div className="field"><label id="promo-auto-label">Auto-apply</label>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={f.auto}
-                aria-labelledby="promo-auto-label"
-                className={`switch${f.auto ? ' on' : ''}`}
-                onClick={() => setF({ ...f, auto: !f.auto })}
-              />
-            </div>
-          </div>
-          <div className="field-2">
             <div className="field"><label>Max uses (0 = unlimited)</label><input className="input" type="number" value={f.maxUses} onChange={(e) => setF({ ...f, maxUses: +e.target.value })} /></div>
             <div className="field"><label>Max per customer</label><input className="input" type="number" value={f.maxPerCust} onChange={(e) => setF({ ...f, maxPerCust: +e.target.value })} /></div>
+          </div>
+          <div className="field"><label>Channel</label>
+            <select className="input" value={f.channel} onChange={(e) => setF({ ...f, channel: e.target.value as PromoChannel })}>
+              <option value="ALL">All channels (App, Website &amp; POS)</option>
+              <option value="ONLINE">App &amp; Website only</option>
+              <option value="POS">POS only</option>
+            </select>
           </div>
           <div className="field">
             <label>Target customers</label>
@@ -309,10 +299,26 @@ function PromoForm({ initial, onClose, onSaved }: { initial: Promo | null; onClo
               </div>
             </div>
           )}
+          <div className="set-row" style={{ border: 'none', padding: '10px 0 0' }}>
+            <div className="l">
+              <b id="promo-auto-label">Auto-apply</b>
+              <span>Apply automatically when eligible — no code entry needed</span>
+            </div>
+            <div className="r">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={f.auto}
+                aria-labelledby="promo-auto-label"
+                className={`switch${f.auto ? ' on' : ''}`}
+                onClick={() => setF({ ...f, auto: !f.auto })}
+              />
+            </div>
+          </div>
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save changes' : 'Create promo'}</button>
+          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save Changes' : 'Create Promo'}</button>
         </div>
     </Modal>
   );

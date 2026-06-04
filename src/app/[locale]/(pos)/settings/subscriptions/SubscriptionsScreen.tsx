@@ -16,7 +16,7 @@ import Modal from '@/components/Modal';
      12.5px font 'includes' description / .pill.paid|muted Active|Paused /
      .r flex/gap:10/justify-end: Edit btn (data-editsub) + switch (data-sub) */
 
-type Period = 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR';
+type Period = 'WEEK' | 'MONTH' | 'YEAR';
 
 interface Plan {
   id: string;
@@ -30,7 +30,6 @@ interface Plan {
 const PERIOD_LABEL: Record<Period, string> = {
   WEEK: 'week',
   MONTH: 'month',
-  QUARTER: 'quarter',
   YEAR: 'year',
 };
 
@@ -153,25 +152,24 @@ function PlanForm({ initial, onClose, onSaved }: { initial: Plan | null; onClose
   }
 
   return (
-    <Modal open onClose={onClose} title={initial ? 'Edit package' : 'New package'}>
+    <Modal open onClose={onClose} title={initial ? t('editTitle') : t('addTitle')}>
         <div className="modal-body">
-          <div className="field"><label>Name</label><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
+          <div className="field"><label>{t('fields.name')}</label><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={t('namePlaceholder')} /></div>
           <div className="field-2">
-            <div className="field"><label>Price (AED)</label><input className="input" type="number" value={f.price} onChange={(e) => setF({ ...f, price: +e.target.value })} /></div>
-            <div className="field"><label>Period</label>
+            <div className="field"><label>{t('fields.price')}</label><input className="input" type="number" value={f.price} onChange={(e) => setF({ ...f, price: +e.target.value })} /></div>
+            <div className="field"><label>{t('fields.period')}</label>
               <select className="input" value={f.period} onChange={(e) => setF({ ...f, period: e.target.value as Period })}>
                 <option value="WEEK">Week</option>
                 <option value="MONTH">Month</option>
-                <option value="QUARTER">Quarter</option>
                 <option value="YEAR">Year</option>
               </select>
             </div>
           </div>
-          <div className="field"><label>Includes</label><input className="input" value={f.itemsDesc ?? ''} onChange={(e) => setF({ ...f, itemsDesc: e.target.value })} placeholder={t('includesPlaceholder')} /></div>
+          <div className="field"><label>{t('fields.includes')}</label><input className="input" value={f.itemsDesc ?? ''} onChange={(e) => setF({ ...f, itemsDesc: e.target.value })} placeholder={t('includesPlaceholder')} /></div>
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{initial ? 'Save changes' : 'Create package'}</button>
+          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{initial ? t('saveChanges') : t('createPackage')}</button>
         </div>
     </Modal>
   );

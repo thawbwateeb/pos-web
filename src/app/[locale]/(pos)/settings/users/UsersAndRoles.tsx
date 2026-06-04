@@ -9,18 +9,18 @@ import { initials } from '@/lib/format';
 import type { PermissionAction, Role, Store, UserRow } from '@/lib/types';
 
 const ACTIONS: { key: PermissionAction; label: string }[] = [
-  { key: 'TAKE_ORDERS', label: 'Take new orders' },
-  { key: 'EDIT_ORDERS', label: 'Edit orders & status' },
-  { key: 'REFUND', label: 'Issue refunds' },
-  { key: 'PAYMENTS', label: 'Take payments' },
-  { key: 'CASH_DRAWER', label: 'Open cash drawer & end-of-day' },
+  { key: 'TAKE_ORDERS', label: 'Create & take orders' },
+  { key: 'EDIT_ORDERS', label: 'Edit placed orders' },
+  { key: 'REFUND', label: 'Refund / void items' },
+  { key: 'PAYMENTS', label: 'Take & reconcile payments' },
+  { key: 'CASH_DRAWER', label: 'Open cash drawer / movements' },
   { key: 'VIEW_REPORTS', label: 'View reports' },
-  { key: 'VIEW_FINANCE', label: 'View finance' },
-  { key: 'MANAGE_CATALOG', label: 'Manage catalogue' },
-  { key: 'MANAGE_PROMOS', label: 'Manage promos' },
-  { key: 'WHATSAPP', label: 'Use WhatsApp inbox' },
+  { key: 'VIEW_FINANCE', label: 'View finance & owners' },
+  { key: 'MANAGE_CATALOG', label: 'Manage products & pricing' },
+  { key: 'MANAGE_PROMOS', label: 'Manage promos & offers' },
+  { key: 'WHATSAPP', label: 'WhatsApp inbox & bot' },
   { key: 'MANAGE_STAFF', label: 'Manage staff & permissions' },
-  { key: 'SETTINGS', label: 'Edit settings' },
+  { key: 'SETTINGS', label: 'Change settings' },
 ];
 
 export default function UsersAndRoles({ initialUsers, initialRoles, stores }: { initialUsers: UserRow[]; initialRoles: Role[]; stores: Store[] }) {
@@ -389,10 +389,16 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
             <label>Full name</label>
             <input ref={nameRef} className="input" value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} />
           </div>
-          <div className="field-2">
+          <div className="field">
+            <label>Email</label>
+            <input type="email" className="input" placeholder={t('emailPlaceholder')} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          </div>
+          <div className="grid g2" style={{ gap: 12 }}>
             <div className="field">
-              <label>Email</label>
-              <input type="email" className="input" placeholder={t('emailPlaceholder')} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+              <label>Role</label>
+              <select className="input" value={f.roleId} onChange={(e) => setF({ ...f, roleId: e.target.value })}>
+                {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
             </div>
             <div className="field">
               <label>{isEdit ? 'Reset password' : 'Password'}</label>
@@ -404,12 +410,6 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
                 onChange={(e) => setF({ ...f, password: e.target.value })}
               />
             </div>
-          </div>
-          <div className="field">
-            <label>Role</label>
-            <select className="input" value={f.roleId} onChange={(e) => setF({ ...f, roleId: e.target.value })}>
-              {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
           </div>
           <div className="field">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

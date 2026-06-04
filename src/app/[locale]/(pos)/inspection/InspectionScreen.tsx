@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
-import { AED, shortTime } from '@/lib/format';
+import { printLabels } from '@/lib/print';
+import type { LabelTag } from '@/lib/print-render';
 import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icons';
 import type { Order } from '@/lib/types';
-import FocusTrap from '@/components/FocusTrap';
 
 interface ItemSnapshot {
   id: string;
@@ -23,27 +23,40 @@ interface OrderWithItems extends Order {
   items?: ItemSnapshot[];
 }
 
+type Flag = 'Stain' | 'Damage' | 'Delicate';
+const FLAGS: Flag[] = ['Stain', 'Damage', 'Delicate'];
+
+interface ItemState {
+  done: boolean;
+  flag: Flag | null;
+}
+
 export default function InspectionScreen({
   pending,
-  passed,
 }: {
   pending: Order[];
   passed: Order[];
 }) {
-  const [pendingList, setPendingList] = useState<Order[]>(pending);
-  const [passedList, setPassedList] = useState<Order[]>(passed);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [queue, setQueue] = useState<Order[]>(pending);
+  const [order, setOrder] = useState<OrderWithItems | null>(null);
+  const [itemState, setItemState] = useState<Record<string, ItemState>>({});
+  const [busy, setBusy] = useState(false);
   const t = useTranslations('Inspection');
   const toast = useToast();
 
-  async function refresh() {
+  // The active inspection is the oldest order still in the QA/cleaning stage —
+  // the prototype inspects a single order at a time.
+  const activeId = useMemo(() => {
+    const sorted = [...queue].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    return sorted[0]?.id ?? null;
+  }, [queue]);
+
+  async function refreshQueue() {
     try {
-      const [p, r] = await Promise.all([
-        api<Order[]>('/orders?status=CLEANING&take=100'),
-        api<Order[]>('/orders?status=READY&take=100'),
-      ]);
-      setPendingList(p);
-      setPassedList(r);
+      const p = await api<Order[]>('/orders?status=CLEANING&take=100');
+      setQueue(p);
     } catch {
       /* ignore — SSE will retry */
     }
@@ -53,7 +66,7 @@ export default function InspectionScreen({
     let es: EventSource | null = null;
     try {
       es = eventStream();
-      const onChange = () => { refresh().catch(() => {}); };
+      const onChange = () => { refreshQueue().catch(() => {}); };
       es.addEventListener('order.created', onChange);
       es.addEventListener('order.status', onChange);
       es.addEventListener('order.updated', onChange);
@@ -61,356 +74,200 @@ export default function InspectionScreen({
     return () => es?.close();
   }, []);
 
-  // "Passed today" = READY orders whose updatedAt is today (the design says
-  // today's QA throughput, not the full Ready queue).
-  const passedToday = useMemo(() => {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const ms = startOfDay.getTime();
-    return passedList
-      .filter((o) => new Date(o.updatedAt).getTime() >= ms)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [passedList]);
+  // Load the full order (with items) for the active inspection.
+  useEffect(() => {
+    if (!activeId) {
+      setOrder(null);
+      setItemState({});
+      return;
+    }
+    let alive = true;
+    api<OrderWithItems>(`/orders/${activeId}`)
+      .then((o) => {
+        if (!alive) return;
+        setOrder(o);
+        const init: Record<string, ItemState> = {};
+        (o.items ?? []).forEach((it) => { init[it.id] = { done: false, flag: null }; });
+        setItemState(init);
+      })
+      .catch(() => { if (alive) setOrder(null); });
+    return () => { alive = false; };
+  }, [activeId]);
 
-  const sortedPending = useMemo(
-    () => [...pendingList].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    ),
-    [pendingList],
-  );
+  const items = order?.items ?? [];
+  const doneCount = items.filter((it) => itemState[it.id]?.done).length;
+  const flagged = items.filter((it) => itemState[it.id]?.flag);
+
+  function toggleDone(id: string) {
+    setItemState((s) => ({ ...s, [id]: { done: !s[id]?.done, flag: s[id]?.flag ?? null } }));
+  }
+  function toggleFlag(id: string, flag: Flag) {
+    setItemState((s) => ({
+      ...s,
+      [id]: { done: s[id]?.done ?? false, flag: s[id]?.flag === flag ? null : flag },
+    }));
+  }
+
+  async function printTags() {
+    if (!order || items.length === 0) return;
+    // One label per physical garment: expand each line by its quantity.
+    const tags: LabelTag[] = [];
+    items.forEach((it) => {
+      for (let q = 0; q < it.qty; q += 1) {
+        tags.push({ id: it.id, code: it.skuSnapshot, name: it.nameSnapshot });
+      }
+    });
+    const total = tags.length;
+    const built: LabelTag[] = tags.map((tag, i) => ({
+      ...tag,
+      orderNumber: order.number,
+      customerName: order.customer?.fullName ?? null,
+      index: i + 1,
+      total,
+    }));
+    try {
+      await printLabels(built, order.storeId);
+      toast.show(t('tagsPrinted'));
+    } catch {
+      toast.show(t('printFailed'));
+    }
+  }
+
+  async function complete() {
+    if (!order) return;
+    setBusy(true);
+    try {
+      const flaggedNotes = flagged
+        .map((it) => `${it.nameSnapshot}: ${itemState[it.id]?.flag} flagged`)
+        .join('; ');
+      const note = flaggedNotes
+        ? `Inspection complete · ${items.length} item(s) · ${flaggedNotes}`
+        : `Inspection complete · ${items.length} item(s) · no issues`;
+      await api(`/orders/${order.id}/status`, {
+        method: 'PATCH',
+        body: { status: 'READY', note },
+      });
+      toast.show(t('completed', { number: order.number }));
+      refreshQueue();
+    } catch (e: any) {
+      toast.show(e?.detail?.message || e?.message || t('completeFailed'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!order || items.length === 0) {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <div className="ph-l">
+            <h2>{t('title')}</h2>
+            <span className="sub">{t('emptySub')}</span>
+          </div>
+        </div>
+        <div className="muted" style={{ fontSize: 13, padding: 14, textAlign: 'center' }}>
+          {t('empty')}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
       <div className="page-head">
         <div className="ph-l">
           <h2>{t('title')}</h2>
-          <span className="sub">{t('subtitle')}</span>
+          <span className="sub">
+            {t('subtitle', {
+              number: order.number,
+              customer: order.customer?.fullName ?? t('guest'),
+              done: doneCount,
+              total: items.length,
+            })}
+          </span>
         </div>
-      </div>
-
-      <div className="board">
-        <Column
-          title={t('colPending')}
-          count={sortedPending.length}
-          color="var(--warn, #f59e0b)"
-        >
-          {sortedPending.length === 0 ? (
-            <Empty label={t('empty')} />
-          ) : (
-            sortedPending.map((o) => (
-              <PendingCard
-                key={o.id}
-                order={o}
-                onOpen={() => setOpenId(o.id)}
-                openLabel={t('openQA')}
-                itemsLabel={(count: number) => t('itemsCount', { count })}
-              />
-            ))
-          )}
-        </Column>
-
-        <Column
-          title={t('colPassed')}
-          count={passedToday.length}
-          color="var(--ok, #16a34a)"
-        >
-          {passedToday.length === 0 ? (
-            <Empty label={t('empty')} />
-          ) : (
-            passedToday.map((o) => (
-              <PassedCard
-                key={o.id}
-                order={o}
-                passedLabel={t('passedBy', { time: shortTime(o.updatedAt) })}
-                itemsLabel={(count: number) => t('itemsCount', { count })}
-              />
-            ))
-          )}
-        </Column>
-      </div>
-
-      {openId && (
-        <InspectionModal
-          orderId={openId}
-          onClose={() => setOpenId(null)}
-          onSaved={(number) => {
-            toast.show(t('saved', { number }));
-            setOpenId(null);
-            refresh();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function Column({
-  title,
-  count,
-  color,
-  children,
-}: {
-  title: string;
-  count: number;
-  color: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="col">
-      <div className="col-head">
-        <span className="dot" style={{ background: color }} />
-        <span className="cl">{title}</span>
-        <span className="cc">{count}</span>
-      </div>
-      <div className="col-body">{children}</div>
-    </div>
-  );
-}
-
-function Empty({ label }: { label: string }) {
-  return (
-    <div className="muted" style={{ fontSize: 12, padding: 14, textAlign: 'center' }}>
-      {label}
-    </div>
-  );
-}
-
-function PendingCard({
-  order: o,
-  onOpen,
-  openLabel,
-  itemsLabel,
-}: {
-  order: Order;
-  onOpen: () => void;
-  openLabel: string;
-  itemsLabel: (count: number) => string;
-}) {
-  const t = useTranslations('OrdersBoard');
-  const itemCount = o._count?.items ?? 0;
-  return (
-    <div className="ocard" onClick={onOpen} style={{ cursor: 'pointer' }}>
-      <div className="oc-top">
-        <button className="oc-id" onClick={onOpen}>#{o.number}</button>
-      </div>
-      <div className="oc-cust">{o.customer?.fullName ?? t('guest')}</div>
-      <div className="oc-meta">
-        <Icon.bag size={12} />
-        <span>{itemsLabel(itemCount)}</span>
-      </div>
-      <div className="oc-foot">
-        <span className="oc-total">{AED(o.total)}</span>
-        <button className="btn btn-pri" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
-          {openLabel}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PassedCard({
-  order: o,
-  passedLabel,
-  itemsLabel,
-}: {
-  order: Order;
-  passedLabel: string;
-  itemsLabel: (count: number) => string;
-}) {
-  const t = useTranslations('OrdersBoard');
-  const itemCount = o._count?.items ?? 0;
-  return (
-    <div className="ocard">
-      <div className="oc-top">
-        <button className="oc-id">#{o.number}</button>
-        <span className="pill paid" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <Icon.check size={12} />
-        </span>
-      </div>
-      <div className="oc-cust">{o.customer?.fullName ?? t('guest')}</div>
-      <div className="oc-meta">
-        <Icon.bag size={12} />
-        <span>{itemsLabel(itemCount)}</span>
-      </div>
-      <div className="oc-meta" style={{ color: 'var(--ok, #16a34a)' }}>
-        <Icon.check size={12} />
-        <span>{passedLabel}</span>
-      </div>
-      <div className="oc-foot">
-        <span className="oc-total">{AED(o.total)}</span>
-      </div>
-    </div>
-  );
-}
-
-interface ItemDecision {
-  status: 'pass' | 'fail';
-  note: string;
-}
-
-function InspectionModal({
-  orderId,
-  onClose,
-  onSaved,
-}: {
-  orderId: string;
-  onClose: () => void;
-  onSaved: (number: number) => void;
-}) {
-  const [order, setOrder] = useState<OrderWithItems | null>(null);
-  const [decisions, setDecisions] = useState<Record<string, ItemDecision>>({});
-  const [busy, setBusy] = useState(false);
-  const t = useTranslations('Inspection');
-  const tCommon = useTranslations('Common');
-  const toast = useToast();
-  const titleId = useId();
-
-  useEffect(() => {
-    let alive = true;
-    api<OrderWithItems>(`/orders/${orderId}`)
-      .then((o) => {
-        if (!alive) return;
-        setOrder(o);
-        const init: Record<string, ItemDecision> = {};
-        (o.items ?? []).forEach((it) => { init[it.id] = { status: 'pass', note: '' }; });
-        setDecisions(init);
-      })
-      .catch((e: any) => {
-        toast.show(e?.detail?.message || e?.message || 'Failed to load');
-        onClose();
-      });
-    return () => { alive = false; };
-  }, [orderId, onClose, toast]);
-
-  function setStatus(id: string, status: 'pass' | 'fail') {
-    setDecisions((d) => ({ ...d, [id]: { status, note: d[id]?.note ?? '' } }));
-  }
-  function setNote(id: string, note: string) {
-    setDecisions((d) => ({ ...d, [id]: { status: d[id]?.status ?? 'pass', note } }));
-  }
-
-  const items = order?.items ?? [];
-  const failed = items.filter((i) => decisions[i.id]?.status === 'fail');
-  const failCount = failed.length;
-
-  async function submit() {
-    if (!order) return;
-    setBusy(true);
-    try {
-      const passedCount = items.length - failCount;
-      const failDetails = failed
-        .map((i) => `${i.nameSnapshot}${decisions[i.id]?.note ? ` (${decisions[i.id].note})` : ''}`)
-        .join('; ');
-      const note =
-        failCount === 0
-          ? `QA: ${items.length} item(s) inspected, all passed`
-          : `QA: ${items.length} item(s) inspected, ${passedCount} passed, ${failCount} failed: ${failDetails}`;
-      await api(`/orders/${order.id}/status`, {
-        method: 'PATCH',
-        body: { status: 'READY', note },
-      });
-      onSaved(order.number);
-    } catch (e: any) {
-      toast.show(e?.detail?.message || e?.message || 'Failed');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (!order) {
-    return (
-      <div className="modal-scrim show" onClick={onClose}>
-        <FocusTrap active onEscape={onClose}>
-        <div className="modal" role="dialog" aria-modal="true" aria-label={tCommon('loading')} onClick={(e) => e.stopPropagation()}>
-          <div className="modal-body muted">{tCommon('loading')}</div>
-        </div>
-        </FocusTrap>
-      </div>
-    );
-  }
-
-  return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3 id={titleId}>#{order.number} · {order.customer?.fullName ?? '—'}</h3>
-          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
-        </div>
-        <div className="modal-body">
-          {items.length === 0 ? (
-            <div className="muted" style={{ padding: 14, textAlign: 'center' }}>—</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {items.map((it) => {
-                const d = decisions[it.id] ?? { status: 'pass' as const, note: '' };
-                return (
-                  <div
-                    key={it.id}
-                    className="role-opt"
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 8 }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Icon.bag size={16} />
-                      <div className="ri" style={{ flex: 1 }}>
-                        <b>{it.nameSnapshot}</b>
-                        <span>{it.tierSnapshot} · ×{it.qty}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          type="button"
-                          className={`pill${d.status === 'pass' ? ' paid' : ''}`}
-                          onClick={() => setStatus(it.id, 'pass')}
-                        >
-                          {t('pass')}
-                        </button>
-                        <button
-                          type="button"
-                          className={`pill${d.status === 'fail' ? ' unpaid' : ''}`}
-                          onClick={() => setStatus(it.id, 'fail')}
-                        >
-                          {t('fail')}
-                        </button>
-                      </div>
-                    </div>
-                    {d.status === 'fail' && (
-                      <input
-                        type="text"
-                        placeholder={t('noteHint')}
-                        value={d.note}
-                        onChange={(e) => setNote(it.id, e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          border: '1px solid var(--border)',
-                          borderRadius: 8,
-                          background: 'var(--surface)',
-                          color: 'var(--text)',
-                          fontSize: 13,
-                        }}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose}>
-            {tCommon('cancel')}
+        <div className="actions">
+          <button className="btn btn-ghost" onClick={printTags}>
+            <Icon.print size={16} /> {t('printTags')}
           </button>
           <button
             className={`btn btn-pri${busy ? ' btn-loading' : ''}`}
-            style={{ flex: 1 }}
-            onClick={submit}
-            disabled={busy || items.length === 0}
+            onClick={complete}
+            disabled={busy}
           >
-            {failCount === 0 ? t('allPass') : t('someFail', { count: failCount })}
+            {t('complete')}
           </button>
         </div>
       </div>
-      </FocusTrap>
+
+      <div className="cols-2b">
+        <div>
+          {items.map((it) => {
+            const st = itemState[it.id] ?? { done: false, flag: null };
+            return (
+              <div key={it.id} className={`insp-item ${st.done ? 'done' : ''}`}>
+                <button className="chk" onClick={() => toggleDone(it.id)}>
+                  <Icon.check size={16} />
+                </button>
+                <div className="ii">
+                  <b>{it.nameSnapshot}{it.qty > 1 ? ` ×${it.qty}` : ''}</b>
+                  <span>{it.tierSnapshot}</span>
+                </div>
+                <div className="flags">
+                  {FLAGS.map((f) => (
+                    <button
+                      key={f}
+                      className={`flagbtn ${st.flag === f ? 'on' : ''}`}
+                      onClick={() => toggleFlag(it.id, f)}
+                    >
+                      {t(`flag.${f}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="panel">
+          <h3>{t('notesTitle')}</h3>
+          <div className="psub">{t('notesSub')}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {flagged.length === 0 ? (
+              <div className="muted" style={{ fontSize: 13 }}>{t('notesEmpty')}</div>
+            ) : (
+              flagged.map((it) => (
+                <div
+                  key={it.id}
+                  style={{
+                    padding: '12px 14px',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    fontSize: 13,
+                  }}
+                >
+                  <b style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600 }}>
+                    {it.nameSnapshot}
+                  </b>
+                  <br />
+                  <span
+                    style={{
+                      color: 'var(--warn)',
+                      fontWeight: 600,
+                      fontSize: 11,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.04em',
+                    }}
+                  >
+                    {t('flaggedTag', { flag: t(`flag.${itemState[it.id]!.flag!}`) })}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

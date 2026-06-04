@@ -6,6 +6,8 @@ import { api } from '@/lib/api-client';
 import { Icon } from '@/components/Icons';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import { useActiveStoreId } from '@/components/BootstrapContext';
+import { printReceipt } from '@/lib/print';
 import type { Order, Payment, PaymentMethod } from '@/lib/types';
 
 type Filter = 'all' | 'paid' | 'unpaid';
@@ -30,6 +32,7 @@ export default function PaymentsScreen({
   const tCommon = useTranslations('Common');
   const tMethod = useTranslations('PaymentMethod');
   const toast = useToast();
+  const storeId = useActiveStoreId();
 
   // ─── KPIs: collected today, outstanding, card share, avg ticket ──────
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -64,6 +67,17 @@ export default function PaymentsScreen({
     setOrders(o);
   }
 
+  async function printOrderReceipt(orderId: string, number: number) {
+    try {
+      // Fetch the full order so the receipt has item snapshots + totals.
+      const order = await api<any>(`/orders/${orderId}`, { storeId });
+      await printReceipt(order, storeId);
+      toast.show(t('receiptPrinted', { number }));
+    } catch (e: any) {
+      toast.show(e?.detail?.message || tCommon('failed'));
+    }
+  }
+
   async function takePayment(orderId: string, method: PaymentMethod = 'CASH') {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
@@ -96,6 +110,7 @@ export default function PaymentsScreen({
           <div className="sico"><Icon.cash size={34} /></div>
           <div className="sk">{t('kpis.collectedToday')}</div>
           <div className="sv"><span className="cur">AED</span> {Math.round(collectedToday)}</div>
+          <div className="sd">{t('kpis.collectedTodaySub')}</div>
         </div>
         <div className="stat">
           <div className="sico"><Icon.clock size={34} /></div>
@@ -168,7 +183,7 @@ export default function PaymentsScreen({
                         className="t-btn ghost"
                         data-printr={o.id}
                         title={t('printReceipt')}
-                        onClick={() => toast.show(t('receiptPrinted', { number: o.number }))}
+                        onClick={() => printOrderReceipt(o.id, o.number)}
                       >
                         <Icon.print size={14} />
                       </button>

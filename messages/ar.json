@@ -216,11 +216,24 @@
     "assignedToast": "الطلب #{number} ← {driver}",
     "deliveredToast": "تم تسليم #{number}",
     "failed": "تعذّر التحديث",
-    "pickDriver": "اختر سائقاً"
+    "pickDriver": "اختر سائقاً",
+    "headerCount": "{jobs} مهمة نشطة · {unassigned} غير مُسندة",
+    "routesTitle": "مسارات اليوم",
+    "routesSub": "اختر سائقًا لإسناد المهمة أو إعادة إسنادها",
+    "driversTitle": "السائقون",
+    "driversSub": "في الدوام اليوم",
+    "statusReady": "جاهز",
+    "statusOut": "قيد التوصيل",
+    "unassigned": "غير مُسند",
+    "guest": "زائر",
+    "onShift": "في الدوام",
+    "off": "خارج الدوام",
+    "jobCount": "{count, plural, zero {# مهمة} one {مهمة واحدة} two {مهمتان} few {# مهام} many {# مهمة} other {# مهمة}}",
+    "driverRemovedToast": "تم إلغاء إسناد السائق للطلب رقم {number}"
   },
   "Inspection": {
     "title": "الفحص وضمان الجودة",
-    "subtitle": "ضمان الجودة قبل وضع الملابس على الرف",
+    "subtitle": "الطلب رقم {number} · {customer} · تم فحص {done}/{total}",
     "colPending": "قيد الفحص",
     "colPassed": "اجتاز اليوم",
     "openQA": "فتح ضمان الجودة",
@@ -232,7 +245,24 @@
     "passedBy": "اجتاز {time}",
     "empty": "لا يوجد شيء للفحص",
     "saved": "#{number} ← جاهز",
-    "itemsCount": "{count, plural, one {صنف واحد} other {# صنف}}"
+    "itemsCount": "{count, plural, one {صنف واحد} other {# صنف}}",
+    "printTags": "طباعة البطاقات",
+    "complete": "إنهاء الفحص",
+    "guest": "زائر",
+    "notesTitle": "ملاحظات الفحص",
+    "notesSub": "تُسجَّل في الطلب وتظهر للعميل",
+    "notesEmpty": "لم تُسجَّل أي ملاحظات بعد. اضغط على علامة لأي قطعة لتسجيل ملاحظة عن حالتها.",
+    "flaggedTag": "تم تحديد {flag}",
+    "flag": {
+      "Stain": "بقعة",
+      "Damage": "تلف",
+      "Delicate": "قطعة حساسة"
+    },
+    "emptySub": "لا توجد طلبات بانتظار الفحص",
+    "tagsPrinted": "تم إرسال بطاقات القطع إلى الطابعة",
+    "printFailed": "تعذّر إرسال البطاقات إلى الطابعة",
+    "completed": "اكتمل الفحص · تم تعليم الطلب رقم {number} كجاهز",
+    "completeFailed": "تعذّر إنهاء الفحص"
   },
   "OrderStatus": {
     "boardTitle": "لوحة الطلبات",
@@ -300,7 +330,11 @@
       "refund": "استرداد الطلب",
       "refundSub": "إعادة {amount} إلى العميل",
       "cancel": "إلغاء الطلب",
-      "cancelSub": "تحديد كملغى وإزالته من اللوحة"
+      "cancelSub": "تحديد كملغى وإزالته من اللوحة",
+      "printReceipt": "طباعة الإيصال",
+      "printReceiptSub": "طباعة دون تحصيل الدفع",
+      "markPaid": "وضع كمدفوع",
+      "markPaidSub": "تسجيل الدفع كمستلَم"
     },
     "activeShortDrag": "{count} نشط · بلا سحب، انقر للتقدّم",
     "today": "اليوم",
@@ -330,7 +364,33 @@
     "tagNoGarments": "لا توجد ملابس لوضع علامات عليها.",
     "orderDetails": "تفاصيل الطلب",
     "tagDoneAdvance": "تم · نقل إلى التنظيف ←",
-    "tagAllRemaining": "وضع علامات على كل الملابس (متبقٍ {count})"
+    "tagAllRemaining": "وضع علامات على كل الملابس (متبقٍ {count})",
+    "activeItems": "{count} عناصر نشطة",
+    "actionCol": "إجراء",
+    "createdAt": "أُنشئ {when}",
+    "dueAt": "الاستحقاق {when}",
+    "garmentTags": "بطاقات القطع",
+    "noGarmentsToTag": "لا توجد قطع للوسم.",
+    "noTimeline": "لا يوجد نشاط بعد.",
+    "paidWith": "مدفوع · {method}",
+    "rack": "الرف",
+    "receiptSent": "تم إرسال الإيصال #{number} إلى الطابعة",
+    "refundedBadge": "مُسترَد",
+    "refundLine": "استرداد",
+    "tagBadgeDone": "✓ موسوم",
+    "tagBadgeNone": "غير موسوم",
+    "taggedCount": "{linked}/{total} موسومة",
+    "timeline": "السجل الزمني",
+    "tlMovedTo": "نُقل إلى {status}",
+    "tlPayment": "تم استلام الدفع · {method} {amount}",
+    "tlRefund": "تم استرداد {amount}",
+    "voidBadge": "ملغي",
+    "voidedTotal": "ملغاة",
+    "originWebsite": "الموقع الإلكتروني",
+    "originApp": "التطبيق",
+    "originWhatsapp": "واتساب",
+    "originCounterWalkIn": "الكاونتر · زائر مباشر",
+    "originCounter": "طلب من الكاونتر"
   },
   "Payments": {
     "title": "المدفوعات والفوترة",
@@ -365,7 +425,8 @@
       "cardDigitalSub": "من حجم اليوم",
       "avgOrder": "متوسط الطلب",
       "avgOrderSub": "عبر {count} طلب",
-      "transactions": "{count, plural, =0 {لا توجد معاملات} one {معاملة واحدة} other {# معاملة}}"
+      "transactions": "{count, plural, =0 {لا توجد معاملات} one {معاملة واحدة} other {# معاملة}}",
+      "collectedTodaySub": "مقارنةً بالأمس"
     },
     "table": {
       "order": "الطلب",
@@ -553,7 +614,9 @@
       "outstandingSub": "{count} طلب غير مدفوع",
       "newCustomers": "العملاء الجدد",
       "turnaround": "متوسط مدة الإنجاز",
-      "turnaroundSub": "ضمن هدف 24 ساعة"
+      "turnaroundSub": "ضمن هدف 24 ساعة",
+      "grossSub": "مقارنةً بمتوسط الجمعة",
+      "newCustomersSub": "مقارنةً بالأمس"
     },
     "paymentMix": {
       "title": "مزيج الدفع",
@@ -860,7 +923,7 @@
       "title": "المتاجر",
       "sub": "الفروع التي يديرها نشاطك التجاري. يسجّل الموظفون الدخول إلى واحد أو أكثر منها.",
       "allStores": "جميع المتاجر",
-      "addStore": "+ إضافة متجر",
+      "addStore": "إضافة متجر",
       "table": {
         "name": "الاسم",
         "area": "المنطقة",
@@ -878,9 +941,30 @@
         "phone": "الهاتف",
         "address": "العنوان",
         "trn": "الرقم الضريبي",
-        "hours": "ساعات العمل"
+        "hours": "ساعات العمل",
+        "status": "الحالة"
       },
-      "hoursPlaceholder": "مثال: 8:00 صباحاً – 10:00 مساءً"
+      "hoursPlaceholder": "مثال: 8:00 صباحاً – 10:00 مساءً",
+      "open": "مفتوح",
+      "closed": "مغلق",
+      "closedAllDay": "مغلق طوال اليوم",
+      "openingHours": "ساعات العمل",
+      "openForBusiness": "مفتوح للعمل",
+      "openForBusinessSub": "لا يمكن اختيار المتاجر المغلقة",
+      "addModalTitle": "إضافة متجر",
+      "editModalTitle": "تعديل المتجر",
+      "saveChanges": "حفظ التغييرات",
+      "namePlaceholder": "مثال: مارينا ووك",
+      "nameRequired": "أدخل اسم المتجر",
+      "copyMondayToAll": "نسخ ساعات الإثنين إلى جميع الأيام",
+      "copiedMonday": "تم نسخ ساعات الإثنين إلى جميع الأيام",
+      "status": {
+        "opens": "يفتح {time}",
+        "opensWhen": "يفتح {time} {when}",
+        "closes": "يغلق {time}",
+        "closed": "مغلق",
+        "tomorrow": "غداً"
+      }
     },
     "users": {
       "title": "المستخدمون والأدوار",
@@ -960,7 +1044,13 @@
         "PICKUP": "الاستلام فقط",
         "DELIVERY": "التوصيل فقط"
       },
-      "addSlotShort": "إضافة فترة"
+      "addSlotShort": "إضافة فترة",
+      "addSlotTitle": "إضافة فترة زمنية",
+      "editSlotTitle": "تعديل الفترة الزمنية",
+      "slotLabel": "عنوان الفترة",
+      "slotLabelPlaceholderHr": "مثال: 08:00 – 10:00",
+      "capacityOrders": "السعة (طلبات)",
+      "type": "النوع"
     },
     "areas": {
       "title": "المناطق",
@@ -1047,13 +1137,19 @@
       "sub": "خطط متكررة يمكن للعملاء الاشتراك فيها.",
       "tableTitle": "الخطط",
       "labelSingular": "خطة",
-      "includesPlaceholder": "مثال: 20 قميصاً + 4 عبايات · استلام مجاني",
+      "includesPlaceholder": "مثال: حتى 20 قطعة / أسبوع",
       "fields": {
         "name": "الاسم",
         "price": "السعر (درهم)",
         "period": "الفترة",
-        "itemsDesc": "وصف الأصناف"
-      }
+        "itemsDesc": "وصف الأصناف",
+        "includes": "ما تتضمنه الباقة"
+      },
+      "addTitle": "باقة اشتراك جديدة",
+      "editTitle": "تعديل الباقة",
+      "namePlaceholder": "مثال: أساسيات أسبوعية",
+      "createPackage": "إنشاء الباقة",
+      "saveChanges": "حفظ التغييرات"
     },
     "inventory": {
       "title": "المخزون",
@@ -1178,7 +1274,12 @@
         "WA_CONFIRM": "واتساب · تأكيد الاستلام",
         "MARKETING": "بثّات تسويقية",
         "LOW_STOCK": "تنبيهات انخفاض المخزون"
-      }
+      },
+      "messageTemplate": "قالب الرسالة",
+      "placeholderHint": "انقر على عنصر نائب لإدراجه:",
+      "conditionHint": "الشروط — أحط النص ليظهر فقط عند تحقق الشرط. يعمل مع أي عنصر نائب (مثال: ",
+      "conditionOps": "). العوامل: == != > <",
+      "saveTemplate": "حفظ القالب"
     },
     "catalogue": {
       "title": "المنتجات والأسعار",
@@ -1195,13 +1296,37 @@
       "saveFailed": "فشل الحفظ",
       "imported": "تم استيراد {n} منتجًا",
       "importFailed": "فشل الاستيراد",
-      "importEmpty": "لا توجد صفوف بيانات في الملف"
+      "importEmpty": "لا توجد صفوف بيانات في الملف",
+      "addProductTitle": "إضافة منتج",
+      "addProductBtn": "إضافة منتج",
+      "saveChanges": "حفظ التغييرات",
+      "category": "الفئة",
+      "icon": "الأيقونة",
+      "itemNamePlaceholder": "مثال: قميص كتان",
+      "costPerItem": "التكلفة لكل قطعة (درهم)",
+      "costPlaceholder": "تكلفتك — تُستخدم في تقارير هامش الربح",
+      "turnaroundPlaceholder": "مثال: 24 ساعة، 48 ساعة، نفس اليوم",
+      "skuPlaceholder": "يُولَّد تلقائيًا إذا تُرك فارغًا"
     },
     "racks": {
       "addLabelPlaceholder": "أضف تسمية رف… مثال A-05"
     },
     "zones": {
-      "namePlaceholder": "مثال: دبي مارينا"
+      "namePlaceholder": "مثال: دبي مارينا",
+      "viewTitle": "عرض المنطقة",
+      "editTitle": "تعديل المنطقة",
+      "newTitle": "منطقة جديدة",
+      "pointsCount": "{n} نقطة",
+      "nameLabel": "اسم المنطقة",
+      "baseFeeLabel": "الرسوم الأساسية (درهم)",
+      "capacityLabel": "السعة اليومية",
+      "colourLabel": "اللون",
+      "useColour": "استخدام اللون {color}",
+      "drawLabel": "ارسم المضلع أدناه",
+      "drawHint": "انقر لإضافة رؤوس · اسحب الرؤوس للتعديل",
+      "clearPolygon": "مسح المضلع",
+      "saveZone": "حفظ المنطقة",
+      "createZone": "إنشاء المنطقة"
     }
   },
   "PromoChannel": {
@@ -1257,5 +1382,25 @@
     "noneYet": "لا يوجد {item} بعد",
     "addTitle": "إضافة {item}",
     "editTitle": "تعديل {item}"
+  },
+  "NewOrder": {
+    "amountDue": "الطلب رقم {number} · المبلغ المستحق",
+    "confirmPayment": "تأكيد الدفع",
+    "sendWaLink": "إرسال رابط الدفع عبر واتساب",
+    "waHint": "يدفع العميل عبر الإنترنت · يُعلَّم الطلب مدفوعًا تلقائيًا عند التأكيد",
+    "attachCustomer": "إرفاق عميل",
+    "custMeta": "{phone} · {area} · {orders} طلبات",
+    "subscriber": "مشترك",
+    "noCustomerMatch": "لا توجد نتائج مطابقة. سيبقى هذا الطلب لعميل عابر.",
+    "payCash": "نقدًا",
+    "payCashSub": "أوراق وعملات نقدية",
+    "payCard": "بطاقة",
+    "payCardSub": "جهاز سترايب",
+    "payApple": "Apple Pay",
+    "payAppleSub": "الدفع باللمس",
+    "payAccount": "حساب",
+    "payAccountSub": "رصيد الاشتراك",
+    "payLater": "الدفع لاحقًا",
+    "payLaterSub": "عند التوصيل"
   }
 }

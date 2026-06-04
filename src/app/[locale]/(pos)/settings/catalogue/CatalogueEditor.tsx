@@ -6,6 +6,7 @@ import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import Modal from '@/components/Modal';
+import GarmentIcon, { GARMENT_ICON_KEYS } from '@/components/GarmentIcon';
 import { toCsv, downloadCsv, type CsvValue } from '@/lib/csv';
 
 /* Design app.js:1624-1640 (settingsBody — products branch):
@@ -53,7 +54,10 @@ export default function CatalogueEditor({ data }: { data: any }) {
   const t = useTranslations('Settings.catalogue');
   const tc = useTranslations('Common');
 
-  const [editing, setEditing] = useState<CatalogueItem | null>(null);
+  // `editing` holds the product modal target: a CatalogueItem when editing an
+  // existing product, or 'new' to open the modal in add mode.
+  const [editing, setEditing] = useState<CatalogueItem | 'new' | null>(null);
+  const [addingCategory, setAddingCategory] = useState(false);
 
   // Flatten to one row list while preserving category/index for drag handles.
   const rows = useMemo(() => {
@@ -70,25 +74,18 @@ export default function CatalogueEditor({ data }: { data: any }) {
     setCats(r.categories);
   }
 
-  async function addCategory() {
-    const title = prompt(t('categoryTitlePrompt'));
-    if (!title) return;
+  async function createCategory(title: string) {
     await api('/catalogue/categories', { method: 'POST', body: { title, externalKey: title.toLowerCase().replace(/\s+/g, '_') } });
-    reload();
+    await reload();
     toast.show(tc('saved'));
   }
 
-  async function addItem() {
+  function addItem() {
     if (cats.length === 0) {
       toast.show(t('addCategoryFirst'));
       return;
     }
-    const name = prompt(t('itemNamePrompt'));
-    if (!name) return;
-    const sku = prompt(t('skuPrompt')) ?? '';
-    await api('/catalogue/items', { method: 'POST', body: { categoryId: cats[0].id, name, sku } });
-    reload();
-    toast.show(tc('saved'));
+    setEditing('new');
   }
 
   // ─── A) Download a real CSV template (client-side, no backend) ────────
@@ -199,7 +196,7 @@ export default function CatalogueEditor({ data }: { data: any }) {
         <div className="actions">
           <button className="btn btn-ghost" data-tmpl onClick={downloadTemplate}>Download Template</button>
           <button className="btn btn-ghost" data-import onClick={() => document.getElementById('prod-csv')?.click()}>Import CSV</button>
-          <button className="btn btn-ghost" data-addcat onClick={addCategory}>+ Category</button>
+          <button className="btn btn-ghost" data-addcat onClick={() => setAddingCategory(true)}>+ Category</button>
           <button className="btn btn-pri" data-addprod onClick={addItem}>+ Add Product</button>
         </div>
       </div>
@@ -229,7 +226,12 @@ export default function CatalogueEditor({ data }: { data: any }) {
             {rows.map(({ ci, ii, cat, it }) => (
               <tr key={it.id} draggable data-ci={ci} data-ii={ii}>
                 <td><span className="draghandle" title="Drag to reorder">⠋⠋</span></td>
-                <td className="t-name">{it.name}</td>
+                <td className="t-name">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <GarmentIcon name={it.name} iconKey={it.iconKey} size={18} />
+                    {it.name}
+                  </span>
+                </td>
                 <td><span className="pill muted">{cat.title}</span></td>
                 {TIER_KEYS.map((tk) => {
                   const tier = tierByKey(tk);
@@ -257,25 +259,70 @@ export default function CatalogueEditor({ data }: { data: any }) {
       </div>
 
       {editing && (
-        <EditProductModal
-          item={editing}
+        <ProductModal
+          item={editing === 'new' ? null : editing}
+          itemCategoryId={editing === 'new' ? cats[0]?.id : cats.find((c) => c.items.some((i) => i.id === (editing as CatalogueItem).id))?.id}
+          categories={cats}
           tiers={tiers}
           onClose={() => setEditing(null)}
           onSaved={async () => { await reload(); setEditing(null); }}
+        />
+      )}
+
+      {addingCategory && (
+        <AddCategoryModal
+          onClose={() => setAddingCategory(false)}
+          onSubmit={async (title) => { await createCategory(title); setAddingCategory(false); }}
         />
       )}
     </div>
   );
 }
 
-// ─── B) Edit product modal ──────────────────────────────────────────────
-function EditProductModal({
+// ─── Add-category modal (replaces the native prompt) ────────────────────
+function AddCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (title: string) => Promise<void> }) {
+  const t = useTranslations('Settings.catalogue');
+  const tc = useTranslations('Common');
+  const [title, setTitle] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try { await onSubmit(title.trim()); } finally { setSaving(false); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title={t('addCategory')}>
+      <form onSubmit={submit}>
+        <div className="modal-body">
+          <div className="field">
+            <label>{t('categoryTitlePrompt')}</label>
+            <input className="input" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tc('cancel')}</button>
+          <button type="submit" className="btn btn-pri" style={{ flex: 2 }} disabled={saving || !title.trim()}>{tc('add')}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── B) Add / edit product modal — design app.js:2024-2047 ───────────────
+function ProductModal({
   item,
+  itemCategoryId,
+  categories,
   tiers,
   onClose,
   onSaved,
 }: {
-  item: CatalogueItem;
+  item: CatalogueItem | null;
+  itemCategoryId?: string;
+  categories: Category[];
   tiers: Tier[];
   onClose: () => void;
   onSaved: () => Promise<void>;
@@ -283,18 +330,22 @@ function EditProductModal({
   const t = useTranslations('Settings.catalogue');
   const tc = useTranslations('Common');
   const toast = useToast();
+  const isNew = item == null;
 
-  const [name, setName] = useState(item.name);
+  const [name, setName] = useState(item?.name ?? '');
+  const [sku, setSku] = useState(item?.sku ?? '');
+  const [categoryId, setCategoryId] = useState(itemCategoryId ?? categories[0]?.id ?? '');
+  const [iconKey, setIconKey] = useState<string | null>(item?.iconKey ?? null);
   const [prices, setPrices] = useState<Record<string, string>>(() => {
     const out: Record<string, string> = {};
     for (const tier of tiers) {
-      const p = item.prices?.[tier.externalKey];
+      const p = item?.prices?.[tier.externalKey];
       out[tier.id] = p != null ? String(p) : '';
     }
     return out;
   });
-  const [cost, setCost] = useState(item.cost != null ? String(item.cost) : '');
-  const [turnaround, setTurnaround] = useState(item.turnaround ?? '');
+  const [cost, setCost] = useState(item?.cost != null ? String(item.cost) : '');
+  const [turnaround, setTurnaround] = useState(item?.turnaround ?? '');
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -303,24 +354,40 @@ function EditProductModal({
     try {
       const costStr = cost.trim();
       const costNum = costStr === '' ? null : Number(costStr);
-      await api(`/catalogue/items/${item.id}`, {
-        method: 'PATCH',
-        body: {
-          name,
-          cost: costNum != null && Number.isFinite(costNum) ? costNum : null,
-          turnaround: turnaround.trim() === '' ? null : turnaround.trim(),
-        },
-      });
+      const costVal = costNum != null && Number.isFinite(costNum) ? costNum : null;
+      const turnVal = turnaround.trim() === '' ? null : turnaround.trim();
+
+      // Create or update the base item, then sync tier prices.
+      const itemId = isNew
+        ? (await api<{ id: string }>('/catalogue/items', {
+            method: 'POST',
+            body: {
+              categoryId,
+              name,
+              sku: sku.trim() || undefined,
+              iconKey: iconKey ?? undefined,
+              cost: costVal ?? undefined,
+              turnaround: turnVal ?? undefined,
+            },
+          })).id
+        : item!.id;
+
+      if (!isNew) {
+        await api(`/catalogue/items/${itemId}`, {
+          method: 'PATCH',
+          body: { name, categoryId, iconKey, cost: costVal, turnaround: turnVal },
+        });
+      }
 
       for (const tier of tiers) {
         const raw = prices[tier.id];
-        const original = item.prices?.[tier.externalKey];
+        const original = item?.prices?.[tier.externalKey];
         const originalStr = original != null ? String(original) : '';
-        if (raw === originalStr) continue; // unchanged
+        if (!isNew && raw === originalStr) continue; // unchanged
         if (raw == null || raw === '') continue; // skip clearing (no delete here)
         const price = Number(raw);
         if (!Number.isFinite(price)) continue;
-        await api(`/catalogue/items/${item.id}/prices`, {
+        await api(`/catalogue/items/${itemId}/prices`, {
           method: 'POST',
           body: { tierId: tier.id, price },
         });
@@ -336,41 +403,72 @@ function EditProductModal({
   }
 
   return (
-    <Modal open onClose={onClose} title={t('editProduct')}>
-      <form onSubmit={submit} className="modal-body" style={{ display: 'grid', gap: 12, padding: 16 }}>
-        <label className="field">
-          <span>{tc('name')}</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        {tiers.map((tier) => (
-          <label className="field" key={tier.id}>
-            <span>{tier.name}</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={prices[tier.id]}
-              onChange={(e) => setPrices((p) => ({ ...p, [tier.id]: e.target.value }))}
-            />
-          </label>
-        ))}
-        <label className="field">
-          <span>{tc('cost')}</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>{t('turnaround')}</span>
-          <input value={turnaround} onChange={(e) => setTurnaround(e.target.value)} />
-        </label>
-        <div className="modal-foot" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>{tc('cancel')}</button>
-          <button type="submit" className="btn btn-pri" disabled={saving}>{tc('save')}</button>
+    <Modal open onClose={onClose} title={isNew ? t('addProductTitle') : t('editProduct')} className="wide">
+      <form onSubmit={submit}>
+        <div className="modal-body">
+          <div className="field">
+            <label>{t('itemNamePrompt')}</label>
+            <input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('itemNamePlaceholder')} required />
+          </div>
+          <div className="field">
+            <label>{t('category')}</label>
+            <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.title}</option>
+              ))}
+            </select>
+          </div>
+          {/* Design app.js:2031 — 3-col price row, one column per tier. */}
+          <div className="field-2" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+            {tiers.map((tier) => (
+              <div className="field" key={tier.id}>
+                <label>{tier.name}</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="—"
+                  value={prices[tier.id]}
+                  onChange={(e) => setPrices((p) => ({ ...p, [tier.id]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="field">
+            <label>{t('costPerItem')}</label>
+            <input className="input" type="number" step="0.01" min="0" value={cost} onChange={(e) => setCost(e.target.value)} placeholder={t('costPlaceholder')} />
+          </div>
+          <div className="field">
+            <label>{t('turnaround')}</label>
+            <input className="input" value={turnaround} onChange={(e) => setTurnaround(e.target.value)} placeholder={t('turnaroundPlaceholder')} />
+          </div>
+          {/* SKU lives here so it can be set on create (and viewed on edit). */}
+          <div className="field">
+            <label>{t('skuPrompt')}</label>
+            <input className="input" value={sku} onChange={(e) => setSku(e.target.value)} placeholder={t('skuPlaceholder')} />
+          </div>
+          {/* Design app.js:2038-2044 — 8-column icon-picker grid. */}
+          <div className="field">
+            <label>{t('icon')}</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 6, maxHeight: 140, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 8 }}>
+              {GARMENT_ICON_KEYS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className={`iconpick${iconKey === k ? ' sel' : ''}`}
+                  title={k}
+                  onClick={() => setIconKey(k)}
+                >
+                  <GarmentIcon iconKey={k} size={20} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tc('cancel')}</button>
+          <button type="submit" className="btn btn-pri" style={{ flex: 2 }} disabled={saving}>{isNew ? t('addProductBtn') : t('saveChanges')}</button>
         </div>
       </form>
     </Modal>

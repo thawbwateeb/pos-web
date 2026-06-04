@@ -286,13 +286,17 @@ function FeeRow({ label, sub, id, value, onChange }: { label: string; sub?: stri
   );
 }
 
+/* Design app.js:1423 — openSlotModal:
+   title 'Add time slot' / 'Edit time slot'; '.inp' inputs; slot label with
+   placeholder 'e.g. 08:00 – 10:00'; Capacity then Type inside a '.cols-2b'
+   (gap 10); no Active field — a slot inherits the active flag from its record.
+   Save button 'Add slot' / 'Save'. */
 function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | null; defaultCap: number; onClose: () => void; onSaved: () => void }) {
   const t = useTranslations('Settings.pickup');
   const tc = useTranslations('Common');
   const [label, setLabel] = useState<string>(initial?.label ?? '');
   const [capacity, setCapacity] = useState<number>(initial?.capacity ?? defaultCap);
   const [kind, setKind] = useState<Kind>(initial?.kind ?? 'BOTH');
-  const [active, setActive] = useState<boolean>(initial?.active ?? true);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
 
@@ -300,7 +304,8 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
     if (!label.trim()) { toast.show('Enter a slot label'); return; }
     setBusy(true);
     try {
-      const body = { label, capacity, kind, active };
+      // Active is inherited: keep the existing flag on edit, default true on add.
+      const body = { label, capacity, kind, active: initial?.active ?? true };
       if (initial) await api(`/pickup/slots/${initial.id}`, { method: 'PATCH', body });
       else await api('/pickup/slots', { method: 'POST', body });
       onSaved();
@@ -308,32 +313,22 @@ function SlotModal({ initial, defaultCap, onClose, onSaved }: { initial: Slot | 
   }
 
   return (
-    <Modal open onClose={onClose} title={initial ? 'Edit slot' : 'New slot'}>
-        <div className="modal-body">
-          <div className="field"><label>Label</label><input className="input" placeholder={t('slotLabelPlaceholder')} value={label} onChange={(e) => setLabel(e.target.value)} /></div>
-          <div className="field-2">
-            <div className="field"><label>Type</label>
-              <select className="input" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
+    <Modal open onClose={onClose} title={initial ? t('editSlotTitle') : t('addSlotTitle')}>
+        <div className="modal-body fin">
+          <div className="field"><label>{t('slotLabel')}</label><input className="inp" placeholder={t('slotLabelPlaceholderHr')} value={label} onChange={(e) => setLabel(e.target.value)} /></div>
+          <div className="cols-2b" style={{ gap: 10 }}>
+            <div className="field"><label>{t('capacityOrders')}</label><input className="inp" type="number" value={capacity} onChange={(e) => setCapacity(+e.target.value || 0)} /></div>
+            <div className="field"><label>{t('type')}</label>
+              <select className="inp" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
                 <option value="BOTH">Pickup + Delivery</option>
                 <option value="PICKUP">Pickup only</option>
                 <option value="DELIVERY">Delivery only</option>
               </select>
             </div>
-            <div className="field"><label>Capacity</label><input className="input" type="number" value={capacity} onChange={(e) => setCapacity(+e.target.value || 0)} /></div>
-          </div>
-          <div className="field"><label id="pk-slot-active-label">Active</label>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={active}
-              aria-labelledby="pk-slot-active-label"
-              className={`switch ${active ? 'on' : ''}`}
-              onClick={() => setActive(!active)}
-            />
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tc('cancel')}</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>{initial ? tc('save') : t('addSlotShort')}</button>
         </div>
     </Modal>

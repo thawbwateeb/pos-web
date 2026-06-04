@@ -27,6 +27,11 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
   const tCommon = useTranslations('Common');
   const toast = useToast();
 
+  async function refresh() {
+    const r = await api<Customer[]>('/customers');
+    setList(r);
+  }
+
   return (
     <div className="page">
       <div className="page-head">
@@ -36,6 +41,9 @@ export default function CustomersScreen({ initial, initialQ }: { initial: Custom
         </div>
         {/* Design app.js:664 — .actions wrapper + data-newcust attribute. */}
         <div className="actions">
+          <button className="btn btn-ghost btn-icon" data-refresh title={tCommon('refresh')} onClick={refresh}>
+            <Icon.refresh size={16} />
+          </button>
           <button className="btn btn-pri" data-newcust onClick={() => setAdding(true)}>
             <Icon.plus size={16} /> {t('newCustomer')}
           </button>

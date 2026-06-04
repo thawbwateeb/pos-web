@@ -11,11 +11,59 @@ import { useConfirm } from '@/components/ConfirmDialog';
 import { Icon } from '@/components/Icons';
 import FocusTrap from '@/components/FocusTrap';
 import Modal from '@/components/Modal';
+import { printReceipt, printLabels } from '@/lib/print';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { OrdersBoard, OrderStatus, OrderType, Order, PaymentMethod } from '@/lib/types';
 import type { RackRow } from '../settings/racks/RacksScreen';
 
 type Filter = 'all' | OrderType;
+
+// The board API returns the full Order row, including the `source` scalar
+// (POS / WEBSITE / CUSTOMER_APP / WHATSAPP) which the base `Order` type
+// doesn't yet enumerate. Read it through this widened local view.
+type OrderSource = 'POS' | 'WEBSITE' | 'CUSTOMER_APP' | 'WHATSAPP';
+type BoardOrder = Order & { source?: OrderSource };
+
+// Uppercase origin line for the order card (design app.js:581-584). Walk-in
+// counter orders read "COUNTER · WALK-IN"; everything else maps the source.
+function orderOriginKey(o: BoardOrder): string {
+  switch (o.source) {
+    case 'WEBSITE': return 'originWebsite';
+    case 'CUSTOMER_APP': return 'originApp';
+    case 'WHATSAPP': return 'originWhatsapp';
+    case 'POS':
+    default:
+      return o.type === 'WALK_IN' ? 'originCounterWalkIn' : 'originCounter';
+  }
+}
+
+// Small inline glyphs that the shared <Icon> set doesn't carry, taken
+// verbatim from the design prototype (app.js:1238) so the ⋯ menu rows
+// match it exactly. `x` = cancel/unpaid, `trash` = delete.
+function GlyphX({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+// Classify an order's payment rows as fully refunded: every non-pending
+// payment has been returned. Used to drive the line-item refunded state
+// and the totals deduction row from real payment data (no fabrication).
+function refundedTotal(order: any): number {
+  return (order.payments ?? []).reduce(
+    (s: number, p: any) => s + Number(p.refundedAmount ?? 0),
+    0,
+  );
+}
+function isFullyRefunded(order: any): boolean {
+  const pays = order.payments ?? [];
+  if (pays.length === 0) return false;
+  const settled = pays.filter((p: any) => p.status === 'SUCCEEDED' || p.status === 'REFUNDED' || p.status === 'PARTIALLY_REFUNDED');
+  if (settled.length === 0) return false;
+  return settled.every((p: any) => p.status === 'REFUNDED');
+}
 
 export default function OrdersBoardScreen({
   initial,
@@ -182,6 +230,11 @@ export default function OrdersBoardScreen({
         body: { orderId: o.id, method, amount: Number(o.total) },
       });
       toast.show(t('markedPaid', { number: o.number }));
+      // Print the receipt for the just-recorded payment (full order so the
+      // local render has line items); best-effort, non-blocking.
+      api<any>(`/orders/${o.id}`)
+        .then((full) => printReceipt({ ...full, paid: true, primaryMethod: method } as any, o.storeId))
+        .catch(() => {});
       refresh();
     } catch (e: any) {
       toast.show(e?.detail?.message || t('failedToUpdate'));
@@ -332,6 +385,18 @@ export default function OrdersBoardScreen({
             onClose={() => setManageId(null)}
             onViewDetail={() => { setManageId(null); setOpenId(o.id); }}
             onTakePayment={() => { setManageId(null); setPayNow({ order: o }); }}
+            onPrintReceipt={async () => {
+              setManageId(null);
+              try {
+                // Board rows omit line items; fetch the full order so the
+                // local receipt render has everything it needs.
+                const full = await api<any>(`/orders/${o.id}`).catch(() => o);
+                await printReceipt(full as any, o.storeId);
+                toast.show(t('receiptSent', { number: o.number }));
+              } catch (e: any) {
+                toast.show(e?.detail?.message || t('failedToUpdate'));
+              }
+            }}
             onCancel={async () => {
               if (!(await confirm({ title: t('cancelOrderTitle'), message: t('cancelOrderConfirm', { number: o.number }), danger: true }))) return;
               try {
@@ -418,6 +483,14 @@ function OrderCard({
   const itemCount = o._count?.items ?? 0;
   const due = dueLabel(o.dueAt, { today: t('today'), tomorrow: t('tomorrow'), yesterday: t('yesterday') });
 
+  // Garment-tag progress for the scan chip. The board row may expose a
+  // real aggregate (linked vs total garments); if absent, totals are 0
+  // and we render the status-only label instead of a fabricated count.
+  const counts = (o as any)._count ?? {};
+  const tagTotal: number = Number(counts.garmentTagsTotal ?? counts.garments ?? 0) || 0;
+  const tagLinked: number = Number(counts.garmentTags ?? counts.garmentTagsLinked ?? 0) || 0;
+  const tagDone = tagTotal > 0 && tagLinked >= tagTotal;
+
   /* Design app.js:578-593 — every interactive element carries a data-*
      hook used by the JS event delegation. We keep the equivalents so
      the DOM mirrors the design. */
@@ -447,6 +520,10 @@ function OrderCard({
 
       <div className="oc-cust">{o.customer?.fullName ?? t('guest')}</div>
 
+      {/* Design app.js:594 — uppercase origin line between the customer
+          name and the meta row, e.g. "COUNTER · WALK-IN" / "WEBSITE". */}
+      <div className="oc-origin">{t(orderOriginKey(o as BoardOrder) as any)}</div>
+
       {/* Design app.js:581 — `${o.items+' items'}` literal (no plural rule). */}
       <div className="oc-meta">
         <span>{itemCount > 0 ? `${itemCount} ${tCommon('items').toLowerCase()}` : t('awaiting')}</span>
@@ -457,11 +534,21 @@ function OrderCard({
         <span suppressHydrationWarning>{due}</span>
       </div>
 
-      {(o.rackCode || o.status === 'TAGGING') && (
+      {(o.rackCode || o.status === 'TAGGING' || tagTotal > 0) && (
         <div className="oc-track">
           {o.rackCode && <span className="oc-rack">▦ {o.rackCode}</span>}
-          {o.status === 'TAGGING' && (
-            <span className="oc-scan pending">⛿ {t('tagging')}</span>
+          {/* Design app.js:596 — numeric "n/n tagged" chip; `.done` (green)
+              when every garment is linked. Counts come from the board row's
+              real tag aggregate; when the board omits them, fall back to the
+              status-only pending label (no fabricated counts). */}
+          {tagTotal > 0 ? (
+            <span className={`oc-scan ${tagDone ? 'done' : 'pending'}`}>
+              ⛿ {t('taggedCount', { linked: tagLinked, total: tagTotal })}
+            </span>
+          ) : (
+            o.status === 'TAGGING' && (
+              <span className="oc-scan pending">⛿ {t('tagging')}</span>
+            )
           )}
         </div>
       )}
@@ -528,9 +615,12 @@ function OrderDetailModal({
   // CODE string (or null to clear). Racks are loaded once from GET /racks.
   const [racks, setRacks] = useState<RackRow[]>([]);
   const [rackOpen, setRackOpen] = useState(false);
+  // Garment tags for the read-only "Garment tags" panel (design app.js:1181).
+  const [tags, setTags] = useState<ApiGarmentTag[]>([]);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const tStatus = useTranslations('OrderStatus');
+  const tType = useTranslations('Order');
   const tMethod = useTranslations('PaymentMethod');
   const toast = useToast();
   const titleId = useId();
@@ -538,6 +628,7 @@ function OrderDetailModal({
 
   useEffect(() => {
     api<any>(`/orders/${orderId}`).then(setOrder);
+    api<ApiGarmentTag[]>(`/orders/${orderId}/tags`).then(setTags).catch(() => {});
   }, [orderId]);
 
   useEffect(() => {
@@ -546,6 +637,7 @@ function OrderDetailModal({
 
   async function reload() {
     const o = await api<any>(`/orders/${orderId}`);
+    api<ApiGarmentTag[]>(`/orders/${orderId}/tags`).then(setTags).catch(() => {});
     setOrder(o);
   }
 
@@ -579,6 +671,8 @@ function OrderDetailModal({
         body: { orderId: order.id, method, amount: Number(order.total) },
       });
       toast.show(t('markedPaid', { number: order.number }));
+      // Print the receipt for the recorded payment (best-effort, local).
+      printReceipt({ ...order, paid: true, primaryMethod: method } as any, order.storeId).catch(() => {});
       onChanged();
       await reload();
     } catch (e: any) {
@@ -677,6 +771,65 @@ function OrderDetailModal({
   const canPay = !order.paid && order.status !== 'CANCELLED';
   const canRefund = order.paid && order.status !== 'CANCELLED';
 
+  // Status colour for the tinted header pill, looked up from meta.
+  const statusColor = meta.orderStatuses.find((s) => s.key === order.status)?.color ?? '#94a3b8';
+  const typeLabel = order.type === 'WALK_IN' ? tType('walkIn') : tType('pickupDelivery');
+
+  // Refund state derived from real payments: a fully-refunded order shows
+  // its lines struck through and a deduction row in the totals.
+  const orderRefunded = isFullyRefunded(order);
+  const refundedAmount = refundedTotal(order);
+  const activeItems = orderRefunded
+    ? 0
+    : (order.items ?? []).reduce((s: number, l: any) => s + (Number(l.qty) || 1), 0);
+
+  // Garment-tag slots for the read-only panel: one per (orderItem × qty),
+  // matched against the real GarmentTag rows. A slot with a tag row is
+  // "Tagged"; otherwise "Not tagged" (no fabricated codes).
+  const tagSlots: Array<{ key: string; name: string; tag: ApiGarmentTag | undefined }> = [];
+  {
+    const sorted = [...(order.items ?? [])].sort((a: any, b: any) => (a.id < b.id ? -1 : 1));
+    const tagByKey: Record<string, ApiGarmentTag> = {};
+    for (const tg of tags) tagByKey[`${tg.orderItemId}__${tg.qtyIndex}`] = tg;
+    for (const l of sorted) {
+      const qty = Math.max(1, Number(l.qty) || 1);
+      for (let i = 0; i < qty; i++) {
+        const key = `${l.id}__${i}`;
+        tagSlots.push({ key, name: l.nameSnapshot ?? 'Garment', tag: tagByKey[key] });
+      }
+    }
+  }
+  const linkedSlots = tagSlots.filter((s) => s.tag).length;
+
+  // Timeline from real data: status transitions (statusEvents), plus
+  // payment and refund records. Sorted newest-first like the design.
+  const timeline: Array<{ type: 'status' | 'pay' | 'refund' | 'tag'; txt: string; t: string; at: number }> = [];
+  for (const ev of (order.statusEvents ?? [])) {
+    timeline.push({
+      type: 'status',
+      txt: t('tlMovedTo', { status: tStatus(ev.toStatus as any) }),
+      t: new Date(ev.createdAt).toLocaleString(),
+      at: new Date(ev.createdAt).getTime(),
+    });
+  }
+  for (const p of (order.payments ?? [])) {
+    timeline.push({
+      type: 'pay',
+      txt: t('tlPayment', { method: tMethod(p.method as any), amount: AED(p.amount) }),
+      t: new Date(p.createdAt).toLocaleString(),
+      at: new Date(p.createdAt).getTime(),
+    });
+    for (const r of (p.refunds ?? [])) {
+      timeline.push({
+        type: 'refund',
+        txt: t('tlRefund', { amount: AED(r.amount) }),
+        t: new Date(r.createdAt).toLocaleString(),
+        at: new Date(r.createdAt).getTime(),
+      });
+    }
+  }
+  timeline.sort((a, b) => b.at - a.at);
+
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
@@ -693,22 +846,41 @@ function OrderDetailModal({
               </div>
               <div>
                 <b>{order.customer?.fullName ?? t('guest')}</b>
-                <span>{order.customer?.phone ?? '—'}</span>
+                {/* Design app.js:1159 — "phone · {type}" sub-line. */}
+                <span>{(order.customer?.phone ?? '—')} · {typeLabel}</span>
               </div>
             </div>
-            <div className="odl-rack">
-              <button className="rack-btn" onClick={() => setRackOpen(true)}>
-                ▦ {order.rackCode ?? t('assignRack')}
-              </button>
+            {/* Design app.js:1160-1164 — status pill tinted with the status
+                colour, a Paid·method / Unpaid pill, and an Express pill. */}
+            <div className="odl-tags">
+              <span className="pill" style={{ background: `${statusColor}1f`, color: statusColor }}>
+                {tStatus(order.status)}
+              </span>
+              <span className={`pill ${order.paid ? 'paid' : 'unpaid'}`}>
+                {order.paid
+                  ? t('paidWith', { method: order.primaryMethod ? tMethod(order.primaryMethod as any) : tMethod('CASH' as any) })
+                  : t('unpaid')}
+              </span>
+              {order.expressOn && (
+                <span className="pill" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+                  {t('express')}
+                </span>
+              )}
             </div>
           </div>
           <div className="odl-meta">
-            <span>{tStatus(order.status)}</span>
+            <span suppressHydrationWarning>{t('createdAt', { when: new Date(order.createdAt).toLocaleString() })}</span>
             <span>·</span>
-            <span>{order.type === 'WALK_IN' ? 'Walk-in' : 'Pickup & Delivery'}</span>
+            <span suppressHydrationWarning>{t('dueAt', { when: order.dueAt ? new Date(order.dueAt).toLocaleString() : '—' })}</span>
             <span>·</span>
-            <span suppressHydrationWarning>{new Date(order.createdAt).toLocaleString()}</span>
-            {order.primaryMethod && (<><span>·</span><span>{tMethod(order.primaryMethod as any)}</span></>)}
+            {/* Design app.js:1166 — "{N} active items" (excludes refunded/voided). */}
+            <span>{t('activeItems', { count: activeItems })}</span>
+            <span className="odl-rack">
+              {t('rack')}{' '}
+              <button className="rack-btn" onClick={() => setRackOpen(true)}>
+                {order.rackCode ?? t('assignRack')}
+              </button>
+            </span>
           </div>
 
           <table className="odl-tbl">
@@ -718,34 +890,47 @@ function OrderDetailModal({
                 <th>{tCommon('qty')}</th>
                 <th className="num">{tCommon('price')}</th>
                 <th className="num">{tCommon('total')}</th>
-                <th></th>
+                <th className="num">{t('actionCol')}</th>
               </tr>
             </thead>
             <tbody>
-              {(order.items ?? []).map((l: any) => (
-                <tr key={l.id}>
-                  <td>
-                    <b>{l.nameSnapshot}</b>
-                    <span className="muted" style={{ marginLeft: 8, fontSize: 11 }}>
-                      {l.tierSnapshot}
-                    </span>
-                  </td>
-                  <td>{l.qty}</td>
-                  <td className="num">{AED(l.unitPrice)}</td>
-                  <td className="num">{AED(l.lineTotal)}</td>
-                  <td className="num">
-                    {canRefund && (
-                      <button
-                        className="odl-act"
-                        title={t('voidLine')}
-                        onClick={() => setConfirmRefund({ kind: 'line', line: l })}
-                      >
-                        {t('voidLine')}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {(order.items ?? []).map((l: any) => {
+                // No per-line refund flag exists in the data model; a line is
+                // shown as refunded/voided only when the whole order has been
+                // returned (every settled payment REFUNDED). Refund vs Void
+                // copy follows paid state, matching the design (app.js:1139).
+                const isRef = orderRefunded && order.paid;
+                const isVoid = orderRefunded && !order.paid;
+                const inactive = isRef || isVoid;
+                return (
+                  <tr key={l.id} className={isRef ? 'odl-ref' : isVoid ? 'odl-void' : ''}>
+                    <td>
+                      <b>{l.nameSnapshot}</b>
+                      <span className="muted" style={{ marginLeft: 8, fontSize: 11 }}>
+                        {l.tierSnapshot}
+                      </span>
+                      {isRef && <span className="odl-tag ref">{t('refundedBadge')}</span>}
+                      {isVoid && <span className="odl-tag void">{t('voidBadge')}</span>}
+                    </td>
+                    <td>{l.qty}</td>
+                    <td className="num">{AED(l.unitPrice)}</td>
+                    <td className="num">{AED(l.lineTotal)}</td>
+                    <td className="num">
+                      {inactive ? (
+                        <span className="odl-done">—</span>
+                      ) : canRefund ? (
+                        <button
+                          className="odl-act"
+                          title={order.paid ? t('refundLine') : t('voidLine')}
+                          onClick={() => setConfirmRefund({ kind: 'line', line: l })}
+                        >
+                          {order.paid ? t('refundLine') : t('voidLine')}
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
               {(order.items ?? []).length === 0 && (
                 <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 14 }}>—</td></tr>
               )}
@@ -766,7 +951,61 @@ function OrderDetailModal({
             {Number(order.deliveryFee) > 0 && (
               <div className="r"><span>{t('deliveryFee')}</span><span>{AED(order.deliveryFee)}</span></div>
             )}
+            {/* Refunded/Voided deduction rows — driven by real payment-refund
+                totals (design app.js:1176-1177). Refunded when the order was
+                paid; voided when it never was. */}
+            {refundedAmount > 0 && order.paid && (
+              <div className="r ref"><span>{t('refundedBadge')}</span><span>− {AED(refundedAmount)}</span></div>
+            )}
+            {refundedAmount > 0 && !order.paid && (
+              <div className="r void"><span>{t('voidedTotal')}</span><span>− {AED(refundedAmount)}</span></div>
+            )}
             <div className="r tot"><span>{tCommon('total')}</span><span>{AED(order.total)}</span></div>
+          </div>
+
+          {/* Design app.js:1181-1190 — two-panel track: read-only garment
+              tags on the left, the event timeline on the right. */}
+          <div className="odl-track">
+            <div className="odl-panel">
+              <div className="odl-ph">
+                <b>{t('garmentTags')}</b>
+                {tagSlots.length > 0 && (
+                  <span className="tg-count">{t('taggedCount', { linked: linkedSlots, total: tagSlots.length })}</span>
+                )}
+              </div>
+              <div className="tagchips">
+                {tagSlots.length > 0 ? (
+                  tagSlots.map((s) => (
+                    <div className={`tagchip ro ${s.tag ? 'on' : ''}`} key={s.key}>
+                      <div className="tc-bars"></div>
+                      <div className="tc-id">{s.tag?.tagCode ?? '—'}</div>
+                      <div className="tc-name">{s.name}</div>
+                      <span className="tc-badge">{s.tag ? t('tagBadgeDone') : t('tagBadgeNone')}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="muted" style={{ padding: '10px 0', fontSize: 13 }}>{t('noGarmentsToTag')}</div>
+                )}
+              </div>
+            </div>
+            <div className="odl-panel">
+              <div className="odl-ph"><b>{t('timeline')}</b></div>
+              <div className="timeline-list">
+                {timeline.length > 0 ? (
+                  timeline.map((e, i) => (
+                    <div className={`tl-row tl-${e.type}`} key={i}>
+                      <div className="tl-dot"></div>
+                      <div className="tl-body">
+                        <div className="tl-txt">{e.txt}</div>
+                        <div className="tl-t" suppressHydrationWarning>{e.t}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="muted" style={{ padding: '10px 0', fontSize: 13 }}>{t('noTimeline')}</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         <div className="modal-foot">
@@ -971,6 +1210,18 @@ function TaggingModal({
         method: 'POST',
         body: { type: 'LABEL', garmentTagId: row.id, targetHwKey: 'labels' },
       }).catch(() => {/* tag was created — print failure is non-fatal */});
+      // Also drive the local printer (QZ Tray / browser fallback) so the
+      // physical label comes out immediately, alongside the server job.
+      const index = slots.findIndex((s) => slotKey(s) === key);
+      printLabels([{
+        id: row.id,
+        code: row.tagCode,
+        name: slot.name,
+        orderNumber: order.number,
+        customerName: order.customer?.fullName ?? null,
+        index: index >= 0 ? index + 1 : null,
+        total,
+      }], order.storeId).catch(() => {/* local print best-effort */});
       toast.show(t('tagPrinted'));
     } catch (e: any) {
       toast.show(e?.detail?.message || t('failedToUpdate'));
@@ -1190,14 +1441,15 @@ function PaymentMethodPicker({
 }
 
 /* Modal: ⋯ menu on an order card. Maps each menu row to a real API
-   action (or to the dedicated picker modal for payment). Print Receipt
-   is intentionally absent until the PrintJob queue ships — design's
-   stub was toast-only, which violates the no-fakes rule. */
+   action (or to the dedicated picker modal for payment). "Delete order"
+   from the prototype is omitted — the orders API exposes no delete
+   endpoint, so faking it would violate the no-fakes rule. */
 function OrderActionsMenu({
   order: o,
   onClose,
   onViewDetail,
   onTakePayment,
+  onPrintReceipt,
   onCancel,
   onRefundAll,
 }: {
@@ -1205,6 +1457,7 @@ function OrderActionsMenu({
   onClose: () => void;
   onViewDetail: () => void;
   onTakePayment: () => void;
+  onPrintReceipt: () => void;
   onCancel: () => void;
   onRefundAll: () => void;
 }) {
@@ -1225,9 +1478,10 @@ function OrderActionsMenu({
             <span className={`pill ${o.paid ? 'paid' : 'unpaid'}`}>{o.paid ? t('paid') : t('unpaid')}</span>
           </div>
 
+          {/* View order details */}
           <button className="role-opt" onClick={onViewDetail}>
             <span className="rav" style={{ background: 'var(--accent)' }}>
-              <Icon.search size={18} />
+              <Icon.eye size={18} />
             </span>
             <div className="ri">
               <b>{t('menu.viewDetail')}</b>
@@ -1235,18 +1489,32 @@ function OrderActionsMenu({
             </div>
           </button>
 
+          {/* Print receipt — local printer via @/lib/print, no payment. */}
+          <button className="role-opt" onClick={onPrintReceipt}>
+            <span className="rav" style={{ background: 'var(--accent)' }}>
+              <Icon.print size={18} />
+            </span>
+            <div className="ri">
+              <b>{t('menu.printReceipt')}</b>
+              <span>{t('menu.printReceiptSub')}</span>
+            </div>
+          </button>
+
+          {/* Mark as paid (unpaid orders) — opens the take-payment picker. */}
           {!o.paid && o.status !== 'CANCELLED' && (
             <button className="role-opt" onClick={onTakePayment}>
               <span className="rav" style={{ background: 'var(--ok)' }}>
-                <Icon.cash size={18} />
+                <Icon.check size={18} />
               </span>
               <div className="ri">
-                <b>{t('menu.takePayment')}</b>
-                <span>{t('menu.takePaymentSub')}</span>
+                <b>{t('menu.markPaid')}</b>
+                <span>{t('menu.markPaidSub')}</span>
               </div>
             </button>
           )}
 
+          {/* Mark as unpaid / Refund (paid orders) — refunds the payment,
+              which is the only real "reopen payment" path the API offers. */}
           {o.paid && o.status !== 'CANCELLED' && (
             <button className="role-opt" onClick={onRefundAll}>
               <span className="rav" style={{ background: 'var(--warn)' }}>
@@ -1259,10 +1527,11 @@ function OrderActionsMenu({
             </button>
           )}
 
+          {/* Cancel order — uses an X glyph, never the print glyph. */}
           {o.status !== 'CANCELLED' && o.status !== 'COMPLETED' && (
             <button className="role-opt" onClick={onCancel}>
               <span className="rav" style={{ background: 'var(--muted)' }}>
-                <Icon.print size={18} />
+                <GlyphX size={18} />
               </span>
               <div className="ri">
                 <b>{t('menu.cancel')}</b>
