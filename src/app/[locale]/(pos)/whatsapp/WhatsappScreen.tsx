@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
-import { Icon } from '@/components/Icons';
 import { initials, shortTime } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import type { WhatsappSettings } from './types';
@@ -35,6 +34,8 @@ interface WaMessage {
   kind: WaKind;
   body?: string | null;
   mediaUrl?: string | null;
+  mediaName?: string | null;
+  mediaSizeBytes?: number | null;
   ts: string;
   by?: { fullName?: string | null } | null;
 }
@@ -63,6 +64,13 @@ function previewPrefix(from: WaDirection | null | undefined): string {
   if (from === 'OUT') return '✓ ';
   if (from === 'BOT') return '🤖 ';
   return '';
+}
+
+// Design whatsapp.js:228 — fmtSize(): bytes → human-readable file size.
+function fmtSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
 function minutesUntil(iso: string | null): number {
@@ -196,7 +204,20 @@ export default function WhatsappScreen({
     toast.show(t('markedUnread'));
   }
 
-  function viewOrders() {
+  function clearMessages() {
+    setMenuOpen(false);
+    if (!thread) return;
+    if (!window.confirm(t('clearConfirm'))) return;
+    // No server-side clear endpoint exists; clear the local thread view.
+    setThread({ ...thread, messages: [] });
+    toast.show(t('messagesCleared'));
+  }
+
+  // Design whatsapp.js:120/178 — "Create order" for this customer. The new
+  // order screen (/order) has no customer-prefill query, so we route to the
+  // customer's record (matched by id when known, else phone) where a new
+  // order can be started — the existing, working navigation for this menu item.
+  function createOrder() {
     setMenuOpen(false);
     if (!thread) return;
     const locale = params?.locale ?? 'en';
@@ -450,7 +471,8 @@ export default function WhatsappScreen({
                       {t('menuOptions.info')}
                     </button>
                     <button data-m="unread" onClick={markUnread}>{t('menuOptions.unread')}</button>
-                    <button data-m="order" onClick={viewOrders}>{t('menuOptions.viewOrders')}</button>
+                    <button data-m="clear" onClick={clearMessages}>{t('menuOptions.clear')}</button>
+                    <button data-m="order" onClick={createOrder}>{t('menuOptions.createOrder')}</button>
                   </div>
                 </div>
               </div>
@@ -505,11 +527,19 @@ export default function WhatsappScreen({
                                 textDecoration: 'none',
                               }}
                             >
+                              {/* Design whatsapp.js:103 — document/page glyph. */}
                               <span className="wa-att-ic">
-                                <Icon.receipt size={20} />
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 3h9l5 5v13H6z" />
+                                  <path d="M14 3v6h6" />
+                                </svg>
                               </span>
                               <span className="wa-att-meta">
-                                <b>{m.body || 'Document'}</b>
+                                <b>{m.mediaName || m.body || t('document')}</b>
+                                {/* Design whatsapp.js:103 — size sub-line; omitted when absent. */}
+                                {typeof m.mediaSizeBytes === 'number' && m.mediaSizeBytes > 0 && (
+                                  <span>{fmtSize(m.mediaSizeBytes)}</span>
+                                )}
                               </span>
                             </a>
                           ) : null}

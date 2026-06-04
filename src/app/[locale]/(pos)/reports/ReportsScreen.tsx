@@ -8,7 +8,7 @@ import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
-import { enqueuePrintJob } from '@/lib/print';
+import { printZReport } from '@/lib/print';
 import Modal from '@/components/Modal';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { MetaResponse } from '@/lib/meta-context';
@@ -158,17 +158,30 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   }
 
   // ──── Print Z-Report handler ────
-  async function printZReport() {
+  // Build ZReportData from the overview the screen already has and print it
+  // locally via QZ (printZReport falls back to the browser print dialog when
+  // QZ Tray isn't reachable). No server SHIFT_REPORT round-trip needed.
+  async function handlePrintZ() {
     setPrintingZ(true);
     try {
-      await enqueuePrintJob({
-        type: 'SHIFT_REPORT',
-        payload: {
-          range,
-          from: range === 'Custom' ? from : undefined,
-          to: range === 'Custom' ? to : undefined,
+      const rangeLabel = range === 'Custom' ? `${from} – ${to}` : t(`ranges.${range}`);
+      const methods = [
+        { label: t('paymentMix.cash'), amount: cashTotal },
+        { label: t('paymentMix.cardDigital'), amount: cardTotal },
+        { label: t('paymentMix.account'), amount: acctTotal },
+      ].filter((m) => m.amount > 0);
+      await printZReport(
+        {
+          storeName: activeStoreName,
+          rangeLabel,
+          grossSales: total,
+          orders: ordersCount,
+          refunds: refundsAmt,
+          methods,
+          expectedDrawer: openingFloat != null ? openingFloat + cashTotal : cashTotal,
         },
-      });
+        bootstrap.activeStoreId,
+      );
       toast.show(t('zQueued'));
     } catch (err: any) {
       toast.show(err?.detail?.message || t('zFailed'));
@@ -258,7 +271,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <button className="btn btn-ghost" data-rexport onClick={exportCsv}>
             {t('exportCsv')}
           </button>
-          <button className={`btn btn-ghost${printingZ ? ' btn-loading' : ''}`} disabled={printingZ} onClick={printZReport}>
+          <button className={`btn btn-ghost${printingZ ? ' btn-loading' : ''}`} disabled={printingZ} onClick={handlePrintZ}>
             <Icon.print size={16} /> {t('printZ')}
           </button>
           <button className="btn btn-pri" data-cashup onClick={() => setShowCashUp(true)}>
@@ -273,8 +286,9 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
         <div className="stat">
           <div className="sk">{t('kpis.gross')}</div>
           <div className="sv">
-            <span className="cur">AED</span> {Math.round(total).toLocaleString()}
+            <span className="cur">AED</span> {total.toFixed(0)}
           </div>
+          <div className="sd">{t('kpis.grossSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.orders')}</div>
@@ -312,6 +326,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
         <div className="stat">
           <div className="sk">{t('kpis.newCustomers')}</div>
           <div className="sv">{newCust}</div>
+          <div className="sd">{t('kpis.newCustomersSub')}</div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.turnaround')}</div>

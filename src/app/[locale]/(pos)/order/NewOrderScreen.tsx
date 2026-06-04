@@ -10,7 +10,7 @@ import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
-import { enqueuePrintJob } from '@/lib/print';
+import { enqueuePrintJob, printReceipt } from '@/lib/print';
 import Modal from '@/components/Modal';
 
 interface CartLine {
@@ -25,8 +25,25 @@ interface CartLine {
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
-  cash: Icon.cash, card: Icon.card, apple: Icon.apple, wallet: Icon.wallet, truck: Icon.truck, gift: Icon.gift,
+  cash: Icon.cash, card: Icon.card, apple: Icon.apple, wallet: Icon.wallet, truck: Icon.truck, gift: Icon.gift, clock: Icon.clock,
 };
+
+// Design app.js:934-938 — the 5 standard methods carry these exact labels +
+// sub-captions. Keyed by the API's PaymentMethod key. ON_DELIVERY renders as
+// "Pay later" with "On delivery". The clock icon matches the design's I.clock.
+const PAY_LABEL_KEY: Record<string, string> = {
+  CASH: 'payCash', CARD: 'payCard', APPLE_PAY: 'payApple', ACCOUNT: 'payAccount', ON_DELIVERY: 'payLater',
+};
+const PAY_SUB_KEY: Record<string, string> = {
+  CASH: 'payCashSub', CARD: 'payCardSub', APPLE_PAY: 'payAppleSub', ACCOUNT: 'payAccountSub', ON_DELIVERY: 'payLaterSub',
+};
+const PAY_ICON_OVERRIDE: Record<string, string> = { ON_DELIVERY: 'clock' };
+
+// Fallback for any method the meta returns beyond the 5 standard ones
+// (e.g. GIFT_CARD) — "GIFT_CARD" → "Gift Card".
+function humanizeMethod(key: string): string {
+  return key.toLowerCase().split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
 
 export default function NewOrderScreen({
   catalogue,
@@ -48,8 +65,7 @@ export default function NewOrderScreen({
   const storeId = bootstrap.activeStoreId;
   const t = useTranslations('Order');
   const tCommon = useTranslations('Common');
-  const tMethod = useTranslations('PaymentMethod');
-  const tMethodSub = useTranslations('PaymentMethodSub');
+  const tNew = useTranslations('NewOrder');
 
   const tiers = catalogue.tiers;
   const isEditing = !!editing;
@@ -172,7 +188,7 @@ export default function NewOrderScreen({
     toast.show(t('cancelled'));
   }
 
-  async function printReceipt() {
+  async function printEditingReceipt() {
     // Can only print after an order exists. When creating a new order, the
     // receipt is printed by the backend's payment → printer pipeline at
     // charge time. So this button only acts on existing (editing) orders.
@@ -240,6 +256,9 @@ export default function NewOrderScreen({
       } else {
         await api('/payments', { method: 'POST', body: { orderId: order.id, method: pay.method, amount: Number(order.total) } });
         toast.show(t('orderCharged', { number: order.number, amount: AED(order.total) }));
+        // Print the receipt for the just-created + paid order. Best-effort:
+        // a printer/QZ failure must not block the flow, so we don't await.
+        printReceipt({ ...order, primaryMethod: pay.method, paid: true }, storeId).catch(() => {});
       }
       resetCart();
       setPay(null);
@@ -509,7 +528,7 @@ export default function NewOrderScreen({
 
           {/* Design app.js:459-463 — ids print-btn, hold-btn, charge-btn. */}
           <div className="cart-actions">
-            <button className="btn btn-hold" id="print-btn" title={t('printReceipt')} onClick={printReceipt}>
+            <button className="btn btn-hold" id="print-btn" title={t('printReceipt')} onClick={printEditingReceipt}>
               <Icon.print size={16} />
             </button>
             <button className="btn btn-hold" id="hold-btn" onClick={requestCancel}>{tCommon('cancel')}</button>
@@ -528,6 +547,7 @@ export default function NewOrderScreen({
 
       {pay && (
         <PayModal
+          orderNumber={bootstrap.business.nextOrderNumber ?? 0}
           total={total}
           currency={currency}
           methods={meta.paymentMethods}
@@ -535,18 +555,19 @@ export default function NewOrderScreen({
           cashGiven={pay.cashGiven}
           busy={busy}
           waBusy={waBusy}
-          hasCustomer={!!customer}
           onSetMethod={(method) => setPay({ method, cashGiven: pay.cashGiven })}
           onSetCash={(cashGiven) => setPay({ method: pay.method, cashGiven })}
-          tCharge={t('chargeLabel')}
+          tAmountDue={tNew('amountDue', { number: bootstrap.business.nextOrderNumber ?? 0 })}
           tTitle={t('takePayment')}
           tCancel={tCommon('cancel')}
-          tConfirm={t('chargeReceipt')}
+          tConfirm={tNew('confirmPayment')}
           tCashGiven={t('cashGiven')}
           tChange={t('change')}
-          tSendWa={t('sendWaLink')}
-          methodLabel={(k) => tMethod(k as any)}
-          methodSub={(k) => tMethodSub(k as any)}
+          tSendWa={tNew('sendWaLink')}
+          tWaHint={tNew('waHint')}
+          methodLabel={(k) => (PAY_LABEL_KEY[k] ? tNew(PAY_LABEL_KEY[k] as any) : humanizeMethod(k))}
+          methodSub={(k) => (PAY_SUB_KEY[k] ? tNew(PAY_SUB_KEY[k] as any) : '')}
+          methodIcon={(k, icon) => PAY_ICON_OVERRIDE[k] ?? icon}
           onClose={() => setPay(null)}
           onCharge={charge}
           onSendWa={sendWhatsappLink}
@@ -586,18 +607,19 @@ export default function NewOrderScreen({
 // ─── Sub-components ────────────────────────────────────────────────────
 
 function PayModal({
-  total, currency, methods, method, cashGiven, busy, waBusy, hasCustomer,
-  tCharge, tTitle, tCancel, tConfirm, tCashGiven, tChange, tSendWa,
-  methodLabel, methodSub,
+  total, currency, methods, method, cashGiven, busy, waBusy,
+  tAmountDue, tTitle, tCancel, tConfirm, tCashGiven, tChange, tSendWa, tWaHint,
+  methodLabel, methodSub, methodIcon,
   onSetMethod, onSetCash, onClose, onCharge, onSendWa,
 }: {
+  orderNumber: number;
   total: number; currency: string;
   methods: { key: string; icon: string }[];
   method: PaymentMethod | null; cashGiven?: number; busy: boolean; waBusy: boolean;
-  hasCustomer: boolean;
-  tCharge: string; tTitle: string; tCancel: string; tConfirm: string;
-  tCashGiven: string; tChange: string; tSendWa: string;
+  tAmountDue: string; tTitle: string; tCancel: string; tConfirm: string;
+  tCashGiven: string; tChange: string; tSendWa: string; tWaHint: string;
   methodLabel: (k: string) => string; methodSub: (k: string) => string;
+  methodIcon: (k: string, icon: string) => string;
   onSetMethod: (m: PaymentMethod) => void;
   onSetCash: (n: number | undefined) => void;
   onClose: () => void; onCharge: () => void; onSendWa: () => void;
@@ -605,19 +627,22 @@ function PayModal({
   const change = method === 'CASH' && cashGiven != null ? Math.max(0, cashGiven - total) : 0;
 
   return (
-    <Modal open onClose={onClose} title={tTitle}>
+    <Modal open onClose={onClose} title={tTitle} className="wide">
         <div className="modal-body">
+          {/* Design app.js:942 — label "Order #N · Amount Due"; the cur span
+              holds only "AED", the space sits OUTSIDE it, then the amount. */}
           <div className="pay-amount">
-            <div className="pl">{tCharge}</div>
-            <div className="pv"><span className="cur">{currency} </span>{total.toFixed(2)}</div>
+            <div className="pl">{tAmountDue}</div>
+            <div className="pv"><span className="cur">{currency}</span> {total.toFixed(2)}</div>
           </div>
           <div className="pay-methods">
             {methods.map((m) => {
-              const Ic = ICON_MAP[m.icon] ?? Icon.card;
+              const Ic = ICON_MAP[methodIcon(m.key, m.icon)] ?? Icon.card;
+              const sub = methodSub(m.key);
               return (
                 <button key={m.key} className={`pay-m${method === m.key ? ' sel' : ''}`} onClick={() => onSetMethod(m.key as PaymentMethod)}>
                   <Ic />
-                  <div><b>{methodLabel(m.key)}</b><span>{methodSub(m.key)}</span></div>
+                  <div><b>{methodLabel(m.key)}</b>{sub && <span>{sub}</span>}</div>
                 </button>
               );
             })}
@@ -647,19 +672,19 @@ function PayModal({
             </div>
           )}
 
-          {/* WhatsApp payment link — matches design app.js:931. Disabled
-              without a customer attached. */}
+          {/* WhatsApp payment link — design app.js:946: full-width SOLID
+              WhatsApp-green CTA, white text, always enabled. The handler
+              itself toasts if no customer is attached. */}
           <button
             type="button"
-            className={`btn btn-ghost${waBusy ? ' btn-loading' : ''}`}
-            disabled={!hasCustomer || waBusy}
+            className={`btn${waBusy ? ' btn-loading' : ''}`}
             onClick={onSendWa}
-            style={{ marginTop: 14, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            title={!hasCustomer ? 'Attach a customer first' : tSendWa}
+            style={{ width: '100%', justifyContent: 'center', gap: 10, background: '#25D366', color: '#fff', padding: 14, marginTop: 4 }}
           >
-            <Icon.whatsapp size={16} />
+            <Icon.whatsapp size={20} />
             {tSendWa}
           </button>
+          <div style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--muted)', marginTop: 8 }}>{tWaHint}</div>
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCancel}</button>
@@ -678,6 +703,7 @@ function PayModal({
 
 function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: Customer) => void }) {
   const t = useTranslations('Order');
+  const tNew = useTranslations('NewOrder');
   const [q, setQ] = useState('');
   const [results, setResults] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
@@ -693,18 +719,35 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
   }
 
   return (
-    <Modal open onClose={onClose} title={t('findCustomer')}>
+    <Modal open onClose={onClose} title={tNew('attachCustomer')}>
         <div className="modal-body">
-          <div className="field"><input className="input" placeholder={t('searchByNameOrPhone')} autoFocus value={q} onChange={(e) => search(e.target.value)} /></div>
-          <div>
+          {/* Design app.js:901 — search icon + surface-2 box, borderless input. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', borderRadius: 10, padding: '11px 14px', marginBottom: 12 }}>
+            <Icon.search size={16} />
+            <input
+              placeholder={t('searchByNameOrPhone')}
+              autoFocus
+              value={q}
+              onChange={(e) => search(e.target.value)}
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'none', font: 'inherit', fontSize: 14, color: 'var(--text)' }}
+            />
+          </div>
+          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
             {loading && <div className="muted" style={{ padding: 8, fontSize: 12 }}>{t('searching')}</div>}
             {results.map((c) => (
-              <button key={c.id} className="pickrow" onClick={() => onPick(c)}>
-                <b style={{ fontWeight: 600 }}>{c.fullName}</b>
-                <span style={{ color: 'var(--muted)', fontSize: 11, marginLeft: 'auto' }}>{c.phone}</span>
+              <button key={c.id} className="role-opt" onClick={() => onPick(c)}>
+                <span className="rav">{initials(c.fullName)}</span>
+                <div className="ri">
+                  <b>{c.fullName}</b>
+                  {/* Design app.js:909 — "phone · area · N orders". */}
+                  <span>{tNew('custMeta', { phone: c.phone, area: c.area ?? '—', orders: c.totalOrders })}</span>
+                </div>
+                {c.isSubscriber && <span className="pill paid" style={{ marginLeft: 'auto' }}>{tNew('subscriber')}</span>}
               </button>
             ))}
-            {!loading && q && results.length === 0 && <div className="muted" style={{ fontSize: 12, padding: 8 }}>—</div>}
+            {!loading && q && results.length === 0 && (
+              <div className="muted" style={{ padding: 10, fontSize: 13 }}>{tNew('noCustomerMatch')}</div>
+            )}
           </div>
         </div>
     </Modal>

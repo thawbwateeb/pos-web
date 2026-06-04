@@ -20,7 +20,9 @@ export function initials(name: string): string {
 export function shortTime(iso: string | Date | null | undefined): string {
   if (!iso) return '';
   const d = typeof iso === 'string' ? new Date(iso) : iso;
-  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  // Non-padded hour to match the prototype's clock() ("6:05 PM") while staying
+  // locale-aware (Arabic renders its own format).
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 /**

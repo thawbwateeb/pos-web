@@ -76,7 +76,22 @@ function pathFor(name: string): string {
   return PI.shirt; // default
 }
 
-export default function GarmentIcon({ name, size = 26, className }: { name: string; size?: number; className?: string }) {
+/** Stable list of garment-icon keys, for the catalogue icon picker. */
+export const GARMENT_ICON_KEYS = Object.keys(PI);
+
+export default function GarmentIcon({
+  name,
+  iconKey,
+  size = 26,
+  className,
+}: {
+  name?: string;
+  /** Explicit icon key (from `iconKey` on a catalogue item); wins over name. */
+  iconKey?: string | null;
+  size?: number;
+  className?: string;
+}) {
+  const d = iconKey && PI[iconKey] ? PI[iconKey] : pathFor(name ?? '');
   return (
     <svg
       viewBox="0 0 24 24"
@@ -89,7 +104,7 @@ export default function GarmentIcon({ name, size = 26, className }: { name: stri
       strokeLinejoin="round"
       className={className}
     >
-      <path d={pathFor(name)} />
+      <path d={d} />
     </svg>
   );
 }

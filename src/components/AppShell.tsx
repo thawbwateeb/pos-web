@@ -12,6 +12,8 @@ import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost, useToast } from './Toast';
 import { ConfirmHost } from './ConfirmDialog';
 import Modal from './Modal';
+import { autoConnectQz } from '@/lib/qz';
+import { setPrintContext } from '@/lib/print';
 
 /**
  * Derive CSS theme variables from the business branding so Settings →
@@ -76,7 +78,7 @@ const NAV: Array<{
   // WhatsApp + Reports are visible to all roles.
   { id: 'order',    tKey: 'newOrder',   Icon: Icon.receipt, crumb: 'pointOfSale',     titleKey: 'newOrder' },
   { id: 'orders',   tKey: 'orders',     Icon: Icon.board,   crumb: 'operations',      titleKey: 'ordersBoard' },
-  { id: 'requests', tKey: 'requests',   Icon: Icon.mail,    crumb: 'operations',      titleKey: 'requestsInbox' },
+  { id: 'requests', tKey: 'requests',   Icon: Icon.inbox,   crumb: 'operations',      titleKey: 'requestsInbox' },
   { id: 'payments', tKey: 'payments',   Icon: Icon.card,    crumb: 'finance',         titleKey: 'payments' },
   { id: 'customers',tKey: 'customers',  Icon: Icon.users,   crumb: 'crm',             titleKey: 'customers' },
   { id: 'whatsapp', tKey: 'whatsapp',   Icon: Icon.whatsapp,crumb: 'messaging',       titleKey: 'whatsappBusiness' },
@@ -131,6 +133,26 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
+
+  // Feed the active branding/store/tax into the print layer so any screen can
+  // render receipts/Z-reports without prop-drilling, then auto-connect QZ Tray
+  // (best-effort — silent no-op when the tray app isn't installed).
+  useEffect(() => {
+    const b = bootstrap.business.branding;
+    const s = bootstrap.stores.find((x) => x.id === bootstrap.activeStoreId);
+    const tax = bootstrap.business.tax;
+    setPrintContext({
+      branding: {
+        brandName: b?.brandName || bootstrap.business.name,
+        receiptFooter: b?.receiptFooter,
+        currency: b?.currency,
+      },
+      store: { name: s?.name, address: s?.address, phone: s?.phone, trn: s?.trn },
+      tax: tax ? { enabled: tax.enabled, label: tax.label, trn: tax.trn, onReceipt: tax.onReceipt } : null,
+    });
+  }, [bootstrap]);
+
+  useEffect(() => { autoConnectQz(); }, []);
 
   // Invalidate Next's RSC payload cache whenever the app mutates server
   // state (POST/PATCH/PUT/DELETE via api-client). Without this, the
@@ -400,31 +422,40 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
         {storePickerOpen && (
           <Modal open onClose={() => setStorePickerOpen(false)} title={t('switchStore')}>
               <div className="modal-body">
-                {bootstrap.stores.map((s) => (
-                  <button
-                    key={s.id}
-                    className={`role-opt${s.id === bootstrap.activeStoreId ? ' sel' : ''}`}
-                    onClick={() => switchStore(s.id)}
-                  >
-                    <div className="rav">{initials(s.name)}</div>
-                    <div className="ri">
-                      <b>{s.name}</b>
-                      <span>{s.area ?? s.address ?? '—'}</span>
-                    </div>
-                    {s.id === bootstrap.activeStoreId && (
-                      <span className="pill paid" style={{ marginLeft: 'auto' }}>{tCommon('active')}</span>
-                    )}
-                  </button>
-                ))}
+                {bootstrap.stores.map((s) => {
+                  const isActive = s.id === bootstrap.activeStoreId;
+                  // Design app.js:1278-1279 — shop-icon avatar, "Closed" pill +
+                  // dimmed/disabled for inactive (non-selected) stores.
+                  const disabled = !s.active && !isActive;
+                  return (
+                    <button
+                      key={s.id}
+                      className={`role-opt${isActive ? ' sel' : ''}`}
+                      onClick={() => switchStore(s.id)}
+                      disabled={disabled}
+                      style={disabled ? { opacity: 0.5 } : undefined}
+                    >
+                      <div className="rav"><Icon.shop size={18} /></div>
+                      <div className="ri">
+                        <b>{s.name}</b>
+                        <span>{s.area ?? s.address ?? '—'}</span>
+                      </div>
+                      {isActive ? (
+                        <span className="pill paid" style={{ marginLeft: 'auto' }}>{tCommon('active')}</span>
+                      ) : !s.active ? (
+                        <span className="pill muted" style={{ marginLeft: 'auto' }}>{t('closed')}</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
                 {canManageStores && (
                   <Link
                     href={`/${locale}/settings/stores`}
                     onClick={() => setStorePickerOpen(false)}
-                    className="role-opt"
-                    style={{ marginTop: 8 }}
+                    className="btn btn-ghost"
+                    style={{ width: '100%', marginTop: 8, justifyContent: 'center' }}
                   >
-                    <div className="rav"><Icon.gear size={18} /></div>
-                    <div className="ri"><b>{t('manageStores')}</b></div>
+                    <Icon.gear size={16} /> {t('manageStores')}
                   </Link>
                 )}
               </div>

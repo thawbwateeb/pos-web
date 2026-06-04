@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import Modal from '@/components/Modal';
@@ -24,6 +25,32 @@ const ROWS: { key: string; name: string; desc: string; hasTemplate: boolean }[] 
   { key: 'WA_CONFIRM',    name: 'WhatsApp booking confirmation', desc: 'On pickup scheduled',       hasTemplate: true },
   { key: 'MARKETING',     name: 'Marketing & promo blasts',    desc: 'Opt-in customers only',       hasTemplate: false },
   { key: 'LOW_STOCK',     name: 'Low supplies alert',          desc: 'Notify manager',              hasTemplate: false },
+];
+
+/* Design app.js:1882 — friendly modal titles keyed by the lowercase notify key. */
+const TMPL_LABEL: Record<string, string> = {
+  SMS_READY: 'Order Ready SMS',
+  SMS_OUT: 'Out for Delivery SMS',
+  EMAIL_INVOICE: 'Invoice Email',
+  WA_CONFIRM: 'WhatsApp Confirmation',
+  MARKETING: 'Marketing Message',
+};
+
+/* Design app.js:1883 — placeholder tokens (PH) inserted at the cursor as {token}. */
+const PH = [
+  'name', 'firstName', 'order', 'status', 'items', 'subtotal', 'vat', 'total',
+  'area', 'address', 'date', 'time', 'eta', 'driver', 'phone', 'store',
+  'trackingLink', 'promo',
+];
+
+/* Design app.js:1884 — condition snippets (CONDS) inserted verbatim. */
+const CONDS = [
+  '{if promo != null}…{/if}',
+  '{if express}…{/if}',
+  '{if subscriber}…{/if}',
+  '{if vat > 0}…{/if}',
+  '{if status == "ready"}…{/if}',
+  '{else}',
 ];
 
 /* Map design's lowercase 'notify.X' key suffix to the backend uppercase key. */
@@ -108,7 +135,7 @@ export default function NotificationsForm({ initial }: { initial: { templates: T
       </div>
       {editingKey && (
         <TemplateModal
-          label={ROWS.find((r) => r.key === editingKey)?.name ?? editingKey}
+          label={TMPL_LABEL[editingKey] ?? ROWS.find((r) => r.key === editingKey)?.name ?? editingKey}
           body={tmplByKey[editingKey]?.body ?? ''}
           onClose={() => setEditingKey(null)}
           onSave={(body) => saveTemplate(editingKey, body)}
@@ -118,12 +145,35 @@ export default function NotificationsForm({ initial }: { initial: { templates: T
   );
 }
 
-/* Design app.js:1786-1796 — Template modal (opened via data-tmpledit):
-   single textarea labelled 'Message template' with placeholder-aware copy.
-   Save button text 'Save template'. Cancel button closes the modal. */
+/* Design app.js:1882-1894 — Template modal (opened via data-tmpledit):
+   friendly title, a 'Message template' textarea, a row of placeholder chips
+   (PH) and a row of condition chips (CONDS), each preceded by a helper line.
+   Tapping a chip inserts its token at the textarea caret. Save button text
+   'Save Template'. */
 function TemplateModal({ label, body, onClose, onSave }: { label: string; body: string; onClose: () => void; onSave: (b: string) => void }) {
+  const t = useTranslations('Settings.notifications');
+  const tCommon = useTranslations('Common');
   const [text, setText] = useState<string>(body);
   const [busy, setBusy] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Insert `token` at the current caret (or replacing the selection), then
+  // restore focus and place the caret after the inserted token.
+  function insertAt(token: string) {
+    const ta = taRef.current;
+    setText((prev) => {
+      const start = ta?.selectionStart ?? prev.length;
+      const end = ta?.selectionEnd ?? start;
+      const next = prev.slice(0, start) + token + prev.slice(end);
+      requestAnimationFrame(() => {
+        if (!ta) return;
+        ta.focus();
+        const caret = start + token.length;
+        ta.selectionStart = ta.selectionEnd = caret;
+      });
+      return next;
+    });
+  }
 
   async function submit() {
     setBusy(true);
@@ -134,8 +184,9 @@ function TemplateModal({ label, body, onClose, onSave }: { label: string; body: 
     <Modal open onClose={onClose} title={label}>
         <div className="modal-body">
           <div className="field">
-            <label>Message template</label>
+            <label>{t('messageTemplate')}</label>
             <textarea
+              ref={taRef}
               className="input"
               id="tmpl-text"
               style={{ minHeight: 120, resize: 'vertical', font: 'inherit' }}
@@ -143,11 +194,29 @@ function TemplateModal({ label, body, onClose, onSave }: { label: string; body: 
               onChange={(e) => setText(e.target.value)}
             />
           </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 7 }}>{t('placeholderHint')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {PH.map((p) => (
+              <button type="button" key={p} className="ph-chip" data-ph={p} onClick={() => insertAt(`{${p}}`)}>
+                {`{${p}}`}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', margin: '11px 0 7px' }}>
+            {t('conditionHint')} <b>{'{if promo != null}…{/if}'}</b>{t('conditionOps')}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {CONDS.map((c) => (
+              <button type="button" key={c} className="ph-chip" data-cond={c} onClick={() => insertAt(c)}>
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} id="tmpl-save" style={{ flex: 2 }} onClick={submit} disabled={busy}>
-            Save template
+            {t('saveTemplate')}
           </button>
         </div>
     </Modal>

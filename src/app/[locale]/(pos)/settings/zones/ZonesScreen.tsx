@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
-import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import FocusTrap from '@/components/FocusTrap';
@@ -27,7 +26,8 @@ export interface Zone {
 
 const VB_W = 100;
 const VB_H = 71;
-const ZONE_PALETTE = ['#5b8def', '#ef5b8d', '#5bef8d', '#efbd5b', '#a05bef', '#5befef', '#ef5b5b'];
+// Design app.js:184 — ZONE_PAL, same order; first entry is the default new-zone colour.
+const ZONE_PALETTE = ['#2A4858', '#16A34A', '#D97706', '#DC2626', '#0EA5E9', '#8FA88B'];
 
 function asPoints(p: unknown): ZonePoint[] {
   if (!Array.isArray(p)) return [];
@@ -43,6 +43,7 @@ function toFee(v: number | string): number {
 export default function ZonesScreen({ initial }: { initial: Zone[] }) {
   const [rows, setRows] = useState<Zone[]>(initial);
   const [editing, setEditing] = useState<Zone | null>(null);
+  const [viewing, setViewing] = useState<Zone | null>(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
   const confirm = useConfirm();
@@ -112,7 +113,7 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
                   <td><ZoneThumbnail points={pts} color={color} /></td>
                   <td>
                     <div className="r" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <button className="t-btn ghost" data-zoneview={i} onClick={() => toast.show(`${z.name}: ${pts.length} points · ${AED(toFee(z.baseFee))} base fee${z.active ? '' : ' · inactive'}`)}>View</button>
+                      <button className="t-btn ghost" data-zoneview={i} onClick={() => setViewing(z)}>View</button>
                       <button className="t-btn ghost" data-zoneedit={i} onClick={() => setEditing(z)}>Edit</button>
                       <button className="t-btn ghost" data-zdel={i} onClick={() => remove(z)}>Delete</button>
                     </div>
@@ -123,6 +124,15 @@ export default function ZonesScreen({ initial }: { initial: Zone[] }) {
           </tbody>
         </table>
       </div>
+      {viewing && (
+        <ZoneForm
+          initial={viewing}
+          existingCount={rows.length}
+          view
+          onClose={() => setViewing(null)}
+          onSaved={() => setViewing(null)}
+        />
+      )}
       {(adding || editing) && (
         <ZoneForm
           initial={editing}
@@ -163,15 +173,16 @@ function ZoneThumbnail({ points, color }: { points: ZonePoint[]; color: string }
 interface ZoneFormProps {
   initial: Zone | null;
   existingCount: number;
+  view?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
+function ZoneForm({ initial, existingCount, view = false, onClose, onSaved }: ZoneFormProps) {
   const t = useTranslations('Settings.zones');
   const tCommon = useTranslations('Common');
   const titleId = useId();
-  const isEdit = !!initial;
+  const isEdit = !!initial && !view;
   const defaultColor = initial?.color || ZONE_PALETTE[existingCount % ZONE_PALETTE.length];
   const [name, setName] = useState<string>(initial?.name ?? '');
   const [color, setColor] = useState<string>(defaultColor);
@@ -204,92 +215,108 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
       <FocusTrap active onEscape={onClose}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
         <div className="modal-head">
-          <h3 id={titleId}>{isEdit ? 'Edit zone' : 'New zone'}</h3>
+          <h3 id={titleId}>{view ? t('viewTitle') : isEdit ? t('editTitle') : t('newTitle')}</h3>
           <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
-          <div className="field">
-            <label>Zone name</label>
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('namePlaceholder')}
-              autoFocus
-            />
-          </div>
-          <div className="field-2">
-            <div className="field">
-              <label>Base fee (AED)</label>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                step={0.5}
-                value={baseFee}
-                onChange={(e) => setBaseFee(+e.target.value || 0)}
-              />
+          {view ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
+              <b style={{ color: 'var(--text)' }}>{name}</b> · {t('pointsCount', { n: points.length })}
             </div>
-            <div className="field">
-              <label>Daily capacity</label>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                step={1}
-                value={capacity}
-                onChange={(e) => setCapacity(+e.target.value || 0)}
-              />
-            </div>
-          </div>
-          <div className="field-2">
-            <div className="field">
-              <label>Colour</label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {ZONE_PALETTE.map((c) => (
+          ) : (
+            <>
+              <div className="field">
+                <label>{t('nameLabel')}</label>
+                <input
+                  className="input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('namePlaceholder')}
+                  autoFocus
+                />
+              </div>
+              <div className="field-2">
+                <div className="field">
+                  <label>{t('baseFeeLabel')}</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={baseFee}
+                    onChange={(e) => setBaseFee(+e.target.value || 0)}
+                  />
+                </div>
+                <div className="field">
+                  <label>{t('capacityLabel')}</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={capacity}
+                    onChange={(e) => setCapacity(+e.target.value || 0)}
+                  />
+                </div>
+              </div>
+              <div className="field-2">
+                <div className="field">
+                  <label>{t('colourLabel')}</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {ZONE_PALETTE.map((c) => (
+                      <button
+                        type="button"
+                        key={c}
+                        aria-label={t('useColour', { color: c })}
+                        onClick={() => setColor(c)}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          background: c,
+                          border: c === color ? '2px solid var(--text)' : '1px solid var(--border)',
+                          cursor: 'pointer',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="field">
+                  <label id="zone-active-label">{tCommon('active')}</label>
                   <button
                     type="button"
-                    key={c}
-                    aria-label={`Use colour ${c}`}
-                    onClick={() => setColor(c)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      background: c,
-                      border: c === color ? '2px solid var(--text)' : '1px solid var(--border)',
-                      cursor: 'pointer',
-                    }}
+                    role="switch"
+                    aria-checked={active}
+                    aria-labelledby="zone-active-label"
+                    className={`switch${active ? ' on' : ''}`}
+                    onClick={() => setActive((a) => !a)}
                   />
-                ))}
+                </div>
               </div>
-            </div>
-            <div className="field">
-              <label id="zone-active-label">Active</label>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={active}
-                aria-labelledby="zone-active-label"
-                className={`switch${active ? ' on' : ''}`}
-                onClick={() => setActive((a) => !a)}
-              />
-            </div>
-          </div>
-          <div className="field" style={{ marginTop: 8 }}>
-            <label>Draw the polygon below</label>
-            <PolygonEditor points={points} setPoints={setPoints} color={color} />
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Click to add vertices · drag vertices to adjust</span>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPoints([])}>Clear polygon</button>
-            </div>
+            </>
+          )}
+          <div className="field" style={{ marginTop: view ? 0 : 8 }}>
+            {!view && <label>{t('drawLabel')}</label>}
+            <PolygonEditor points={points} setPoints={setPoints} color={color} readOnly={view} />
+            {!view && (
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{t('drawHint')}</span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPoints([])}>{t('clearPolygon')}</button>
+              </div>
+            )}
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>
-            {isEdit ? 'Save zone' : 'Create zone'}
-          </button>
+          {view ? (
+            <button className="btn btn-pri" style={{ flex: 1 }} onClick={onClose}>{tCommon('close')}</button>
+          ) : (
+            <>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>{tCommon('cancel')}</button>
+              <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>
+                {isEdit ? t('saveZone') : t('createZone')}
+              </button>
+            </>
+          )}
         </div>
       </div>
       </FocusTrap>
@@ -301,9 +328,10 @@ interface PolygonEditorProps {
   points: ZonePoint[];
   setPoints: (next: ZonePoint[] | ((prev: ZonePoint[]) => ZonePoint[])) => void;
   color: string;
+  readOnly?: boolean;
 }
 
-function PolygonEditor({ points, setPoints, color }: PolygonEditorProps) {
+function PolygonEditor({ points, setPoints, color, readOnly = false }: PolygonEditorProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
@@ -364,7 +392,7 @@ function PolygonEditor({ points, setPoints, color }: PolygonEditorProps) {
         background: '#eef1f4',
         backgroundImage: gridBg,
         backgroundSize: '26px 26px',
-        cursor: dragIdx == null ? 'crosshair' : 'grabbing',
+        cursor: readOnly ? 'default' : dragIdx == null ? 'crosshair' : 'grabbing',
         userSelect: 'none',
         touchAction: 'none',
       }}
@@ -374,7 +402,7 @@ function PolygonEditor({ points, setPoints, color }: PolygonEditorProps) {
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="none"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-        onClick={onCanvasClick}
+        onClick={readOnly ? undefined : onCanvasClick}
       >
         {points.length >= 3 && (
           <polygon
@@ -397,19 +425,23 @@ function PolygonEditor({ points, setPoints, color }: PolygonEditorProps) {
             pointerEvents="none"
           />
         )}
-        {points.map((p, i) => (
-          <circle
-            key={i}
-            cx={p[0]}
-            cy={p[1]}
-            r={1.4}
-            fill={color}
-            stroke="#fff"
-            strokeWidth={0.4}
-            style={{ cursor: 'grab' }}
-            onMouseDown={(e) => onVertexMouseDown(i, e)}
-          />
-        ))}
+        {points.map((p, i) =>
+          readOnly ? (
+            <circle key={i} cx={p[0]} cy={p[1]} r={0.9} fill={color} pointerEvents="none" />
+          ) : (
+            <circle
+              key={i}
+              cx={p[0]}
+              cy={p[1]}
+              r={1.4}
+              fill={color}
+              stroke="#fff"
+              strokeWidth={0.4}
+              style={{ cursor: 'grab' }}
+              onMouseDown={(e) => onVertexMouseDown(i, e)}
+            />
+          ),
+        )}
       </svg>
     </div>
   );

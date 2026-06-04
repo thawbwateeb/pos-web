@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import Modal from '@/components/Modal';
+import { useTranslations } from 'next-intl';
 
 /* Design app.js:1520-1535 — Gift Cards section.
    - .set-sec > h2 'Gift Cards' + .ssub 'Sell and redeem store gift cards'
@@ -48,6 +50,7 @@ export default function GiftCardsScreen({ settings, initialCards }: { settings: 
   const [checkNum, setCheckNum] = useState<string>('');
   const [cards, setCards] = useState<any[]>(initialCards);
   const [busy, setBusy] = useState(false);
+  const [issuing, setIssuing] = useState<{ amount: number } | null>(null);
   const toast = useToast();
 
   async function reload() {
@@ -83,11 +86,16 @@ export default function GiftCardsScreen({ settings, initialCards }: { settings: 
     }
   }
 
-  async function issueCard() {
-    const amount = Number(prompt('Amount (AED)') ?? 0);
+  function issueCard() {
+    // Amount + recipient are both collected in the styled modal (no native prompts).
+    const first = denoms.split(',').map((s) => Number(s.trim())).find((n) => n > 0) ?? 0;
+    setIssuing({ amount: first });
+  }
+
+  async function confirmIssue(amount: number, recipientName: string) {
     if (!amount) return;
-    const recipientName = prompt('Recipient name') ?? '';
     await api('/gift-cards', { method: 'POST', body: { amount, recipientName } });
+    setIssuing(null);
     reload();
     toast.show('Gift card issued');
   }
@@ -186,6 +194,76 @@ export default function GiftCardsScreen({ settings, initialCards }: { settings: 
           Save Gift Card Settings
         </button>
       </div>
+
+      {issuing && (
+        <IssueGiftCardModal
+          amount={issuing.amount}
+          onClose={() => setIssuing(null)}
+          onConfirm={confirmIssue}
+        />
+      )}
     </div>
+  );
+}
+
+function IssueGiftCardModal({
+  amount: initialAmount,
+  onClose,
+  onConfirm,
+}: {
+  amount: number;
+  onClose: () => void;
+  onConfirm: (amount: number, recipientName: string) => void | Promise<void>;
+}) {
+  const t = useTranslations('Settings.giftCards');
+  const tCommon = useTranslations('Common');
+  const [amount, setAmount] = useState(initialAmount || 0);
+  const [recipientName, setRecipientName] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!amount) return;
+    setBusy(true);
+    try {
+      await onConfirm(Number(amount), recipientName.trim());
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title={t('issue')}>
+      <div className="modal-body">
+        <div className="field" style={{ marginBottom: 12 }}>
+          <label>{t('amountPrompt')}</label>
+          <input
+            className="input"
+            type="number"
+            min={1}
+            autoFocus
+            value={amount || ''}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          />
+        </div>
+        <div className="field">
+          <label>{t('recipientPrompt')}</label>
+          <input
+            className="input"
+            value={recipientName}
+            onChange={(e) => setRecipientName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          />
+        </div>
+      </div>
+      <div className="modal-foot">
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose} disabled={busy}>
+          {tCommon('cancel')}
+        </button>
+        <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit} disabled={busy}>
+          {t('issue')}
+        </button>
+      </div>
+    </Modal>
   );
 }

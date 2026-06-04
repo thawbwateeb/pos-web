@@ -174,7 +174,7 @@ export default function LoginForm({ next }: { next: string }) {
           </button>
           <div className="lg-foot">
             <span>{t('roleHint')}</span>
-            <span>{t('version', { v: process.env.NEXT_PUBLIC_VERSION ?? '' })}</span>
+            <span>{t('version', { v: process.env.NEXT_PUBLIC_VERSION ?? 'v2.4' })}</span>
           </div>
         </form>
       </div>
