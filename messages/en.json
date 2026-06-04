@@ -58,7 +58,8 @@
     "code": "Code",
     "description": "Description",
     "value": "Value",
-    "uses": "Uses"
+    "uses": "Uses",
+    "cost": "Cost"
   },
   "Login": {
     "brand": "THAWB WA TEEB",
@@ -1145,7 +1146,14 @@
       "deleteItem": "Delete item?",
       "categoryTitlePrompt": "Category title",
       "itemNamePrompt": "Item name",
-      "skuPrompt": "SKU"
+      "skuPrompt": "SKU",
+      "addCategoryFirst": "Add a category first",
+      "editProduct": "Edit product",
+      "turnaround": "Turnaround",
+      "saveFailed": "Save failed",
+      "imported": "Imported {n} products",
+      "importFailed": "Import failed",
+      "importEmpty": "CSV has no data rows"
     },
     "racks": {
       "addLabelPlaceholder": "Add rack label… e.g. A-05"

@@ -58,7 +58,8 @@
     "code": "الرمز",
     "description": "الوصف",
     "value": "القيمة",
-    "uses": "مرات الاستخدام"
+    "uses": "مرات الاستخدام",
+    "cost": "التكلفة"
   },
   "Login": {
     "brand": "ثوب وطيب",
@@ -1145,7 +1146,14 @@
       "deleteItem": "هل تريد حذف الصنف؟",
       "categoryTitlePrompt": "عنوان الفئة",
       "itemNamePrompt": "اسم الصنف",
-      "skuPrompt": "وحدة المخزون"
+      "skuPrompt": "وحدة المخزون",
+      "addCategoryFirst": "أضِف فئة أولًا",
+      "editProduct": "تعديل المنتج",
+      "turnaround": "مدة التنفيذ",
+      "saveFailed": "فشل الحفظ",
+      "imported": "تم استيراد {n} منتجًا",
+      "importFailed": "فشل الاستيراد",
+      "importEmpty": "لا توجد صفوف بيانات في الملف"
     },
     "racks": {
       "addLabelPlaceholder": "أضف تسمية رف… مثال A-05"
