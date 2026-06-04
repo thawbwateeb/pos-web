@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -524,6 +524,8 @@ function OrderDetailModal({
   const tStatus = useTranslations('OrderStatus');
   const tMethod = useTranslations('PaymentMethod');
   const toast = useToast();
+  const titleId = useId();
+  const confirmTitleId = useId();
 
   useEffect(() => {
     api<any>(`/orders/${orderId}`).then(setOrder);
@@ -636,7 +638,7 @@ function OrderDetailModal({
     return (
       <div className="modal-scrim show" onClick={onClose}>
         <FocusTrap active onEscape={onClose}>
-        <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal modal-lg" role="dialog" aria-modal="true" aria-label={tCommon('loading')} onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
         </FocusTrap>
@@ -651,10 +653,10 @@ function OrderDetailModal({
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>#{order.number}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>#{order.number}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="odl-head">
@@ -779,10 +781,10 @@ function OrderDetailModal({
         {confirmRefund && (
           <div className="modal-scrim show" onClick={() => setConfirmRefund(null)} style={{ zIndex: 220 }}>
             <FocusTrap active onEscape={() => setConfirmRefund(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal" role="dialog" aria-modal="true" aria-labelledby={confirmTitleId} onClick={(e) => e.stopPropagation()}>
               <div className="modal-head">
-                <h3>{confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}</h3>
-                <button className="x" onClick={() => setConfirmRefund(null)}>×</button>
+                <h3 id={confirmTitleId}>{confirmRefund.kind === 'all' ? t('refundAll') : t('voidLine')}</h3>
+                <button className="x" aria-label={tCommon('close')} onClick={() => setConfirmRefund(null)}>×</button>
               </div>
               <div className="modal-body">
                 <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>
@@ -864,6 +866,7 @@ function TaggingModal({
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
   const toast = useToast();
+  const titleId = useId();
 
   const slotKey = (s: { orderItemId: string; qtyIndex: number }) => `${s.orderItemId}__${s.qtyIndex}`;
 
@@ -972,7 +975,7 @@ function TaggingModal({
     return (
       <div className="modal-scrim show" onClick={onClose}>
         <FocusTrap active onEscape={onClose}>
-        <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal modal-lg" role="dialog" aria-modal="true" aria-label={tCommon('loading')} onClick={(e) => e.stopPropagation()}>
           <div className="modal-body muted">{tCommon('loading')}</div>
         </div>
         </FocusTrap>
@@ -983,10 +986,10 @@ function TaggingModal({
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>{t('tagGarments', { number: order.number })}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>{t('tagGarments', { number: order.number })}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="tg-top">
@@ -1104,16 +1107,17 @@ function PaymentMethodPicker({
   const tMethod = useTranslations('PaymentMethod');
   const tCommon = useTranslations('Common');
   const t = useTranslations('OrdersBoard');
+  const titleId = useId();
   // ON_DELIVERY is the explicit not-yet-paid status; offering it on a
   // "take payment" picker would create a falsely-paid record.
   const choices = methods.filter((m) => m.key !== 'ON_DELIVERY');
   return (
     <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 220 }}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>{t('takePayment', { number: orderNumber, amount: AED(total) })}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>{t('takePayment', { number: orderNumber, amount: AED(total) })}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="pay-methods" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -1159,13 +1163,14 @@ function OrderActionsMenu({
 }) {
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
+  const titleId = useId();
   return (
     <div className="modal-scrim show" onClick={onClose} style={{ zIndex: 230 }}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>#{o.number}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>#{o.number}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div style={{ marginBottom: 14, fontSize: 13, color: 'var(--muted)' }}>

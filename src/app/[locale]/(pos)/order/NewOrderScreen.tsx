@@ -11,7 +11,7 @@ import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
 import { enqueuePrintJob } from '@/lib/print';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 interface CartLine {
   key: string;
@@ -571,13 +571,7 @@ export default function NewOrderScreen({
       )}
 
       {cancelConfirmOpen && (
-        <div className="modal-scrim show" onClick={() => setCancelConfirmOpen(false)}>
-          <FocusTrap active onEscape={() => setCancelConfirmOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>{t('cancelTitle')}</h3>
-              <button className="x" onClick={() => setCancelConfirmOpen(false)}>×</button>
-            </div>
+        <Modal open onClose={() => setCancelConfirmOpen(false)} title={t('cancelTitle')}>
             <div className="modal-body">
               <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>{t('cancelBody')}</p>
             </div>
@@ -585,9 +579,7 @@ export default function NewOrderScreen({
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setCancelConfirmOpen(false)}>{t('keepEditing')}</button>
               <button className="btn btn-pri" style={{ flex: 1 }} onClick={confirmCancel}>{t('discardOrder')}</button>
             </div>
-          </div>
-          </FocusTrap>
-        </div>
+        </Modal>
       )}
     </div>
   );
@@ -615,10 +607,7 @@ function PayModal({
   const change = method === 'CASH' && cashGiven != null ? Math.max(0, cashGiven - total) : 0;
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{tTitle}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={tTitle}>
         <div className="modal-body">
           <div className="pay-amount">
             <div className="pl">{tCharge}</div>
@@ -685,9 +674,7 @@ function PayModal({
             {tConfirm}
           </button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
@@ -708,10 +695,7 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{t('findCustomer')}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={t('findCustomer')}>
         <div className="modal-body">
           <div className="field"><input className="input" placeholder={t('searchByNameOrPhone')} autoFocus value={q} onChange={(e) => search(e.target.value)} /></div>
           <div>
@@ -725,19 +709,14 @@ function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPick: (c: 
             {!loading && q && results.length === 0 && <div className="muted" style={{ fontSize: 12, padding: 8 }}>—</div>}
           </div>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
 function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: () => void; onApply: (p: Promo) => void }) {
   const t = useTranslations('Order');
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{t('applyPromo')}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={t('applyPromo')}>
         <div className="modal-body">
           {promos.length === 0 ? (
             <div className="muted" style={{ fontSize: 13, padding: 8 }}>{t('noPromos')}</div>
@@ -753,8 +732,6 @@ function PromoPicker({ promos, onClose, onApply }: { promos: Promo[]; onClose: (
             ))
           )}
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

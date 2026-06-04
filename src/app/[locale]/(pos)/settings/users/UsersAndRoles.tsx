@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 import { initials } from '@/lib/format';
 import type { PermissionAction, Role, Store, UserRow } from '@/lib/types';
 
@@ -296,10 +296,7 @@ function AddRoleModal({ onClose, onCreate }: { onClose: () => void; onCreate: (n
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>Add role</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title="Add role">
         <form onSubmit={submit}>
           <div className="modal-body">
             <div className="field">
@@ -315,18 +312,13 @@ function AddRoleModal({ onClose, onCreate }: { onClose: () => void; onCreate: (n
             <button type="submit" className="btn btn-pri" style={{ flex: 2 }} disabled={!name.trim()}>Create role</button>
           </div>
         </form>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
 function ConfirmModal({ title, body, confirmLabel, onCancel, onConfirm }: { title: string; body: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void }) {
   return (
-    <div className="modal-scrim show" onClick={onCancel}>
-      <FocusTrap active onEscape={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{title}</h3><button className="x" onClick={onCancel}>×</button></div>
+    <Modal open onClose={onCancel} title={title}>
         <div className="modal-body">
           <p style={{ padding: '8px 12px', fontSize: 14, color: 'var(--muted)' }}>{body}</p>
         </div>
@@ -334,9 +326,7 @@ function ConfirmModal({ title, body, confirmLabel, onCancel, onConfirm }: { titl
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onCancel}>Cancel</button>
           <button className="btn btn-pri" style={{ flex: 1 }} onClick={onConfirm}>{confirmLabel}</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
@@ -396,10 +386,7 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
   const allSelected = f.storeIds.length === stores.length && stores.length > 0;
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{isEdit ? 'Edit user' : 'Add user'}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={isEdit ? 'Edit user' : 'Add user'}>
         <div className="modal-body fin">
           <div className="field">
             <label>Full name</label>
@@ -449,8 +436,6 @@ function UserModal({ stores, roles, editing, onClose, onSaved }: { users: UserRo
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save changes' : 'Create user'}</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

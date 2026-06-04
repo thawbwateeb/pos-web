@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useToast } from './Toast';
-import FocusTrap from './FocusTrap';
+import Modal from './Modal';
 
 type Field = { key: string; label: string; required?: boolean; type?: 'text' | 'number' | 'select'; options?: string[] };
 type Column = { key: string; label: string; align?: 'right' | 'left'; render?: (row: any) => React.ReactNode };
@@ -67,12 +67,12 @@ export default function GenericCRUDList({
           {rows.length === 0 && <tr><td colSpan={columns.length + 1} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>No {labelSingular}s yet</td></tr>}
         </tbody>
       </table>
-      {(adding || editing) && <Modal fields={fields} initial={editing} onSave={save} onClose={() => { setAdding(false); setEditing(null); }} title={editing ? `Edit ${labelSingular}` : `Add ${labelSingular}`} />}
+      {(adding || editing) && <EditModal fields={fields} initial={editing} onSave={save} onClose={() => { setAdding(false); setEditing(null); }} title={editing ? `Edit ${labelSingular}` : `Add ${labelSingular}`} />}
     </div>
   );
 }
 
-function Modal({ fields, initial, onSave, onClose, title }: { fields: Field[]; initial: any | null; onSave: (payload: any) => void; onClose: () => void; title: string }) {
+function EditModal({ fields, initial, onSave, onClose, title }: { fields: Field[]; initial: any | null; onSave: (payload: any) => void; onClose: () => void; title: string }) {
   const [form, setForm] = useState<any>(() =>
     Object.fromEntries(fields.map((f) => [f.key, initial?.[f.key] ?? (f.type === 'number' ? 0 : '')])),
   );
@@ -89,10 +89,7 @@ function Modal({ fields, initial, onSave, onClose, title }: { fields: Field[]; i
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{title}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={title}>
         <div className="modal-body">
           {fields.map((f) => (
             <div className="field" key={f.key}>
@@ -112,8 +109,6 @@ function Modal({ fields, initial, onSave, onClose, title }: { fields: Field[]; i
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={submit}>Save</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

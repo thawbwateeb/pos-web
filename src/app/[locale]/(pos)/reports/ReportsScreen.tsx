@@ -9,7 +9,7 @@ import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
 import { enqueuePrintJob } from '@/lib/print';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { ReportsOverview, ReportsHourly } from './page';
@@ -621,13 +621,7 @@ function CashUpModal({
   const varianceColor = variance === 0 ? 'var(--ok)' : variance < 0 ? 'var(--danger)' : 'var(--warn)';
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{t('cashUp.title')}</h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal open onClose={onClose} title={t('cashUp.title')}>
         <div className="modal-body fin">
           <div className="field" style={{ marginBottom: 12 }}>
             <label>{t('cashUp.expected')}</label>
@@ -667,8 +661,6 @@ function CashUpModal({
             {t('cashUp.confirm')}
           </button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }

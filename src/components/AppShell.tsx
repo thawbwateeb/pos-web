@@ -10,7 +10,7 @@ import type { Bootstrap, PermissionAction } from '@/lib/types';
 import { initials } from '@/lib/format';
 import { BootstrapProvider } from './BootstrapContext';
 import { ToastHost, useToast } from './Toast';
-import FocusTrap from './FocusTrap';
+import Modal from './Modal';
 
 /**
  * Derive CSS theme variables from the business branding so Settings →
@@ -390,13 +390,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
         <div className="screen">{children}</div>
 
         {storePickerOpen && (
-          <div className="modal-scrim show" onClick={() => setStorePickerOpen(false)}>
-            <FocusTrap active onEscape={() => setStorePickerOpen(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <h3>{t('switchStore')}</h3>
-                <button className="x" onClick={() => setStorePickerOpen(false)}>×</button>
-              </div>
+          <Modal open onClose={() => setStorePickerOpen(false)} title={t('switchStore')}>
               <div className="modal-body">
                 {bootstrap.stores.map((s) => (
                   <button
@@ -426,19 +420,11 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   </Link>
                 )}
               </div>
-            </div>
-            </FocusTrap>
-          </div>
+          </Modal>
         )}
 
         {userMenuOpen && (
-          <div className="modal-scrim show" onClick={() => setUserMenuOpen(false)}>
-            <FocusTrap active onEscape={() => setUserMenuOpen(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <h3>{t('userMenu')}</h3>
-                <button className="x" onClick={() => setUserMenuOpen(false)}>×</button>
-              </div>
+          <Modal open onClose={() => setUserMenuOpen(false)} title={t('userMenu')}>
               <div className="modal-body">
                 <div className="role-opt sel" style={{ pointerEvents: 'none' }}>
                   <div className="rav">{initials(u.fullName)}</div>
@@ -460,19 +446,11 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   <div className="ri"><b>{t('signOut')}</b></div>
                 </button>
               </div>
-            </div>
-            </FocusTrap>
-          </div>
+          </Modal>
         )}
 
         {endShiftConfirm && (
-          <div className="modal-scrim show" onClick={() => setEndShiftConfirm(null)}>
-            <FocusTrap active onEscape={() => setEndShiftConfirm(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <h3>{t('endShift')}</h3>
-                <button className="x" onClick={() => setEndShiftConfirm(null)}>×</button>
-              </div>
+          <Modal open onClose={() => setEndShiftConfirm(null)} title={t('endShift')}>
               <div className="modal-body">
                 <p style={{ padding: '8px 12px', fontSize: 14 }}>
                   {t('endShiftConfirm', { h: endShiftConfirm.h, m: endShiftConfirm.m })}
@@ -482,9 +460,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
                   <button className="btn btn-pri" onClick={confirmEndShift}>{t('endShift')}</button>
                 </div>
               </div>
-            </div>
-            </FocusTrap>
-          </div>
+          </Modal>
         )}
       </div>
     </div>

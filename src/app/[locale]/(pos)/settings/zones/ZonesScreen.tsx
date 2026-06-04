@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { AED } from '@/lib/format';
@@ -166,6 +166,8 @@ interface ZoneFormProps {
 
 function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
   const t = useTranslations('Settings.zones');
+  const tCommon = useTranslations('Common');
+  const titleId = useId();
   const isEdit = !!initial;
   const defaultColor = initial?.color || ZONE_PALETTE[existingCount % ZONE_PALETTE.length];
   const [name, setName] = useState<string>(initial?.name ?? '');
@@ -197,10 +199,10 @@ function ZoneForm({ initial, existingCount, onClose, onSaved }: ZoneFormProps) {
   return (
     <div className="modal-scrim show" onClick={onClose}>
       <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
         <div className="modal-head">
-          <h3>{isEdit ? 'Edit zone' : 'New zone'}</h3>
-          <button className="x" onClick={onClose}>×</button>
+          <h3 id={titleId}>{isEdit ? 'Edit zone' : 'New zone'}</h3>
+          <button className="x" aria-label={tCommon('close')} onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <div className="field">

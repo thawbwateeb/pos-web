@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
-import FocusTrap from '@/components/FocusTrap';
+import Modal from '@/components/Modal';
 
 /* Design app.js:1599-1612 — Stores:
    - .set-sec h2 'Stores' + ssub 'Manage every branch — switch the active
@@ -141,13 +141,7 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
       )}
       {viewing && <StoreViewModal store={viewing} isActive={viewing.id === activeStoreId} onClose={() => setViewing(null)} />}
       {confirmDelete && (
-        <div className="modal-scrim show" onClick={() => setConfirmDelete(null)}>
-          <FocusTrap active onEscape={() => setConfirmDelete(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>Remove store?</h3>
-              <button className="x" onClick={() => setConfirmDelete(null)}>×</button>
-            </div>
+        <Modal open onClose={() => setConfirmDelete(null)} title="Remove store?">
             <div className="modal-body">
               <p style={{ padding: '8px 12px', color: 'var(--muted)' }}>
                 Delete <b>{confirmDelete.name}</b>? Orders attached to this store will remain but won't have a current location.
@@ -157,9 +151,7 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="btn btn-pri" style={{ flex: 1 }} onClick={() => doDelete(confirmDelete)}>Delete</button>
             </div>
-          </div>
-          </FocusTrap>
-        </div>
+        </Modal>
       )}
     </>
   );
@@ -167,16 +159,11 @@ export default function StoresSettings({ initial, activeStoreId }: { initial: St
 
 function StoreViewModal({ store, isActive, onClose }: { store: Store; isActive: boolean; onClose: () => void }) {
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>
-            {store.name}
-            {isActive && <span className="pill paid" style={{ marginLeft: 8 }}>Active</span>}
-          </h3>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      title={<>{store.name}{isActive && <span className="pill paid" style={{ marginLeft: 8 }}>Active</span>}</>}
+    >
         <div className="modal-body">
           <div className="odl-meta" style={{ flexWrap: 'wrap' }}>
             <span><b>Area:</b> {store.area ?? '—'}</span>
@@ -194,9 +181,7 @@ function StoreViewModal({ store, isActive, onClose }: { store: Store; isActive: 
         <div className="modal-foot">
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Close</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
 
@@ -226,10 +211,7 @@ function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClo
   }
 
   return (
-    <div className="modal-scrim show" onClick={onClose}>
-      <FocusTrap active onEscape={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><h3>{isEdit ? 'Edit store' : 'Add store'}</h3><button className="x" onClick={onClose}>×</button></div>
+    <Modal open onClose={onClose} title={isEdit ? 'Edit store' : 'Add store'}>
         <div className="modal-body">
           <div className="field"><label>Name</label><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <div className="field-2">
@@ -246,8 +228,6 @@ function StoreForm({ initial, onClose, onSaved }: { initial: Store | null; onClo
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className={`btn btn-pri${busy ? ' btn-loading' : ''}`} style={{ flex: 2 }} onClick={save}>{isEdit ? 'Save changes' : 'Add store'}</button>
         </div>
-      </div>
-      </FocusTrap>
-    </div>
+    </Modal>
   );
 }
