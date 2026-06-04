@@ -344,8 +344,6 @@
     "noPayments": "لا توجد مدفوعات بعد",
     "kpis": {
       "collectedToday": "المُحصَّل اليوم",
-      "collectedTrendPct": "▲ 12%",
-      "collectedTrendSub": "مقارنة بالأمس",
       "outstanding": "المستحقات",
       "unpaid": "{count} طلب غير مدفوع",
       "cardDigital": "بطاقة / رقمي",
@@ -528,8 +526,6 @@
     },
     "kpis": {
       "gross": "إجمالي المبيعات",
-      "grossTrendPct": "▲ 12%",
-      "grossTrendSub": "مقارنة بمتوسط الجمعة",
       "orders": "الطلبات",
       "ordersSub": "{walk} عميل مباشر · {deliv} استلام وتوصيل",
       "items": "الأصناف المُعالَجة",
@@ -541,8 +537,6 @@
       "outstanding": "المستحقات",
       "outstandingSub": "{count} طلب غير مدفوع",
       "newCustomers": "العملاء الجدد",
-      "newCustomersTrendPct": "▲ 3",
-      "newCustomersTrendSub": "مقارنة بالأمس",
       "turnaround": "متوسط مدة الإنجاز",
       "turnaroundSub": "ضمن هدف 24 ساعة"
     },

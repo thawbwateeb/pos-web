@@ -344,8 +344,6 @@
     "noPayments": "No payments yet",
     "kpis": {
       "collectedToday": "Collected Today",
-      "collectedTrendPct": "▲ 12%",
-      "collectedTrendSub": "vs yesterday",
       "outstanding": "Outstanding",
       "unpaid": "{count} unpaid orders",
       "cardDigital": "Card / Digital",
@@ -528,8 +526,6 @@
     },
     "kpis": {
       "gross": "Gross Sales",
-      "grossTrendPct": "▲ 12%",
-      "grossTrendSub": "vs avg Friday",
       "orders": "Orders",
       "ordersSub": "{walk} walk-in · {deliv} pickup & delivery",
       "items": "Items Processed",
@@ -541,8 +537,6 @@
       "outstanding": "Outstanding",
       "outstandingSub": "{count} unpaid orders",
       "newCustomers": "New Customers",
-      "newCustomersTrendPct": "▲ 3",
-      "newCustomersTrendSub": "vs yesterday",
       "turnaround": "Avg. Turnaround",
       "turnaroundSub": "within 24h target"
     },

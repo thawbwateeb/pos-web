@@ -96,7 +96,6 @@ export default function PaymentsScreen({
           <div className="sico"><Icon.cash size={34} /></div>
           <div className="sk">{t('kpis.collectedToday')}</div>
           <div className="sv"><span className="cur">AED</span> {Math.round(collectedToday)}</div>
-          <div className="sd"><b className="up">{t('kpis.collectedTrendPct')}</b> {t('kpis.collectedTrendSub')}</div>
         </div>
         <div className="stat">
           <div className="sico"><Icon.clock size={34} /></div>
