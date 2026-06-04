@@ -36,7 +36,7 @@ interface CatalogueItem {
   sortOrder?: number;
   prices?: Record<string, number>;
   cost?: number | null;
-  turnover?: string | null;
+  turnaround?: string | null;
 }
 
 interface Category {
@@ -133,6 +133,8 @@ export default function CatalogueEditor({ data }: { data: any }) {
       const skuI = idx('sku');
       const nameI = idx('name');
       const catI = idx('category');
+      const costI = idx('cost');
+      const turnaroundI = idx('turnaround');
       // Map each tier to a column: prefer externalKey, fall back to tier name.
       const tierCol: { tierId: string; col: number }[] = [];
       for (const tier of tiers) {
@@ -153,9 +155,18 @@ export default function CatalogueEditor({ data }: { data: any }) {
           toast.show(t('addCategoryFirst'), 'error');
           return;
         }
+        const costRaw = costI >= 0 ? cells[costI] : '';
+        const costNum = costRaw != null && costRaw !== '' ? Number(costRaw) : null;
+        const turnaroundRaw = turnaroundI >= 0 ? cells[turnaroundI] : '';
         const created = await api<{ id: string }>('/catalogue/items', {
           method: 'POST',
-          body: { categoryId: category.id, name, sku },
+          body: {
+            categoryId: category.id,
+            name,
+            sku,
+            cost: costNum != null && Number.isFinite(costNum) ? costNum : undefined,
+            turnaround: turnaroundRaw && turnaroundRaw !== '' ? turnaroundRaw : undefined,
+          },
         });
         for (const { tierId, col } of tierCol) {
           const raw = cells[col];
@@ -230,7 +241,7 @@ export default function CatalogueEditor({ data }: { data: any }) {
                   );
                 })}
                 <td>{it.cost != null ? AED(it.cost) : <span className="muted">—</span>}</td>
-                <td>{it.turnover || <span className="muted">—</span>}</td>
+                <td>{it.turnaround || <span className="muted">—</span>}</td>
                 <td><button className="t-btn ghost" data-editprod={it.sku} onClick={() => setEditing(it)}>Edit</button></td>
               </tr>
             ))}
@@ -283,16 +294,23 @@ function EditProductModal({
     return out;
   });
   const [cost, setCost] = useState(item.cost != null ? String(item.cost) : '');
-  const [turnaround, setTurnaround] = useState(item.turnover ?? '');
+  const [turnaround, setTurnaround] = useState(item.turnaround ?? '');
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
-      // ItemDto / CatalogueItem model only persists name (+ sku/icon/sort/active).
-      // cost & turnaround have no backing columns, so they are not sent.
-      await api(`/catalogue/items/${item.id}`, { method: 'PATCH', body: { name } });
+      const costStr = cost.trim();
+      const costNum = costStr === '' ? null : Number(costStr);
+      await api(`/catalogue/items/${item.id}`, {
+        method: 'PATCH',
+        body: {
+          name,
+          cost: costNum != null && Number.isFinite(costNum) ? costNum : null,
+          turnaround: turnaround.trim() === '' ? null : turnaround.trim(),
+        },
+      });
 
       for (const tier of tiers) {
         const raw = prices[tier.id];
