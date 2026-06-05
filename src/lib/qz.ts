@@ -37,12 +37,17 @@ async function loadQz(): Promise<QZ> {
       qz.api.setPromiseType((resolver: any) => new Promise(resolver));
     }
     if (qz.api?.setSha256Type) {
-      qz.api.setSha256Type((data: string) => async () => {
-        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
-        return Array.from(new Uint8Array(buf))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-      });
+      // Must return the hash (or a Promise of it) DIRECTLY — not a function.
+      // Paired with setPromiseType above, qz-tray awaits this Promise during
+      // the signing handshake. The previous `() => async () => …` form handed
+      // qz a function where a digest was expected and would break real signing.
+      qz.api.setSha256Type((data: string) =>
+        crypto.subtle.digest('SHA-256', new TextEncoder().encode(data)).then((buf) =>
+          Array.from(new Uint8Array(buf))
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join(''),
+        ),
+      );
     }
 
     // Unsigned / dev-mode security: empty cert + empty signature.
@@ -170,18 +175,27 @@ export async function printHtml(
   await qz.print(config, [{ type: 'pixel', format: 'html', flavor: 'plain', data: html }]);
 }
 
-/** Send raw bytes (ESC/POS) to `printer` — used for the cash-drawer kick. */
-export async function printRaw(printer: string, bytes: string): Promise<void> {
+/**
+ * Send raw bytes (ESC/POS) to `printer`. `flavor` defaults to 'hex' because
+ * the drawer-kick pulse contains non-ASCII bytes (0x19, 0xFA) that get
+ * corrupted when sent as a 'plain' UTF-8 string.
+ */
+export async function printRaw(
+  printer: string,
+  data: string,
+  flavor: 'plain' | 'hex' = 'hex',
+): Promise<void> {
   await connectQz();
   const qz = await loadQz();
   const config = qz.configs.create(printer);
-  await qz.print(config, [{ type: 'raw', format: 'command', flavor: 'plain', data: bytes }]);
+  await qz.print(config, [{ type: 'raw', format: 'command', flavor, data }]);
 }
 
 /**
  * Open the cash drawer wired to the receipt printer via the standard
- * ESC/POS kick pulse (ESC p 0 25 250).
+ * ESC/POS kick pulse (ESC p 0 25 250 = 1B 70 00 19 FA). Sent as hex so the
+ * non-ASCII bytes survive transport intact.
  */
 export async function kickDrawer(printer: string): Promise<void> {
-  await printRaw(printer, '\x1B\x70\x00\x19\xFA');
+  await printRaw(printer, '1B700019FA', 'hex');
 }

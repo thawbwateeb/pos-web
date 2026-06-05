@@ -226,12 +226,9 @@ export default function CatalogueEditor({ data }: { data: any }) {
             {rows.map(({ ci, ii, cat, it }) => (
               <tr key={it.id} draggable data-ci={ci} data-ii={ii}>
                 <td><span className="draghandle" title="Drag to reorder">⠋⠋</span></td>
-                <td className="t-name">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <GarmentIcon name={it.name} iconKey={it.iconKey} size={18} />
-                    {it.name}
-                  </span>
-                </td>
+                {/* Design app.js:1631 — product row Item cell is name-only,
+                    no leading icon (the icon picker lives in the edit modal). */}
+                <td className="t-name">{it.name}</td>
                 <td><span className="pill muted">{cat.title}</span></td>
                 {TIER_KEYS.map((tk) => {
                   const tier = tierByKey(tk);

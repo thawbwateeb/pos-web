@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { api, eventStream } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
+import { useBootstrap } from '@/components/BootstrapContext';
+import { Icon } from '@/components/Icons';
 import { initials, shortTime } from '@/lib/format';
 import {
   PIC,
@@ -331,6 +333,9 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
   const [reply, setReply] = useState('');
   const toast = useToast();
   const tCommon = useTranslations('Common');
+  const t = useTranslations('Requests');
+  const bootstrap = useBootstrap();
+  const storeName = bootstrap.stores.find((s) => s.id === bootstrap.activeStoreId)?.name ?? '';
 
   // Load the selected request's full detail.
   useEffect(() => {
@@ -488,6 +493,23 @@ export default function RequestsScreen({ initial }: { initial: RequestItem[] }) 
 
   return (
     <div className="page">
+      {/* Design app.js:2081 — page-head with title, store sub, refresh. */}
+      <div className="page-head">
+        <div className="ph-l">
+          <h2>{t('title')}</h2>
+          <span className="sub">{t('subtitle', { store: storeName })}</span>
+        </div>
+        <div className="actions">
+          <button
+            className="btn btn-ghost btn-icon"
+            title={t('refresh')}
+            aria-label={t('refresh')}
+            onClick={refreshAll}
+          >
+            <Icon.refresh size={16} />
+          </button>
+        </div>
+      </div>
       <div className="req-wrap">
         <div className="req-list">
         <div className="req-list-h">

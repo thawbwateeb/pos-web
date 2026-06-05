@@ -11,7 +11,7 @@ import { useConfirm } from '@/components/ConfirmDialog';
 import { Icon } from '@/components/Icons';
 import FocusTrap from '@/components/FocusTrap';
 import Modal from '@/components/Modal';
-import { printReceipt, printLabels } from '@/lib/print';
+import { printReceipt, printLabels, printErrorKey } from '@/lib/print';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { OrdersBoard, OrderStatus, OrderType, Order, PaymentMethod } from '@/lib/types';
 import type { RackRow } from '../settings/racks/RacksScreen';
@@ -98,6 +98,7 @@ export default function OrdersBoardScreen({
   const tStatus = useTranslations('OrderStatus');
   const tType = useTranslations('Order');
   const tCommon = useTranslations('Common');
+  const tPrint = useTranslations('Print');
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -234,7 +235,7 @@ export default function OrdersBoardScreen({
       // local render has line items); best-effort, non-blocking.
       api<any>(`/orders/${o.id}`)
         .then((full) => printReceipt({ ...full, paid: true, primaryMethod: method } as any, o.storeId))
-        .catch(() => {});
+        .catch((err) => toast.show(tPrint(printErrorKey(err)), 'error'));
       refresh();
     } catch (e: any) {
       toast.show(e?.detail?.message || t('failedToUpdate'));
@@ -394,7 +395,7 @@ export default function OrdersBoardScreen({
                 await printReceipt(full as any, o.storeId);
                 toast.show(t('receiptSent', { number: o.number }));
               } catch (e: any) {
-                toast.show(e?.detail?.message || t('failedToUpdate'));
+                toast.show(tPrint(printErrorKey(e)), 'error');
               }
             }}
             onCancel={async () => {
@@ -622,6 +623,7 @@ function OrderDetailModal({
   const tStatus = useTranslations('OrderStatus');
   const tType = useTranslations('Order');
   const tMethod = useTranslations('PaymentMethod');
+  const tPrint = useTranslations('Print');
   const toast = useToast();
   const titleId = useId();
   const confirmTitleId = useId();
@@ -671,8 +673,10 @@ function OrderDetailModal({
         body: { orderId: order.id, method, amount: Number(order.total) },
       });
       toast.show(t('markedPaid', { number: order.number }));
-      // Print the receipt for the recorded payment (best-effort, local).
-      printReceipt({ ...order, paid: true, primaryMethod: method } as any, order.storeId).catch(() => {});
+      // Print the receipt for the recorded payment (non-blocking; QZ failure
+      // surfaces an error toast — no browser-dialog fallback).
+      printReceipt({ ...order, paid: true, primaryMethod: method } as any, order.storeId)
+        .catch((err) => toast.show(tPrint(printErrorKey(err)), 'error'));
       onChanged();
       await reload();
     } catch (e: any) {
@@ -1151,6 +1155,7 @@ function TaggingModal({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const t = useTranslations('OrdersBoard');
   const tCommon = useTranslations('Common');
+  const tPrint = useTranslations('Print');
   const toast = useToast();
   const titleId = useId();
 
@@ -1210,8 +1215,9 @@ function TaggingModal({
         method: 'POST',
         body: { type: 'LABEL', garmentTagId: row.id, targetHwKey: 'labels' },
       }).catch(() => {/* tag was created — print failure is non-fatal */});
-      // Also drive the local printer (QZ Tray / browser fallback) so the
-      // physical label comes out immediately, alongside the server job.
+      // Also drive the local QZ Tray printer so the physical label comes out
+      // immediately, alongside the server job. A QZ failure surfaces an error
+      // toast — no browser-dialog fallback.
       const index = slots.findIndex((s) => slotKey(s) === key);
       printLabels([{
         id: row.id,
@@ -1221,7 +1227,7 @@ function TaggingModal({
         customerName: order.customer?.fullName ?? null,
         index: index >= 0 ? index + 1 : null,
         total,
-      }], order.storeId).catch(() => {/* local print best-effort */});
+      }], order.storeId).catch((err) => toast.show(tPrint(printErrorKey(err)), 'error'));
       toast.show(t('tagPrinted'));
     } catch (e: any) {
       toast.show(e?.detail?.message || t('failedToUpdate'));

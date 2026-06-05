@@ -25,8 +25,6 @@ const GROUPS: { label: string; items: { id: string; href: string; label: string;
       { id: 'inventory',   href: '/settings/inventory',    label: 'Inventory',           Ico: Icon.box },
       { id: 'cashshift',   href: '/settings/shifts',       label: 'Cash & Shift',        Ico: Icon.card },
       { id: 'pickup',      href: '/settings/pickup',       label: 'Pickup & Delivery',   Ico: Icon.truck },
-      { id: 'drivers',     href: '/settings/drivers',      label: 'Drivers',             Ico: Icon.truck },
-      { id: 'areas',       href: '/settings/areas',        label: 'Service Areas',       Ico: Icon.zone },
       { id: 'racks',       href: '/settings/racks',        label: 'Racks',               Ico: Icon.box },
       { id: 'zones',       href: '/settings/zones',        label: 'Service Zones',       Ico: Icon.zone },
       { id: 'hours',       href: '/settings/hours',        label: 'Business Hours',      Ico: Icon.clock },

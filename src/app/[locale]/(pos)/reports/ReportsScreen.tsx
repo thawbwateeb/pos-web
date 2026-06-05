@@ -8,7 +8,7 @@ import { Icon } from '@/components/Icons';
 import { useToast } from '@/components/Toast';
 import { useBootstrap } from '@/components/BootstrapContext';
 import { api } from '@/lib/api-client';
-import { printZReport } from '@/lib/print';
+import { printZReport, printErrorKey } from '@/lib/print';
 import Modal from '@/components/Modal';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { MetaResponse } from '@/lib/meta-context';
@@ -48,6 +48,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   const locale = params.locale ?? 'en';
   const t = useTranslations('Reports');
   const tCommon = useTranslations('Common');
+  const tPrint = useTranslations('Print');
   const toast = useToast();
   const bootstrap = useBootstrap();
   const activeStoreName =
@@ -67,6 +68,12 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
   const ordersCount = overview.orders ?? 0;
   const refundsAmt = overview.refunds ?? 0;
   const avg = ordersCount ? Math.round(total / ordersCount) : 0;
+
+  // Real previous-period deltas for the KPI chips (replaces the design's
+  // hardcoded "▲ 12%" / "▲ 3"). null when there's no prior baseline.
+  const revenuePrev = overview.revenuePrev ?? 0;
+  const grossDeltaPct = revenuePrev > 0 ? Math.round(((total - revenuePrev) / revenuePrev) * 100) : null;
+  const newCustDelta = (overview.newCustomers ?? 0) - (overview.newCustomersPrev ?? 0);
 
   /* Cash / card / account from byMethod (real API data, mapped to design's
      three buckets). */
@@ -159,8 +166,8 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
 
   // ──── Print Z-Report handler ────
   // Build ZReportData from the overview the screen already has and print it
-  // locally via QZ (printZReport falls back to the browser print dialog when
-  // QZ Tray isn't reachable). No server SHIFT_REPORT round-trip needed.
+  // through QZ Tray. Hard-fails with an error toast when QZ can't print — no
+  // browser-dialog fallback. No server SHIFT_REPORT round-trip needed.
   async function handlePrintZ() {
     setPrintingZ(true);
     try {
@@ -184,7 +191,7 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
       );
       toast.show(t('zQueued'));
     } catch (err: any) {
-      toast.show(err?.detail?.message || t('zFailed'));
+      toast.show(tPrint(printErrorKey(err)), 'error');
     } finally {
       setPrintingZ(false);
     }
@@ -288,7 +295,11 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
           <div className="sv">
             <span className="cur">AED</span> {total.toFixed(0)}
           </div>
-          <div className="sd">{t('kpis.grossSub')}</div>
+          <div className="sd">
+            {grossDeltaPct != null && (
+              <b className={grossDeltaPct >= 0 ? 'up' : 'dn'}>{grossDeltaPct >= 0 ? '▲' : '▼'} {Math.abs(grossDeltaPct)}%</b>
+            )}{grossDeltaPct != null ? ' ' : ''}{t('kpis.grossSub')}
+          </div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.orders')}</div>
@@ -326,7 +337,11 @@ export default function ReportsScreen({ overview, hourly, range, from, to, meta:
         <div className="stat">
           <div className="sk">{t('kpis.newCustomers')}</div>
           <div className="sv">{newCust}</div>
-          <div className="sd">{t('kpis.newCustomersSub')}</div>
+          <div className="sd">
+            {newCustDelta !== 0 && (
+              <b className={newCustDelta >= 0 ? 'up' : 'dn'}>{newCustDelta >= 0 ? '▲' : '▼'} {Math.abs(newCustDelta)}</b>
+            )}{newCustDelta !== 0 ? ' ' : ''}{t('kpis.newCustomersSub')}
+          </div>
         </div>
         <div className="stat">
           <div className="sk">{t('kpis.turnaround')}</div>

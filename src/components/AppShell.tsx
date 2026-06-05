@@ -141,7 +141,7 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
     const b = bootstrap.business.branding;
     const s = bootstrap.stores.find((x) => x.id === bootstrap.activeStoreId);
     const tax = bootstrap.business.tax;
-    setPrintContext({
+    const base = {
       branding: {
         brandName: b?.brandName || bootstrap.business.name,
         receiptFooter: b?.receiptFooter,
@@ -149,7 +149,21 @@ function AppShellInner({ bootstrap: initial, children }: AppShellProps) {
       },
       store: { name: s?.name, address: s?.address, phone: s?.phone, trn: s?.trn },
       tax: tax ? { enabled: tax.enabled, label: tax.label, trn: tax.trn, onReceipt: tax.onReceipt } : null,
-    });
+    };
+    setPrintContext(base);
+    // Pull the store's configured receipt layout (Settings → Hardware →
+    // Configure Receipt Printer) so printed receipts honour the show/hide +
+    // ordering the manager set. Best-effort — receipts still print on failure.
+    const storeId = bootstrap.activeStoreId;
+    if (!storeId) return;
+    let alive = true;
+    api<{ printer?: { receipt?: unknown } } | null>(`/hardware/${storeId}`)
+      .then((hw) => {
+        const receipt = (hw?.printer as { receipt?: unknown } | undefined)?.receipt;
+        if (alive && Array.isArray(receipt)) setPrintContext({ ...base, receiptLayout: receipt as never });
+      })
+      .catch(() => {});
+    return () => { alive = false; };
   }, [bootstrap]);
 
   useEffect(() => { autoConnectQz(); }, []);

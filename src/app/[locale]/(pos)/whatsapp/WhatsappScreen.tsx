@@ -103,6 +103,7 @@ export default function WhatsappScreen({
   const threadRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('WhatsApp');
+  const tCommon = useTranslations('Common');
   const toast = useToast();
   const router = useRouter();
   const params = useParams<{ locale: string }>();
@@ -204,13 +205,19 @@ export default function WhatsappScreen({
     toast.show(t('markedUnread'));
   }
 
-  function clearMessages() {
+  async function clearMessages() {
     setMenuOpen(false);
-    if (!thread) return;
+    if (!thread || !activeId) return;
     if (!window.confirm(t('clearConfirm'))) return;
-    // No server-side clear endpoint exists; clear the local thread view.
-    setThread({ ...thread, messages: [] });
-    toast.show(t('messagesCleared'));
+    try {
+      // Real server-side clear — deletes the conversation's message history.
+      await api(`/whatsapp/conversations/${activeId}/messages`, { method: 'DELETE' });
+      setThread({ ...thread, messages: [] });
+      refreshSidebar();
+      toast.show(t('messagesCleared'));
+    } catch {
+      toast.show(tCommon('failed'), 'error');
+    }
   }
 
   // Design whatsapp.js:120/178 — "Create order" for this customer. The new
@@ -390,7 +397,7 @@ export default function WhatsappScreen({
         {/* MAIN THREAD — design whatsapp.js:95 renders the empty state as
             <div class="wa-main wa-empty">, with both classes on the SAME
             element. Empty-logo is a tiny arc SVG, not the full WhatsApp logo. */}
-        {!thread ? (
+        {!activeId ? (
           <section className="wa-main wa-empty">
             <div className="wa-empty-in">
               <div className="wa-empty-logo">
@@ -402,6 +409,10 @@ export default function WhatsappScreen({
               <p>{t('emptyHint')}</p>
             </div>
           </section>
+        ) : !thread ? (
+          // A conversation is selected but its messages are still loading —
+          // render a blank main panel rather than flashing the empty state.
+          <section className="wa-main" aria-busy="true" />
         ) : (
           <section className="wa-main">
             <>

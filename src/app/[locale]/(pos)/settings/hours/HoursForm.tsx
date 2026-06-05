@@ -25,8 +25,9 @@ import { useToast } from '@/components/Toast';
 
 const DAY_KEYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
 type DayKey = (typeof DAY_KEYS)[number];
+// Design app.js:1423 renders the full day name (Monday…Sunday).
 const SHORT: Record<DayKey, string> = {
-  MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun',
+  MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday', FRI: 'Friday', SAT: 'Saturday', SUN: 'Sunday',
 };
 
 interface H { id?: string; day: DayKey; open: boolean; slots: [string, string][] }

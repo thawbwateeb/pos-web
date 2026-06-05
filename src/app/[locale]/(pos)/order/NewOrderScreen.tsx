@@ -10,7 +10,7 @@ import { api } from '@/lib/api-client';
 import { AED, initials } from '@/lib/format';
 import type { MetaResponse } from '@/lib/meta-context';
 import type { Bootstrap, CatalogueResponse, Customer, Order, OrderType, PaymentMethod, Promo } from '@/lib/types';
-import { enqueuePrintJob, printReceipt } from '@/lib/print';
+import { enqueuePrintJob, printReceipt, printErrorKey } from '@/lib/print';
 import Modal from '@/components/Modal';
 
 interface CartLine {
@@ -66,6 +66,7 @@ export default function NewOrderScreen({
   const t = useTranslations('Order');
   const tCommon = useTranslations('Common');
   const tNew = useTranslations('NewOrder');
+  const tPrint = useTranslations('Print');
 
   const tiers = catalogue.tiers;
   const isEditing = !!editing;
@@ -200,7 +201,7 @@ export default function NewOrderScreen({
       await enqueuePrintJob({ type: 'RECEIPT', orderId: editing.id, storeId });
       toast.show(t('receiptQueued', { number: editing.number }));
     } catch (err: any) {
-      toast.show(err?.detail?.message || t('receiptFailed'));
+      toast.show(tPrint(printErrorKey(err)), 'error');
     }
   }
 
@@ -256,9 +257,11 @@ export default function NewOrderScreen({
       } else {
         await api('/payments', { method: 'POST', body: { orderId: order.id, method: pay.method, amount: Number(order.total) } });
         toast.show(t('orderCharged', { number: order.number, amount: AED(order.total) }));
-        // Print the receipt for the just-created + paid order. Best-effort:
-        // a printer/QZ failure must not block the flow, so we don't await.
-        printReceipt({ ...order, primaryMethod: pay.method, paid: true }, storeId).catch(() => {});
+        // Print the receipt for the just-created + paid order. We don't block
+        // the flow on it, but a QZ/printer failure surfaces an error toast
+        // (no silent browser-dialog fallback).
+        printReceipt({ ...order, primaryMethod: pay.method, paid: true }, storeId)
+          .catch((err) => toast.show(tPrint(printErrorKey(err)), 'error'));
       }
       resetCart();
       setPay(null);

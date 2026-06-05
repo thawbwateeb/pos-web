@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 import type { WhatsappSettings } from '../../whatsapp/types';
@@ -65,14 +66,16 @@ export default function ChatbotSettings({ initial }: { initial: WhatsappSettings
   });
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const tCommon = useTranslations('Common');
+  const tBot = useTranslations('ChatbotSettings');
 
   async function save() {
     setBusy(true);
     try {
       await api('/whatsapp/settings', { method: 'PATCH', body: f });
-      toast.show('Chatbot settings saved');
+      toast.show(tBot('saved'));
     } catch {
-      toast.show('Failed to save');
+      toast.show(tCommon('saveFailed'), 'error');
     } finally {
       setBusy(false);
     }
@@ -226,9 +229,9 @@ export default function ChatbotSettings({ initial }: { initial: WhatsappSettings
             onClick={async () => {
               try {
                 const r = await api<{ sent: boolean; to: string }>('/whatsapp/test', { method: 'POST', body: {} });
-                toast.show(`Test message sent to ${r.to}`);
+                toast.show(tBot('testSent', { to: r.to }));
               } catch (e: any) {
-                toast.show(e?.detail?.message || 'Could not send test message');
+                toast.show(e?.detail?.message || tBot('testFailed'), 'error');
               }
             }}
           >

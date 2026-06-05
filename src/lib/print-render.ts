@@ -64,9 +64,32 @@ export interface ReceiptOrder {
   taxAmount?: string | number;
   primaryMethod?: string | null;
   paid?: boolean;
-  customer?: { fullName?: string | null; phone?: string | null } | null;
+  customer?: { fullName?: string | null; phone?: string | null; code?: string | null } | null;
   items?: Array<{ nameSnapshot: string; tierSnapshot: string; qty: number; lineTotal: string | number }>;
 }
+
+/**
+ * Ordered, toggleable receipt sections — the production counterpart of the
+ * design's "Receipt content · drag to reorder, toggle to show/hide" list
+ * (app.js hwConfig.printer.receipt). Persisted per store in StoreHardware
+ * and fed in via the print context. `logo/orderNo/customer/custId/items/qr/
+ * footer` are block-level (their position in the array controls print order);
+ * `tier` and `vat` are inline flags consumed inside the items block.
+ */
+export interface ReceiptLayoutItem { k: string; label?: string; on: boolean }
+export type ReceiptLayout = ReceiptLayoutItem[];
+
+export const DEFAULT_RECEIPT_LAYOUT: ReceiptLayout = [
+  { k: 'logo', label: 'Store logo', on: true },
+  { k: 'orderNo', label: 'Order number & date', on: true },
+  { k: 'customer', label: 'Customer name & phone', on: true },
+  { k: 'custId', label: 'Customer ID', on: true },
+  { k: 'items', label: 'Itemised list', on: true },
+  { k: 'tier', label: 'Service tier per item', on: true },
+  { k: 'vat', label: 'VAT breakdown', on: true },
+  { k: 'qr', label: 'Tracking / payment QR code', on: true },
+  { k: 'footer', label: 'Footer message', on: true },
+];
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: 'Cash', CARD: 'Card', APPLE_PAY: 'Apple Pay',
@@ -79,16 +102,29 @@ export function renderReceipt(
   store: ReceiptStore = {},
   tax?: ReceiptTax | null,
   widthMm = 80,
+  layout?: ReceiptLayout | null,
 ): string {
   const cur = branding.currency || 'AED';
   const d = new Date(order.createdAt);
   const when = d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  // Resolve the section toggles. Unknown/missing keys default to ON so an
+  // empty layout still prints a complete receipt.
+  const items = layout && layout.length ? layout : DEFAULT_RECEIPT_LAYOUT;
+  const flags = new Map<string, boolean>(items.map((i) => [i.k, i.on !== false]));
+  const show = (k: string) => flags.get(k) !== false;
+  // Block-level sections render in the configured order; inline flags
+  // (tier, vat) are consumed wherever they apply, not as standalone blocks.
+  const blockOrder = items.map((i) => i.k).filter((k) => k !== 'tier' && k !== 'vat');
+  for (const k of ['logo', 'orderNo', 'customer', 'custId', 'items', 'qr', 'footer'])
+    if (!blockOrder.includes(k)) blockOrder.push(k);
+
   const lines = (order.items ?? [])
     .map(
       (it) =>
-        `<tr><td class="qty">${it.qty}×</td><td>${esc(it.nameSnapshot)}<div class="mut">${esc(it.tierSnapshot)}</div></td>` +
-        `<td class="amt">${money(cur, it.lineTotal)}</td></tr>`,
+        `<tr><td class="qty">${it.qty}×</td><td>${esc(it.nameSnapshot)}` +
+        (show('tier') ? `<div class="mut">${esc(it.tierSnapshot)}</div>` : '') +
+        `</td><td class="amt">${money(cur, it.lineTotal)}</td></tr>`,
     )
     .join('');
 
@@ -103,29 +139,41 @@ export function renderReceipt(
     );
   if (Number(order.deliveryFee) > 0)
     totalsRows.push(`<div class="row"><span>Delivery</span><span>${money(cur, order.deliveryFee!)}</span></div>`);
-  if (tax?.enabled && tax.onReceipt && Number(order.taxAmount) > 0)
+  if (show('vat') && tax?.enabled && tax.onReceipt && Number(order.taxAmount) > 0)
     totalsRows.push(`<div class="row"><span>${esc(tax.label)}</span><span>${money(cur, order.taxAmount!)}</span></div>`);
 
-  const body =
-    `<div class="c"><div class="bn">${esc(branding.brandName)}</div>` +
-    (store.name ? `<div class="mut">${esc(store.name)}</div>` : '') +
-    (store.address ? `<div class="mut">${esc(store.address)}</div>` : '') +
-    (store.phone ? `<div class="mut">${esc(store.phone)}</div>` : '') +
-    (tax?.trn || store.trn ? `<div class="mut">TRN ${esc(tax?.trn || store.trn)}</div>` : '') +
-    `</div>` +
-    `<div class="hr"></div>` +
-    `<div class="row"><span class="b">Order #${order.number}</span><span class="mut">${esc(when)}</span></div>` +
-    (order.customer?.fullName
-      ? `<div class="row"><span>${esc(order.customer.fullName)}</span><span class="mut">${esc(order.customer.phone ?? '')}</span></div>`
-      : `<div class="mut">Walk-in</div>`) +
-    `<div class="hr"></div>` +
-    `<table>${lines}</table>` +
-    `<div class="hr"></div>` +
-    totalsRows.join('') +
-    `<div class="row t"><span>TOTAL</span><span>${money(cur, order.total)}</span></div>` +
-    `<div class="row mut"><span>${order.paid ? 'Paid' : 'Unpaid'}${order.primaryMethod ? ` · ${METHOD_LABEL[order.primaryMethod] ?? order.primaryMethod}` : ''}</span></div>` +
-    `<div class="hr"></div>` +
-    `<div class="c mut">${esc(branding.receiptFooter || 'Thank you — see you soon')}</div>`;
+  const SECTION: Record<string, () => string> = {
+    logo: () =>
+      `<div class="c"><div class="bn">${esc(branding.brandName)}</div>` +
+      (store.name ? `<div class="mut">${esc(store.name)}</div>` : '') +
+      (store.address ? `<div class="mut">${esc(store.address)}</div>` : '') +
+      (store.phone ? `<div class="mut">${esc(store.phone)}</div>` : '') +
+      (tax?.trn || store.trn ? `<div class="mut">TRN ${esc(tax?.trn || store.trn)}</div>` : '') +
+      `</div><div class="hr"></div>`,
+    orderNo: () =>
+      `<div class="row"><span class="b">Order #${order.number}</span><span class="mut">${esc(when)}</span></div>`,
+    customer: () =>
+      order.customer?.fullName
+        ? `<div class="row"><span>${esc(order.customer.fullName)}</span><span class="mut">${esc(order.customer.phone ?? '')}</span></div>`
+        : `<div class="mut">Walk-in</div>`,
+    custId: () =>
+      order.customer?.code ? `<div class="row mut"><span>Customer ID</span><span>${esc(order.customer.code)}</span></div>` : '',
+    items: () =>
+      `<div class="hr"></div><table>${lines}</table><div class="hr"></div>` +
+      totalsRows.join('') +
+      `<div class="row t"><span>TOTAL</span><span>${money(cur, order.total)}</span></div>` +
+      `<div class="row mut"><span>${order.paid ? 'Paid' : 'Unpaid'}${order.primaryMethod ? ` · ${METHOD_LABEL[order.primaryMethod] ?? order.primaryMethod}` : ''}</span></div>`,
+    qr: () =>
+      `<div class="hr"></div><div class="c" style="margin:4px 0">${code128Svg(String(order.number), Math.round(widthMm * 3.2), 46)}` +
+      `<div class="mut" style="letter-spacing:.1em">#${order.number}</div></div>`,
+    footer: () =>
+      `<div class="hr"></div><div class="c mut">${esc(branding.receiptFooter || 'Thank you — see you soon')}</div>`,
+  };
+
+  const body = blockOrder
+    .filter((k) => show(k) && SECTION[k])
+    .map((k) => SECTION[k]())
+    .join('');
 
   return shell(widthMm, body);
 }

@@ -16,6 +16,10 @@ export interface ReportsOverview {
   range: { from: string; to: string };
   orders: number;
   revenue: number;
+  /** Revenue in the previous comparable window — for the KPI delta chip. */
+  revenuePrev: number;
+  /** New customers in the previous comparable window — for the KPI delta chip. */
+  newCustomersPrev: number;
   collected: number;
   refunds: number;
   refundCount: number;

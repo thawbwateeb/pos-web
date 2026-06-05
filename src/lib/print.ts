@@ -14,6 +14,7 @@ import {
   type ReceiptBranding,
   type ReceiptStore,
   type ReceiptTax,
+  type ReceiptLayout,
   type LabelTag,
   type ZReportData,
 } from './print-render';
@@ -73,39 +74,55 @@ export function setQzPrinterConfig(storeId: string | undefined, cfg: Partial<QzP
 
 /* ───────────────────────────── receipt context cache ─────────────────── */
 
-interface PrintContext { branding: ReceiptBranding; store: ReceiptStore; tax: ReceiptTax | null }
+interface PrintContext { branding: ReceiptBranding; store: ReceiptStore; tax: ReceiptTax | null; receiptLayout?: ReceiptLayout | null }
 let ctx: PrintContext | null = null;
 
 /** AppShell calls this from bootstrap so any screen can print without prop-drilling. */
 export function setPrintContext(value: PrintContext): void { ctx = value; }
 function brandName(): string { return ctx?.branding.brandName || 'Thawb Wa Teeb'; }
 
-/* ───────────────────────────── browser fallback ──────────────────────── */
+/* ───────────────────────────── errors ────────────────────────────────── */
 
-/** Last-resort print when QZ Tray isn't installed: render in a hidden iframe. */
-function printViaBrowser(html: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') return resolve();
-    const frame = document.createElement('iframe');
-    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
-    frame.srcdoc = html;
-    frame.onload = () => {
-      try { frame.contentWindow?.focus(); frame.contentWindow?.print(); } catch { /* noop */ }
-      setTimeout(() => { frame.remove(); resolve(); }, 1000);
-    };
-    document.body.appendChild(frame);
-  });
+export type PrintErrorCode = 'notConnected' | 'noPrinter' | 'failed';
+
+/** Thrown when a print can't be completed through QZ Tray. There is NO
+ *  browser-print fallback — every print goes through QZ or fails loudly. */
+export class PrintError extends Error {
+  code: PrintErrorCode;
+  constructor(code: PrintErrorCode, message: string) {
+    super(message);
+    this.name = 'PrintError';
+    this.code = code;
+  }
 }
 
+/** Map any caught value to a `Print` i18n key for the error toast. */
+export function printErrorKey(e: unknown): PrintErrorCode {
+  return e instanceof PrintError ? e.code : 'failed';
+}
+
+/**
+ * Print `html` through QZ Tray. Hard-fails (throws PrintError) when QZ Tray
+ * isn't connected, no printer is configured, or the print call errors — the
+ * caller surfaces an error toast. No silent browser-print fallback.
+ */
 async function sendHtml(printer: string | null, html: string, widthMm: number, copies: number): Promise<void> {
-  // QZ Tray when reachable; browser print dialog otherwise.
   try {
     await connectQz();
-    const target = printer || (await defaultPrinter());
-    if (!target) throw new Error('no printer');
-    await printHtml(target, html, { widthMm, copies });
   } catch {
-    await printViaBrowser(html);
+    throw new PrintError('notConnected', 'QZ Tray is not connected');
+  }
+  if (getQzStatus() !== 'connected') {
+    throw new PrintError('notConnected', 'QZ Tray is not connected');
+  }
+  const target = printer || (await defaultPrinter());
+  if (!target) {
+    throw new PrintError('noPrinter', 'No printer selected for this terminal');
+  }
+  try {
+    await printHtml(target, html, { widthMm, copies });
+  } catch (e) {
+    throw new PrintError('failed', e instanceof Error ? e.message : 'Print failed');
   }
 }
 
@@ -113,7 +130,7 @@ async function sendHtml(printer: string | null, html: string, widthMm: number, c
 
 export async function printReceipt(order: ReceiptOrder & { id?: string }, storeId?: string): Promise<void> {
   const cfg = getQzPrinterConfig(storeId);
-  const html = renderReceipt(order, ctx?.branding ?? { brandName: brandName() }, ctx?.store ?? {}, ctx?.tax, cfg.widthMm);
+  const html = renderReceipt(order, ctx?.branding ?? { brandName: brandName() }, ctx?.store ?? {}, ctx?.tax, cfg.widthMm, ctx?.receiptLayout);
   await sendHtml(cfg.receiptPrinter, html, cfg.widthMm, cfg.copies);
   // Kick the drawer on cash payments if the terminal is configured for it.
   if (cfg.drawerKick && order.primaryMethod === 'CASH' && getQzStatus() === 'connected') {
@@ -150,7 +167,7 @@ export async function testPrint(device: 'receipt' | 'label', storeId?: string): 
       items: [{ nameSnapshot: 'Test print', tierSnapshot: 'Diagnostic', qty: 1, lineTotal: 0 }],
       paid: true, primaryMethod: 'CASH',
     },
-    ctx?.branding ?? { brandName: brandName() }, ctx?.store ?? {}, ctx?.tax, cfg.widthMm,
+    ctx?.branding ?? { brandName: brandName() }, ctx?.store ?? {}, ctx?.tax, cfg.widthMm, ctx?.receiptLayout,
   );
   await sendHtml(cfg.receiptPrinter, html, cfg.widthMm, 1);
 }
@@ -158,18 +175,16 @@ export async function testPrint(device: 'receipt' | 'label', storeId?: string): 
 /* ───────────────────────────── compat shim ───────────────────────────── */
 
 /**
- * Backward-compatible entry point. Resolves the data a QZ render needs, prints
- * locally, and falls back to the server queue when that isn't possible.
+ * Backward-compatible entry point. Prints through QZ Tray and throws a
+ * PrintError on failure — no server-queue or browser fallback. The caller
+ * surfaces the error toast.
  */
 export async function enqueuePrintJob(job: PrintJob): Promise<PrintJobResult> {
-  try {
-    if (job.type === 'RECEIPT') {
-      const order = await api<ReceiptOrder & { id: string }>(`/orders/${job.orderId}`, { storeId: job.storeId });
-      await printReceipt(order, job.storeId);
-      return { id: job.orderId, status: 'SENT' };
-    }
-  } catch {
-    /* fall through to server enqueue */
+  if (job.type === 'RECEIPT') {
+    const order = await api<ReceiptOrder & { id: string }>(`/orders/${job.orderId}`, { storeId: job.storeId });
+    await printReceipt(order, job.storeId);
+    return { id: job.orderId, status: 'SENT' };
   }
+  // Non-receipt job types are server-side reports/labels with no local render.
   return enqueueServerPrintJob(job);
 }
